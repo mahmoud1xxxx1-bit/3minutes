@@ -5,7 +5,7 @@ import '../domain/mini_game_contract.dart';
 class GameRegistry {
   const GameRegistry._();
 
-  static const int version = 1;
+  static const int version = 2;
 
   static const List<MiniGameDescriptor> games = [
     MiniGameDescriptor(
@@ -68,8 +68,35 @@ class GameRegistry {
       throw ArgumentError.value(count, 'count', 'Must fit the registry size.');
     }
 
-    final shuffled = List<MiniGameDescriptor>.of(games);
-    shuffled.shuffle(Random(seed));
-    return List<MiniGameDescriptor>.unmodifiable(shuffled.take(count));
+    final random = Random(seed);
+
+    if (count < MiniGameCategory.values.length) {
+      final shuffled = List<MiniGameDescriptor>.of(games)..shuffle(random);
+      return List<MiniGameDescriptor>.unmodifiable(shuffled.take(count));
+    }
+
+    final selected = <MiniGameDescriptor>[];
+    final remaining = List<MiniGameDescriptor>.of(games);
+
+    for (final category in MiniGameCategory.values) {
+      final categoryGames = remaining
+          .where((game) => game.category == category)
+          .toList(growable: false)
+        ..shuffle(random);
+
+      if (categoryGames.isEmpty) {
+        throw StateError('Registry is missing the ${category.name} category.');
+      }
+
+      final pick = categoryGames.first;
+      selected.add(pick);
+      remaining.removeWhere((game) => game.id == pick.id);
+    }
+
+    remaining.shuffle(random);
+    selected.addAll(remaining.take(count - selected.length));
+    selected.shuffle(random);
+
+    return List<MiniGameDescriptor>.unmodifiable(selected);
   }
 }
