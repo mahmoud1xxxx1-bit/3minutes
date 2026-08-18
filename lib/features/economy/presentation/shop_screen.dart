@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../data/cosmetic_catalog.dart';
 import '../data/economy_backend.dart';
 import '../domain/cosmetic_item.dart';
+import 'cosmetic_preview.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({
@@ -24,13 +25,6 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen> {
   String? _busyItemId;
   String? _message;
-
-  IconData _iconFor(CosmeticSlot slot) => switch (slot) {
-        CosmeticSlot.avatarFrame => Icons.crop_square_rounded,
-        CosmeticSlot.badge => Icons.workspace_premium_rounded,
-        CosmeticSlot.profileBackground => Icons.wallpaper_rounded,
-        CosmeticSlot.nameStyle => Icons.text_fields_rounded,
-      };
 
   String _slotLabel(AppLocalizations l10n, CosmeticSlot slot) => switch (slot) {
         CosmeticSlot.avatarFrame => l10n.avatarFrame,
@@ -297,7 +291,6 @@ class _ShopScreenState extends State<ShopScreen> {
             itemName: _itemName(l10n, item),
             slotLabel: _slotLabel(l10n, item.slot),
             rarityLabel: _rarityLabel(l10n, item.rarity),
-            icon: _iconFor(item.slot),
             purchasesEnabled: purchasesEnabled,
             owned: inventory?.ownedCosmeticIds.contains(item.id) ?? false,
             equipped: inventory == null ? false : _isEquipped(inventory, item),
@@ -318,7 +311,6 @@ class _CosmeticCard extends StatelessWidget {
     required this.itemName,
     required this.slotLabel,
     required this.rarityLabel,
-    required this.icon,
     required this.purchasesEnabled,
     required this.owned,
     required this.equipped,
@@ -331,7 +323,6 @@ class _CosmeticCard extends StatelessWidget {
   final String itemName;
   final String slotLabel;
   final String rarityLabel;
-  final IconData icon;
   final bool purchasesEnabled;
   final bool owned;
   final bool equipped;
@@ -360,15 +351,10 @@ class _CosmeticCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: rarityColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: rarityColor.withValues(alpha: 0.35)),
-            ),
-            child: Icon(icon, color: rarityColor),
+          CosmeticPreview(
+            item: item,
+            rarityColor: rarityColor,
+            size: 58,
           ),
           const SizedBox(width: GameSpacing.md),
           Expanded(
