@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../match/data/social_match_backend.dart';
 import '../../profile/domain/player_profile.dart';
 import '../data/room_backend.dart';
 import '../data/social_backend.dart';
@@ -16,11 +17,13 @@ class RoomHubScreen extends StatefulWidget {
     required this.profile,
     required this.roomBackend,
     required this.socialBackend,
+    required this.socialMatchBackend,
   });
 
   final PlayerProfile profile;
   final RoomBackend roomBackend;
   final SocialBackend socialBackend;
+  final SocialMatchBackend socialMatchBackend;
 
   @override
   State<RoomHubScreen> createState() => _RoomHubScreenState();
@@ -114,6 +117,7 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
           profile: widget.profile,
           roomBackend: widget.roomBackend,
           socialBackend: widget.socialBackend,
+          socialMatchBackend: widget.socialMatchBackend,
         ),
       ),
     );
