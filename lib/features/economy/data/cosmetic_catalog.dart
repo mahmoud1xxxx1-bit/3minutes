@@ -3,6 +3,8 @@ import '../domain/cosmetic_item.dart';
 class CosmeticCatalog {
   const CosmeticCatalog._();
 
+  static const int version = 1;
+
   static const items = <CosmeticItem>[
     CosmeticItem(
       id: 'frame_classic',
@@ -59,5 +61,20 @@ class CosmeticCatalog {
       if (item.id == id) return item;
     }
     return null;
+  }
+
+  static void validate() {
+    final ids = <String>{};
+    for (final item in items) {
+      if (item.id.trim().isEmpty || !ids.add(item.id)) {
+        throw StateError('Cosmetic catalog contains an invalid or duplicate id.');
+      }
+      if (item.name.trim().isEmpty) {
+        throw StateError('Cosmetic catalog contains an empty name.');
+      }
+      if (item.coinPrice < 0) {
+        throw StateError('Cosmetic catalog contains a negative price.');
+      }
+    }
   }
 }
