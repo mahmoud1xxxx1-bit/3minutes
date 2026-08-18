@@ -5,6 +5,7 @@ import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/domain/match_ticket.dart';
+import '../../match/presentation/match_history_screen.dart';
 import '../../match/presentation/match_room_screen.dart';
 import '../../match/presentation/matchmaking_screen.dart';
 import '../../profile/data/profile_repository.dart';
@@ -37,6 +38,20 @@ class HomeScreen extends StatelessWidget {
             title: const Text(AppConfig.appName),
             actions: [
               IconButton(
+                tooltip: 'Match history',
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => MatchHistoryScreen(
+                        uid: user.uid,
+                        matchBackend: matchBackend,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.history),
+              ),
+              IconButton(
                 tooltip: 'Sign out',
                 onPressed: authService.signOut,
                 icon: const Icon(Icons.logout),
@@ -51,10 +66,7 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   _PlayerCard(profile: profile),
                   const Spacer(),
-                  _PlayButton(
-                    profile: profile,
-                    matchBackend: matchBackend,
-                  ),
+                  _PlayButton(profile: profile, matchBackend: matchBackend),
                   const SizedBox(height: 12),
                   Text(
                     '3:00 • ${AppConfig.gamesPerMatch} mini-games',
@@ -109,10 +121,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _PlayButton extends StatelessWidget {
-  const _PlayButton({
-    required this.profile,
-    required this.matchBackend,
-  });
+  const _PlayButton({required this.profile, required this.matchBackend});
 
   final PlayerProfile? profile;
   final MatchBackend matchBackend;
@@ -145,7 +154,6 @@ class _PlayButton extends StatelessWidget {
               );
               return;
             }
-
             Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => MatchmakingScreen(
@@ -181,10 +189,7 @@ class _PlayerCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const CircleAvatar(
-              radius: 28,
-              child: Icon(Icons.person, size: 30),
-            ),
+            const CircleAvatar(radius: 28, child: Icon(Icons.person, size: 30)),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -199,9 +204,7 @@ class _PlayerCard extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'Level ${profile?.level ?? 1} • ${profile?.rankPoints ?? 0} RP',
-                  ),
+                  Text('Level ${profile?.level ?? 1} • ${profile?.rankPoints ?? 0} RP'),
                 ],
               ),
             ),
@@ -221,11 +224,7 @@ class _PlayerCard extends StatelessWidget {
 }
 
 class _MenuTile extends StatelessWidget {
-  const _MenuTile({
-    required this.icon,
-    required this.label,
-    this.onTap,
-  });
+  const _MenuTile({required this.icon, required this.label, this.onTap});
 
   final IconData icon;
   final String label;
