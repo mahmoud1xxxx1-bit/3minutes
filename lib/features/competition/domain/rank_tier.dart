@@ -4,7 +4,9 @@ enum RankTier {
   gold,
   platinum,
   diamond,
-  master;
+  master,
+  grandmaster,
+  legend;
 
   String get label => switch (this) {
         RankTier.bronze => 'Bronze',
@@ -13,6 +15,8 @@ enum RankTier {
         RankTier.platinum => 'Platinum',
         RankTier.diamond => 'Diamond',
         RankTier.master => 'Master',
+        RankTier.grandmaster => 'Grandmaster',
+        RankTier.legend => 'Legend',
       };
 }
 
@@ -29,14 +33,17 @@ class RankBand {
 class RankPolicy {
   const RankPolicy._();
 
-  // Initial bands are centralized and intentionally easy to tune before launch.
+  // Final launch ladder. These thresholds are shared by presentation,
+  // settlement, leaderboard, season rewards and server authority.
   static const bands = <RankBand>[
     RankBand(tier: RankTier.bronze, minimumRp: 0),
     RankBand(tier: RankTier.silver, minimumRp: 500),
-    RankBand(tier: RankTier.gold, minimumRp: 1000),
-    RankBand(tier: RankTier.platinum, minimumRp: 1600),
-    RankBand(tier: RankTier.diamond, minimumRp: 2300),
-    RankBand(tier: RankTier.master, minimumRp: 3200),
+    RankBand(tier: RankTier.gold, minimumRp: 1200),
+    RankBand(tier: RankTier.platinum, minimumRp: 2200),
+    RankBand(tier: RankTier.diamond, minimumRp: 3500),
+    RankBand(tier: RankTier.master, minimumRp: 5000),
+    RankBand(tier: RankTier.grandmaster, minimumRp: 7000),
+    RankBand(tier: RankTier.legend, minimumRp: 10000),
   ];
 
   static RankTier tierFor(int rankPoints) {
