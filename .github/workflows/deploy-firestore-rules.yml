@@ -79,3 +79,5 @@ jobs:
       - name: Report missing credentials
         if: steps.auth.outputs.mode == 'missing'
         run: echo 'Firestore rules were NOT deployed because Firebase credentials are unavailable to GitHub Actions.'
+
+# Diagnostic marker only. Never merge this branch.
