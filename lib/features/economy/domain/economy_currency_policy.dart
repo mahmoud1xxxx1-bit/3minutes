@@ -37,8 +37,6 @@ class EconomyCurrencyPolicy {
 
   static bool canConvert(EconomyCurrency from, EconomyCurrency to) {
     if (from == to) return false;
-    // Prestige stars are permanent proof of competitive history and therefore
-    // are never exchangeable in either direction.
     if (from == EconomyCurrency.prestigeStars ||
         to == EconomyCurrency.prestigeStars) {
       return false;
@@ -57,7 +55,10 @@ class CoinRewardSchedule {
 
   static int levelUpReward(int level) {
     final safeLevel = level < 1 ? 1 : level;
-    return (30 + (safeLevel - 1) * 5).clamp(30, 100);
+    final reward = 30 + (safeLevel - 1) * 5;
+    if (reward < 30) return 30;
+    if (reward > 100) return 100;
+    return reward;
   }
 }
 
