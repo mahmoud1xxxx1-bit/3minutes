@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/core/config/app_config.dart';
+import 'package:game/features/competition/domain/rank_tier.dart';
+import 'package:game/features/competition/domain/season.dart';
 import 'package:game/features/match/domain/match_outcome.dart';
 import 'package:game/features/match/domain/match_progress.dart';
 import 'package:game/features/match/domain/match_runtime.dart';
@@ -8,6 +10,7 @@ import 'package:game/features/minigames/data/game_registry.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
 import 'package:game/features/profile/domain/player_name_rules.dart';
 import 'package:game/features/profile/domain/player_profile.dart';
+import 'package:game/features/progression/domain/player_progression.dart';
 
 void main() {
   test('match configuration stays fixed at three minutes', () {
@@ -206,5 +209,26 @@ void main() {
       ),
       MatchOutcome.playerA,
     );
+  });
+
+  test('rank policy maps rp to centralized tiers', () {
+    expect(RankPolicy.tierFor(0), RankTier.bronze);
+    expect(RankPolicy.tierFor(500), RankTier.silver);
+    expect(RankPolicy.tierFor(1000), RankTier.gold);
+    expect(RankPolicy.tierFor(3200), RankTier.master);
+    expect(RankPolicy.tierFor(-100), RankTier.bronze);
+  });
+
+  test('season policy stays fixed at thirty days', () {
+    final start = DateTime.utc(2026, 8, 1);
+    expect(SeasonPolicy.duration, const Duration(days: 30));
+    expect(SeasonPolicy.endFor(start), start.add(const Duration(days: 30)));
+  });
+
+  test('xp requirement grows predictably by level', () {
+    expect(ProgressionPolicy.xpRequiredForLevel(1), 100);
+    expect(ProgressionPolicy.xpRequiredForLevel(2), 150);
+    expect(ProgressionPolicy.xpRequiredForLevel(10), 550);
+    expect(ProgressionPolicy.xpRequiredForLevel(0), 100);
   });
 }
