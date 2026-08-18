@@ -23,12 +23,24 @@ class PlayerFriendCodePolicy {
     return normalized.substring(0, end);
   }
 
+  static int suffixForUid(String uid) {
+    var hash = 17;
+    for (final unit in uid.codeUnits) {
+      hash = ((hash * 31) + unit) & 0x7fffffff;
+    }
+    return hash % 10000;
+  }
+
   static String compose({
     required String name,
     required int suffix,
   }) {
     final safeSuffix = suffix.abs() % 10000;
     return '${normalizeNamePrefix(name)}#${safeSuffix.toString().padLeft(4, '0')}';
+  }
+
+  static String forPlayer({required String uid, required String name}) {
+    return compose(name: name, suffix: suffixForUid(uid));
   }
 
   static bool isValid(String code) => _valid.hasMatch(code.trim().toUpperCase());
