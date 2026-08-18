@@ -32,7 +32,12 @@ class MatchSession {
     required this.readyB,
     required this.progressA,
     required this.progressB,
+    required this.rematchA,
+    required this.rematchB,
+    this.rematchMatchId,
+    this.cancelledBy,
     this.countdownStartedAt,
+    this.createdAt,
   });
 
   final String id;
@@ -50,7 +55,12 @@ class MatchSession {
   final bool readyB;
   final MatchProgress progressA;
   final MatchProgress progressB;
+  final bool rematchA;
+  final bool rematchB;
+  final String? rematchMatchId;
+  final String? cancelledBy;
   final DateTime? countdownStartedAt;
+  final DateTime? createdAt;
 
   bool containsPlayer(String uid) => playerAId == uid || playerBId == uid;
 
@@ -60,6 +70,8 @@ class MatchSession {
       playerAId == uid ? playerBAvatarId : playerAAvatarId;
 
   bool isReady(String uid) => playerAId == uid ? readyA : readyB;
+
+  bool requestedRematch(String uid) => playerAId == uid ? rematchA : rematchB;
 
   MatchProgress progressFor(String uid) =>
       playerAId == uid ? progressA : progressB;
