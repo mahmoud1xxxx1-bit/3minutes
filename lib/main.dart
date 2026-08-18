@@ -11,6 +11,10 @@ import 'features/economy/data/firestore_economy_backend.dart';
 import 'features/match/data/firestore_match_backend.dart';
 import 'features/match/data/match_backend.dart';
 import 'features/profile/data/profile_repository.dart';
+import 'features/social/data/firestore_room_backend.dart';
+import 'features/social/data/firestore_social_backend.dart';
+import 'features/social/data/room_backend.dart';
+import 'features/social/data/social_backend.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
@@ -27,6 +31,8 @@ Future<void> main() async {
       matchBackend: FirestoreMatchBackend(),
       competitionBackend: FirestoreCompetitionBackend(),
       economyBackend: FirestoreEconomyBackend(),
+      socialBackend: FirestoreSocialBackend(),
+      roomBackend: FirestoreRoomBackend(),
     ),
   );
 }
@@ -39,6 +45,8 @@ class ThreeMinutesApp extends StatelessWidget {
     required this.matchBackend,
     required this.competitionBackend,
     required this.economyBackend,
+    required this.socialBackend,
+    required this.roomBackend,
   });
 
   final AuthService authService;
@@ -46,6 +54,8 @@ class ThreeMinutesApp extends StatelessWidget {
   final MatchBackend matchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
+  final SocialBackend socialBackend;
+  final RoomBackend roomBackend;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +71,8 @@ class ThreeMinutesApp extends StatelessWidget {
         matchBackend: matchBackend,
         competitionBackend: competitionBackend,
         economyBackend: economyBackend,
+        socialBackend: socialBackend,
+        roomBackend: roomBackend,
       ),
     );
   }
