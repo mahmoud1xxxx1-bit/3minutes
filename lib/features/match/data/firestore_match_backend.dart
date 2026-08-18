@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/config/app_config.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../profile/domain/player_profile.dart';
+import '../domain/match_progress.dart';
 import '../domain/match_session.dart';
 import '../domain/match_ticket.dart';
 import 'match_backend.dart';
@@ -20,6 +21,15 @@ class FirestoreMatchBackend implements MatchBackend {
 
   CollectionReference<Map<String, dynamic>> get _matches =>
       _firestore.collection('matches');
+
+  Map<String, dynamic> get _emptyProgress => {
+        'completedGames': 0,
+        'totalScore': 0,
+        'accuracyTotal': 0.0,
+        'mistakes': 0,
+        'elapsedMs': 0,
+        'completedAt': null,
+      };
 
   @override
   Future<void> joinQueue(PlayerProfile profile) async {
@@ -86,6 +96,8 @@ class FirestoreMatchBackend implements MatchBackend {
             'status': MatchStatus.waitingReady.name,
             'readyA': false,
             'readyB': false,
+            'progressA': _emptyProgress,
+            'progressB': _emptyProgress,
             'countdownStartedAt': null,
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),
@@ -162,11 +174,28 @@ class FirestoreMatchBackend implements MatchBackend {
         ),
         readyA: data['readyA'] as bool? ?? false,
         readyB: data['readyB'] as bool? ?? false,
+        progressA: _progressFrom(data['progressA']),
+        progressB: _progressFrom(data['progressB']),
         countdownStartedAt: countdownTimestamp is Timestamp
             ? countdownTimestamp.toDate()
             : null,
       );
     });
+  }
+
+  MatchProgress _progressFrom(dynamic value) {
+    final map = value is Map<String, dynamic> ? value : <String, dynamic>{};
+    final completedTimestamp = map['completedAt'];
+    return MatchProgress(
+      completedGames: (map['completedGames'] as num?)?.toInt() ?? 0,
+      totalScore: (map['totalScore'] as num?)?.toInt() ?? 0,
+      accuracyTotal: (map['accuracyTotal'] as num?)?.toDouble() ?? 0,
+      mistakes: (map['mistakes'] as num?)?.toInt() ?? 0,
+      elapsedMs: (map['elapsedMs'] as num?)?.toInt() ?? 0,
+      completedAt: completedTimestamp is Timestamp
+          ? completedTimestamp.toDate()
+          : null,
+    );
   }
 
   @override
@@ -213,6 +242,40 @@ class FirestoreMatchBackend implements MatchBackend {
       }
 
       transaction.update(ref, updates);
+    });
+  }
+
+  @override
+  Future<void> submitProgress({
+    required String matchId,
+    required String uid,
+    required MatchProgress progress,
+    required int gameCount,
+  }) async {
+    final ref = _matches.doc(matchId);
+    final snapshot = await ref.get();
+    final data = snapshot.data();
+    if (data == null) throw StateError('Match not found.');
+
+    final playerAId = data['playerAId'] as String?;
+    final field = uid == playerAId ? 'progressA' : 'progressB';
+    final playerBId = data['playerBId'] as String?;
+    if (uid != playerAId && uid != playerBId) {
+      throw StateError('Player is not part of this match.');
+    }
+
+    await ref.update({
+      field: {
+        'completedGames': progress.completedGames,
+        'totalScore': progress.totalScore,
+        'accuracyTotal': progress.accuracyTotal,
+        'mistakes': progress.mistakes,
+        'elapsedMs': progress.elapsedMs,
+        'completedAt': progress.completedGames >= gameCount
+            ? FieldValue.serverTimestamp()
+            : null,
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 }
