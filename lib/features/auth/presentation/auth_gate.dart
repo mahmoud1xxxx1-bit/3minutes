@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../home/presentation/home_screen.dart';
+import '../../match/data/match_backend.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_setup_screen.dart';
@@ -13,10 +14,12 @@ class AuthGate extends StatefulWidget {
     super.key,
     required this.authService,
     required this.profileRepository,
+    required this.matchBackend,
   });
 
   final AuthService authService;
   final ProfileRepository profileRepository;
+  final MatchBackend matchBackend;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -71,6 +74,7 @@ class _AuthGateState extends State<AuthGate> {
               user: user,
               authService: widget.authService,
               profileRepository: widget.profileRepository,
+              matchBackend: widget.matchBackend,
             );
           },
         );
