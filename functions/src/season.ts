@@ -1,7 +1,7 @@
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
-import { COLLECTIONS, intValue } from "./firestore.js";
+import { COLLECTIONS, intValue, stringValue } from "./firestore.js";
 import {
   startingRpForPeakTier,
   starsForPeakTier,
@@ -30,17 +30,33 @@ function safeTier(value: unknown, rankPoints: number): RankTier {
 
 async function applyPlayerRollover(options: {
   seasonId: string;
+  seasonNumber: number;
   uid: string;
   peakTier: RankTier;
+  finalRankPoints: number;
+  finalStanding: number;
 }): Promise<void> {
   const db = getFirestore();
-  const { seasonId, uid, peakTier } = options;
+  const {
+    seasonId,
+    seasonNumber,
+    uid,
+    peakTier,
+    finalRankPoints,
+    finalStanding,
+  } = options;
   const userRef = db.collection(COLLECTIONS.users).doc(uid);
   const boardRef = db
     .collection(COLLECTIONS.leaderboards)
     .doc(seasonId)
     .collection(COLLECTIONS.entries)
     .doc(uid);
+  const historyRef = db
+    .collection(COLLECTIONS.seasonHistory)
+    .doc(uid)
+    .collection("seasons")
+    .doc(seasonId);
+  const achievementsRef = db.collection(COLLECTIONS.playerAchievements).doc(uid);
   const grantRef = db
     .collection(ROLLOVER_GRANTS)
     .doc(seasonId)
@@ -48,13 +64,15 @@ async function applyPlayerRollover(options: {
     .doc(uid);
 
   await db.runTransaction(async (transaction) => {
-    const grant = await transaction.get(grantRef);
-    if (grant.exists) return;
-
-    const [userSnap, boardSnap] = await Promise.all([
+    const [grant, userSnap, boardSnap, historySnap, achievementsSnap] = await Promise.all([
+      transaction.get(grantRef),
       transaction.get(userRef),
       transaction.get(boardRef),
+      transaction.get(historyRef),
+      transaction.get(achievementsRef),
     ]);
+    if (grant.exists) return;
+
     const user = userSnap.data();
     if (!user) {
       transaction.create(grantRef, {
@@ -67,35 +85,113 @@ async function applyPlayerRollover(options: {
       return;
     }
 
+    const board = boardSnap.data() ?? {};
     const previousStars = Math.max(0, intValue(user.stars));
     const starsAwarded = starsForPeakTier(peakTier);
     const nextStars = previousStars + starsAwarded;
     const previousRp = Math.max(0, intValue(user.rankPoints));
     const nextRp = startingRpForPeakTier(peakTier);
+    const previousSeasons = Math.max(0, intValue(user.seasonsCompleted));
+    const seasonsCompleted = previousSeasons + 1;
+    const finalTier = tierFor(finalRankPoints);
 
     transaction.update(userRef, {
       stars: nextStars,
       rankPoints: nextRp,
+      seasonsCompleted,
       updatedAt: FieldValue.serverTimestamp(),
     });
+
     if (boardSnap.exists) {
       transaction.update(boardRef, {
         rolloverApplied: true,
         starsAwarded,
         finalStars: nextStars,
         resetRp: nextRp,
+        finalStanding,
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
+
+    if (!historySnap.exists) {
+      transaction.create(historyRef, {
+        seasonId,
+        seasonNumber,
+        finalStanding,
+        finalRankPoints,
+        finalTier,
+        peakTier,
+        wins: Math.max(0, intValue(board.wins)),
+        losses: Math.max(0, intValue(board.losses)),
+        ties: Math.max(0, intValue(board.ties)),
+        matches: Math.max(
+          0,
+          intValue(board.wins) + intValue(board.losses) + intValue(board.ties),
+        ),
+        starsBefore: previousStars,
+        starsAwarded,
+        starsAfter: nextStars,
+        resetRp: nextRp,
+        closedAt: FieldValue.serverTimestamp(),
+      });
+    }
+
+    const achievementStates = {
+      ...((achievementsSnap.data()?.states as Record<string, unknown> | undefined) ?? {}),
+    };
+    const previousSeasonsState =
+      achievementStates.seasons_10 && typeof achievementStates.seasons_10 === "object"
+        ? (achievementStates.seasons_10 as Record<string, unknown>)
+        : {};
+    achievementStates.seasons_10 = {
+      ...previousSeasonsState,
+      progress: Math.min(10, seasonsCompleted),
+      completed: seasonsCompleted >= 10,
+      completedAt:
+        previousSeasonsState.completedAt instanceof Timestamp
+          ? previousSeasonsState.completedAt
+          : seasonsCompleted >= 10
+            ? FieldValue.serverTimestamp()
+            : null,
+      rewardClaimedAt: previousSeasonsState.rewardClaimedAt ?? null,
+    };
+    const prestigeState =
+      achievementStates.prestige_100 && typeof achievementStates.prestige_100 === "object"
+        ? (achievementStates.prestige_100 as Record<string, unknown>)
+        : {};
+    achievementStates.prestige_100 = {
+      ...prestigeState,
+      progress: Math.min(100, nextStars),
+      completed: nextStars >= 100,
+      completedAt:
+        prestigeState.completedAt instanceof Timestamp
+          ? prestigeState.completedAt
+          : nextStars >= 100
+            ? FieldValue.serverTimestamp()
+            : null,
+      rewardClaimedAt: prestigeState.rewardClaimedAt ?? null,
+    };
+    transaction.set(
+      achievementsRef,
+      { states: achievementStates, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+
     transaction.create(grantRef, {
       uid,
       seasonId,
+      seasonNumber,
+      gameName: stringValue(user.gameName, "Player"),
       peakTier,
+      finalTier,
+      finalStanding,
       previousStars,
       starsAwarded,
       nextStars,
       previousRp,
+      finalRankPoints,
       nextRp,
+      seasonsCompleted,
       createdAt: FieldValue.serverTimestamp(),
     });
   });
@@ -124,25 +220,41 @@ export const rolloverRankedSeason = onSchedule(
     if (Date.now() < endsAt.toMillis()) return;
 
     const seasonId = seasonSnap.id;
+    const seasonNumber = Math.max(1, intValue(season.number, 1));
     const entries = await db
       .collection(COLLECTIONS.leaderboards)
       .doc(seasonId)
       .collection(COLLECTIONS.entries)
       .get();
 
-    for (const entry of entries.docs) {
+    const ordered = [...entries.docs].sort((a, b) => {
+      const aData = a.data();
+      const bData = b.data();
+      const rp = intValue(bData.rankPoints) - intValue(aData.rankPoints);
+      if (rp !== 0) return rp;
+      const wins = intValue(bData.wins) - intValue(aData.wins);
+      if (wins !== 0) return wins;
+      const losses = intValue(aData.losses) - intValue(bData.losses);
+      if (losses !== 0) return losses;
+      return a.id.localeCompare(b.id);
+    });
+
+    for (let i = 0; i < ordered.length; i += 1) {
+      const entry = ordered[i]!;
       const data = entry.data();
       const rp = Math.max(0, intValue(data.rankPoints));
       const peakTier = safeTier(data.peakTier, rp);
       await applyPlayerRollover({
         seasonId,
+        seasonNumber,
         uid: entry.id,
         peakTier,
+        finalRankPoints: rp,
+        finalStanding: i + 1,
       });
     }
 
-    const number = Math.max(1, intValue(season.number, 1));
-    const nextId = `season_${number + 1}`;
+    const nextId = `season_${seasonNumber + 1}`;
     const nextRef = db.collection(COLLECTIONS.seasons).doc(nextId);
 
     await db.runTransaction(async (transaction) => {
@@ -151,8 +263,7 @@ export const rolloverRankedSeason = onSchedule(
         transaction.get(nextRef),
       ]);
       const current = currentSnap.data();
-      if (!current) return;
-      if (current.active !== true) return;
+      if (!current || current.active !== true) return;
 
       const currentEnd = current.endsAt;
       if (!(currentEnd instanceof Timestamp)) return;
@@ -160,7 +271,7 @@ export const rolloverRankedSeason = onSchedule(
 
       const startMs = currentEnd.toMillis();
       const nextData = {
-        number: number + 1,
+        number: seasonNumber + 1,
         startsAt: Timestamp.fromMillis(startMs),
         endsAt: Timestamp.fromMillis(startMs + THIRTY_DAYS_MS),
         active: true,
@@ -170,6 +281,7 @@ export const rolloverRankedSeason = onSchedule(
 
       transaction.update(seasonSnap.ref, {
         active: false,
+        finalEntryCount: ordered.length,
         rolledOverAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
