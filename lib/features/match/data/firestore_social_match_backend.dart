@@ -58,12 +58,11 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
     final ref = _matches.doc(roomId);
     final now = DateTime.now().toUtc();
     final seed = Random.secure().nextInt(0x7fffffff);
-
     return _firestore.runTransaction<MultiplayerMatch>((tx) async {
       final existing = await tx.get(ref);
       if (existing.exists) return _fromDoc(existing);
 
-      final normalizedParticipants = participants
+      final normalized = participants
           .map(
             (p) => MatchParticipant(
               uid: p.uid,
@@ -74,7 +73,6 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
             ),
           )
           .toList(growable: false);
-
       final match = MultiplayerMatch(
         id: roomId,
         mode: MatchMode.privateRoom,
@@ -82,12 +80,11 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
         maxPlayers: maxPlayers,
         seed: seed,
         registryVersion: GameRegistry.version,
-        participants: normalizedParticipants,
+        participants: normalized,
         roomCode: roomCode,
         countdownStartedAt: now,
       );
       MultiplayerMatchPolicy.validate(match);
-
       tx.set(ref, {
         'mode': MatchMode.privateRoom.name,
         'hostUid': hostUid,
@@ -96,10 +93,8 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
         'registryVersion': GameRegistry.version,
         'gameCount': AppConfig.gamesPerMatch,
         'roomCode': roomCode,
-        'participantOrder': normalizedParticipants.map((p) => p.uid).toList(),
-        'participants': {
-          for (final p in normalizedParticipants) p.uid: _participantToMap(p),
-        },
+        'participantOrder': normalized.map((p) => p.uid).toList(),
+        'participants': {for (final p in normalized) p.uid: _participantToMap(p)},
         'countdownStartedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -122,18 +117,21 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
       throw StateError('Invalid social match progress: ${report.reasons.join(',')}');
     }
 
-    final matchRef = _matches.doc(matchId);
-    final evidenceRef = _firestore
-        .collection(ServerCollections.socialEvidence)
-        .doc(matchId)
-        .collection('players')
-        .doc(uid);
+    if (AppConfig.backendPhase == BackendPhase.blaze) {
+      await _functions.httpsCallable('submitSocialGameResult').call<void>({
+        'matchId': matchId,
+        'evidence': evidence.toMap(),
+      });
+      return;
+    }
 
+    // Spark keeps the tested casual flow. No Coins, RP, Missions or prestige
+    // rewards are granted on this path; Blaze authority handles those later.
+    final ref = _matches.doc(matchId);
     await _firestore.runTransaction((tx) async {
-      final matchDoc = await tx.get(matchRef);
-      final evidenceDoc = await tx.get(evidenceRef);
-      if (!matchDoc.exists) throw StateError('Social match not found.');
-      final data = matchDoc.data()!;
+      final doc = await tx.get(ref);
+      if (!doc.exists) throw StateError('Social match not found.');
+      final data = doc.data()!;
       if ((data['registryVersion'] as num?)?.toInt() != GameRegistry.version) {
         throw StateError('Registry version mismatch.');
       }
@@ -144,38 +142,32 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
       if (raw is! Map) throw StateError('Player is not a match participant.');
       final participant = _participantFromMap(uid, Map<String, dynamic>.from(raw));
       final current = participant.progress;
-
-      final rawEvidence = evidenceDoc.data()?['evidence'];
-      final existingEvidence = rawEvidence is List
-          ? rawEvidence
-              .whereType<Map>()
-              .map((item) => MiniGameEvidence.fromMap(item))
-              .toList(growable: true)
-          : <MiniGameEvidence>[];
-      if (existingEvidence.length != current.completedGames ||
-          evidence.gameIndex != existingEvidence.length) {
-        throw StateError('Social evidence must advance exactly one game.');
+      if (progress.completedGames != current.completedGames + 1 ||
+          evidence.gameIndex != current.completedGames) {
+        throw StateError('Social progress must advance exactly one game.');
       }
-      final combined = [...existingEvidence, evidence];
-      final seed = (data['seed'] as num?)?.toInt() ?? 0;
-      if (!MiniGameEvidencePolicy.isValidMatchEvidence(
-        matchSeed: seed,
-        gameCount: AppConfig.gamesPerMatch,
-        evidence: combined,
-      )) {
-        throw StateError('Mini-game evidence failed integrity checks.');
-      }
-
-      final expectedScore = combined.fold<int>(0, (sum, item) => sum + item.score);
-      final expectedAccuracy = combined.fold<double>(0, (sum, item) => sum + item.accuracy);
-      final expectedMistakes = combined.fold<int>(0, (sum, item) => sum + item.mistakes);
-      final expectedElapsed = combined.fold<int>(0, (sum, item) => sum + item.durationMs);
-      if (progress.completedGames != combined.length ||
-          progress.totalScore != expectedScore ||
-          (progress.accuracyTotal - expectedAccuracy).abs() > 0.000001 ||
-          progress.mistakes != expectedMistakes ||
-          progress.elapsedMs != expectedElapsed) {
-        throw StateError('Progress does not match submitted evidence.');
+      final sequence = GameRegistry.sequence(
+        seed: (data['seed'] as num?)?.toInt() ?? 0,
+        count: AppConfig.gamesPerMatch,
+      );
+      final expectedSeed = MiniGameEvidencePolicy.gameSeed(
+        matchSeed: (data['seed'] as num?)?.toInt() ?? 0,
+        gameIndex: evidence.gameIndex,
+      );
+      if (sequence[evidence.gameIndex].id != evidence.gameId ||
+          expectedSeed != evidence.gameSeed ||
+          evidence.score < 0 ||
+          evidence.score > MiniGameEvidencePolicy.maxScorePerGame ||
+          evidence.accuracy < 0 ||
+          evidence.accuracy > 1 ||
+          evidence.mistakes < 0 ||
+          evidence.durationMs < 0 ||
+          evidence.durationMs > MiniGameEvidencePolicy.maxMatchDurationMs ||
+          progress.totalScore - current.totalScore != evidence.score ||
+          (progress.accuracyTotal - current.accuracyTotal - evidence.accuracy).abs() > 0.000001 ||
+          progress.mistakes - current.mistakes != evidence.mistakes ||
+          progress.elapsedMs - current.elapsedMs != evidence.durationMs) {
+        throw StateError('Social mini-game evidence is invalid.');
       }
 
       participants[uid] = _participantToMap(
@@ -191,14 +183,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
               : participant.finishedAt,
         ),
       );
-      tx.set(evidenceRef, {
-        'uid': uid,
-        'matchId': matchId,
-        'registryVersion': GameRegistry.version,
-        'evidence': combined.map((item) => item.toMap()).toList(growable: false),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-      tx.update(matchRef, {'participants': participants});
+      tx.update(ref, {'participants': participants});
     });
   }
 
@@ -237,9 +222,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
   @override
   Future<void> settleMatch(String matchId) async {
     if (AppConfig.backendPhase != BackendPhase.blaze) return;
-    await _functions.httpsCallable('settleSocialMatch').call<void>({
-      'matchId': matchId,
-    });
+    await _functions.httpsCallable('settleSocialMatch').call<void>({'matchId': matchId});
   }
 
   MultiplayerMatch _fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -254,10 +237,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
     final participants = <MatchParticipant>[
       for (final uid in order)
         if (participantMap[uid] is Map)
-          _participantFromMap(
-            uid,
-            Map<String, dynamic>.from(participantMap[uid] as Map),
-          ),
+          _participantFromMap(uid, Map<String, dynamic>.from(participantMap[uid] as Map)),
     ];
     final modeName = data['mode'] as String?;
     return MultiplayerMatch(
@@ -272,8 +252,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
       registryVersion: (data['registryVersion'] as num?)?.toInt() ?? 0,
       participants: participants,
       roomCode: data['roomCode'] as String?,
-      countdownStartedAt:
-          (data['countdownStartedAt'] as Timestamp?)?.toDate(),
+      countdownStartedAt: (data['countdownStartedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -288,10 +267,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
             : Timestamp.fromDate(participant.finishedAt!),
       };
 
-  static MatchParticipant _participantFromMap(
-    String uid,
-    Map<String, dynamic> data,
-  ) {
+  static MatchParticipant _participantFromMap(String uid, Map<String, dynamic> data) {
     final connectionName = data['connectionState'] as String?;
     final progressData = data['progress'];
     return MatchParticipant(
