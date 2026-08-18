@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../competition/domain/mini_game_evidence.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../minigames/domain/mini_game_contract.dart';
 import '../../minigames/presentation/mini_game_copy.dart';
@@ -103,6 +104,19 @@ class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
     if (runtime == null || _submitting || runtime.isExpired(DateTime.now())) {
       return;
     }
+    final game = runtime.currentGame;
+    if (game == null) return;
+    final gameIndex = runtime.progress.completedGames;
+    final gameSeed = runtime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
+    final evidence = MiniGameEvidence(
+      gameId: game.id,
+      gameIndex: gameIndex,
+      gameSeed: gameSeed,
+      score: result.score,
+      accuracy: result.accuracy,
+      mistakes: result.mistakes,
+      durationMs: result.duration.inMilliseconds,
+    );
 
     setState(() {
       _submitting = true;
@@ -114,6 +128,7 @@ class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
         matchId: match.id,
         uid: widget.uid,
         progress: next,
+        evidence: evidence,
       );
       runtime.recordResult(result);
     } catch (_) {
@@ -451,7 +466,9 @@ class _SocialResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final placements = MultiplayerResultPolicy.rank(match.participants);
-    final byUid = {for (final participant in match.participants) participant.uid: participant};
+    final byUid = {
+      for (final participant in match.participants) participant.uid: participant,
+    };
     final myPlacement = placements.firstWhere((item) => item.uid == uid);
     final first = myPlacement.position == 1;
 
