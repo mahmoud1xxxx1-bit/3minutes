@@ -11,8 +11,10 @@ import {
   intValue,
   parseProgress,
   stringValue,
+  timestampMillis,
 } from "./firestore.js";
 import {
+  MATCH_DURATION_MS,
   MATCH_GAME_COUNT,
   REGISTRY_VERSION,
   parseEvidence,
@@ -25,6 +27,9 @@ const OPTIONS = {
   timeoutSeconds: 30,
 } as const;
 
+const COUNTDOWN_MS = 3000;
+const SUBMISSION_TRANSPORT_GRACE_MS = 15000;
+
 function uidOf(uid: string | undefined): string {
   if (!uid) throw new HttpsError("unauthenticated", "Sign-in is required.");
   return uid;
@@ -35,6 +40,23 @@ function text(value: unknown, name: string): string {
     throw new HttpsError("invalid-argument", `${name} is required.`);
   }
   return value.trim();
+}
+
+function requireActiveSubmissionWindow(match: Record<string, unknown>): void {
+  const countdownStartedAtMs = timestampMillis(match.countdownStartedAt);
+  if (countdownStartedAtMs === null) {
+    throw new HttpsError("failed-precondition", "Ranked match has not started.");
+  }
+  const now = Date.now();
+  const playStartedAtMs = countdownStartedAtMs + COUNTDOWN_MS;
+  if (now < playStartedAtMs) {
+    throw new HttpsError("failed-precondition", "Ranked countdown is still running.");
+  }
+  const latestTransportArrivalMs =
+    playStartedAtMs + MATCH_DURATION_MS + SUBMISSION_TRANSPORT_GRACE_MS;
+  if (now > latestTransportArrivalMs) {
+    throw new HttpsError("deadline-exceeded", "Ranked submission window has closed.");
+  }
 }
 
 function freshMatch(options: {
@@ -110,6 +132,7 @@ export const submitRankedGameResult = onCall(OPTIONS, async (request) => {
     if (match.status === "cancelled" || match.status === "finished") {
       throw new HttpsError("failed-precondition", "Match is already closed.");
     }
+    requireActiveSubmissionWindow(match);
 
     let previous;
     try {
@@ -137,10 +160,10 @@ export const submitRankedGameResult = onCall(OPTIONS, async (request) => {
     if (saved.completedGames !== previous.length) {
       throw new HttpsError("failed-precondition", "Stored progress and evidence are out of sync.");
     }
-    const totalScore = combined.reduce((sum, entry) => sum + entry.score, 0);
-    const accuracyTotal = combined.reduce((sum, entry) => sum + entry.accuracy, 0);
-    const mistakes = combined.reduce((sum, entry) => sum + entry.mistakes, 0);
-    const elapsedMs = combined.reduce((sum, entry) => sum + entry.durationMs, 0);
+    const totalScore = combined.reduce((total, entry) => total + entry.score, 0);
+    const accuracyTotal = combined.reduce((total, entry) => total + entry.accuracy, 0);
+    const mistakes = combined.reduce((total, entry) => total + entry.mistakes, 0);
+    const elapsedMs = combined.reduce((total, entry) => total + entry.durationMs, 0);
 
     transaction.set(
       evidenceRef,
