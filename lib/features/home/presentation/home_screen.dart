@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
+import '../../match/data/match_backend.dart';
+import '../../match/presentation/matchmaking_screen.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_screen.dart';
@@ -13,11 +15,13 @@ class HomeScreen extends StatelessWidget {
     required this.user,
     required this.authService,
     required this.profileRepository,
+    required this.matchBackend,
   });
 
   final User user;
   final AuthService authService;
   final ProfileRepository profileRepository;
+  final MatchBackend matchBackend;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +50,18 @@ class HomeScreen extends StatelessWidget {
                   _PlayerCard(profile: profile),
                   const Spacer(),
                   FilledButton(
-                    onPressed: null,
+                    onPressed: profile == null
+                        ? null
+                        : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => MatchmakingScreen(
+                                  profile: profile,
+                                  matchBackend: matchBackend,
+                                ),
+                              ),
+                            );
+                          },
                     child: const Text(
                       'PLAY',
                       style: TextStyle(
