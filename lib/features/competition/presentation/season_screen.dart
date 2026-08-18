@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/competition_backend.dart';
@@ -26,108 +27,125 @@ class SeasonScreen extends StatelessWidget {
     final liveEnabled = AppConfig.liveLeaderboardEnabled;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
         title: Text(
           l10n.season,
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(GameSpacing.md),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(GameSpacing.lg),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(GameRadii.panel),
-                gradient: const LinearGradient(
-                  begin: AlignmentDirectional.topStart,
-                  end: AlignmentDirectional.bottomEnd,
-                  colors: [Color(0xFF25324B), Color(0xFF111927)],
-                ),
-                border: Border.all(
-                  color: GameColors.rewardGold.withValues(alpha: 0.28),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: GameColors.rewardGold.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.auto_awesome_rounded,
-                          color: GameColors.rewardGold,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: GameSpacing.md),
-                      Expanded(
-                        child: Text(
-                          l10n.seasonCompetition,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: GameSpacing.md),
-                  Text(
-                    l10n.seasonDuration(SeasonPolicy.duration.inDays),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: GameSpacing.xs),
-                  Text(
-                    l10n.seasonStarsExplanation,
-                    style: const TextStyle(color: GameColors.muted),
-                  ),
-                ],
-              ),
+      body: CosmicBackground(
+        child: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              GameSpacing.md,
+              GameSpacing.sm,
+              GameSpacing.md,
+              110,
             ),
-            const SizedBox(height: GameSpacing.md),
-            if (liveEnabled)
-              _LiveSeasonCard(competitionBackend: competitionBackend)
-            else
-              Container(
-                padding: const EdgeInsets.all(GameSpacing.md),
-                decoration: BoxDecoration(
-                  color: GameColors.surface,
-                  borderRadius: BorderRadius.circular(GameRadii.card),
-                  border: Border.all(color: GameColors.surfaceStrong),
-                ),
-                child: Row(
+            children: [
+              CosmicPanel(
+                glow: true,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.lock_clock_rounded, color: GameColors.accent),
-                    const SizedBox(width: GameSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        l10n.liveStandingsLocked,
-                        style: const TextStyle(color: GameColors.muted),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            gradient: GameColors.cosmicGradient,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: GameShadows.primaryGlow,
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white,
+                            size: 29,
+                          ),
+                        ),
+                        const SizedBox(width: GameSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.seasonCompetition,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                l10n.seasonDuration(SeasonPolicy.duration.inDays),
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: GameSpacing.md),
+                    Text(
+                      l10n.seasonStarsExplanation,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: GameColors.muted,
+                            height: 1.45,
+                          ),
                     ),
                   ],
                 ),
               ),
-            const SizedBox(height: GameSpacing.lg),
-            Text(
-              l10n.rankLadder,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
+              const SizedBox(height: GameSpacing.md),
+              if (liveEnabled)
+                _LiveSeasonCard(competitionBackend: competitionBackend)
+              else
+                CosmicPanel(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: GameColors.accentSoft,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.lock_clock_rounded,
+                          color: GameColors.accentBright,
+                        ),
+                      ),
+                      const SizedBox(width: GameSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          l10n.liveStandingsLocked,
+                          style: const TextStyle(color: GameColors.muted),
+                        ),
+                      ),
+                    ],
                   ),
-            ),
-            const SizedBox(height: GameSpacing.sm),
-            for (final band in RankPolicy.bands) ...[
-              _SeasonRewardCard(band: band),
+                ),
+              const SizedBox(height: GameSpacing.lg),
+              Row(
+                children: [
+                  const Icon(Icons.military_tech_rounded, color: GameColors.rewardGold),
+                  const SizedBox(width: GameSpacing.sm),
+                  Text(
+                    l10n.rankLadder,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ],
+              ),
               const SizedBox(height: GameSpacing.sm),
+              for (final band in RankPolicy.bands) ...[
+                _SeasonRewardCard(band: band),
+                const SizedBox(height: GameSpacing.sm),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -182,13 +200,7 @@ class _LiveSeasonCardState extends State<_LiveSeasonCard> {
         final clock = SeasonClockPolicy.at(season: season, now: _now);
         final remaining = clock.remaining;
 
-        return Container(
-          padding: const EdgeInsets.all(GameSpacing.md),
-          decoration: BoxDecoration(
-            color: GameColors.surface,
-            borderRadius: BorderRadius.circular(GameRadii.card),
-            border: Border.all(color: GameColors.surfaceStrong),
-          ),
+        return CosmicPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -200,26 +212,40 @@ class _LiveSeasonCardState extends State<_LiveSeasonCard> {
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
-                  Text(
-                    clock.active
-                        ? l10n.seasonRemaining(
-                            remaining.inDays,
-                            remaining.inHours.remainder(24),
-                          )
-                        : l10n.seasonClosed,
-                    style: const TextStyle(
-                      color: GameColors.rewardGold,
-                      fontWeight: FontWeight.w800,
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: GameSpacing.sm,
+                      vertical: GameSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: GameColors.rewardGold.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(GameRadii.pill),
+                      border: Border.all(
+                        color: GameColors.rewardGold.withValues(alpha: 0.22),
+                      ),
+                    ),
+                    child: Text(
+                      clock.active
+                          ? l10n.seasonRemaining(
+                              remaining.inDays,
+                              remaining.inHours.remainder(24),
+                            )
+                          : l10n.seasonClosed,
+                      style: const TextStyle(
+                        color: GameColors.rewardGold,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: GameSpacing.sm),
+              const SizedBox(height: GameSpacing.md),
               ClipRRect(
                 borderRadius: BorderRadius.circular(GameRadii.pill),
                 child: LinearProgressIndicator(
                   value: clock.progress,
-                  minHeight: 10,
+                  minHeight: 9,
                 ),
               ),
             ],
@@ -239,24 +265,41 @@ class _SeasonRewardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final stars = SeasonRewardPolicy.starsForPeakTier(band.tier);
 
-    return Container(
-      padding: const EdgeInsets.all(GameSpacing.md),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
+    return CosmicPanel(
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameSpacing.md,
+        vertical: GameSpacing.sm,
       ),
       child: Row(
         children: [
           RankBadge(tier: band.tier),
           const Spacer(),
-          const Icon(Icons.star_rounded, color: GameColors.rewardGold, size: 20),
-          const SizedBox(width: 4),
-          Text(
-            '$stars',
-            style: const TextStyle(
-              color: GameColors.rewardGold,
-              fontWeight: FontWeight.w900,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: GameSpacing.sm,
+              vertical: GameSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: GameColors.rewardGold.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(GameRadii.pill),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  color: GameColors.rewardGold,
+                  size: 20,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$stars',
+                  style: const TextStyle(
+                    color: GameColors.rewardGold,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -272,13 +315,7 @@ class _MessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(GameSpacing.md),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
-      ),
+    return CosmicPanel(
       child: Text(message, textAlign: TextAlign.center),
     );
   }
