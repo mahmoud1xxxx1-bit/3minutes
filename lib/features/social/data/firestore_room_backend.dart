@@ -13,6 +13,9 @@ class FirestoreRoomBackend implements RoomBackend {
   CollectionReference<Map<String, dynamic>> get _rooms =>
       _firestore.collection(ServerCollections.privateRooms);
 
+  CollectionReference<Map<String, dynamic>> get _roomCodes =>
+      _firestore.collection(ServerCollections.roomCodes);
+
   @override
   Stream<PrivateRoom?> watchRoom(String roomId) {
     return _rooms.doc(roomId).snapshots().map((doc) {
@@ -36,7 +39,7 @@ class FirestoreRoomBackend implements RoomBackend {
     }
 
     final roomRef = _rooms.doc();
-    final codeRef = _firestore.collection('roomCodes').doc(code);
+    final codeRef = _roomCodes.doc(code);
     final now = DateTime.now().toUtc();
     final expiresAt = now.add(const Duration(hours: 6));
 
@@ -74,7 +77,7 @@ class FirestoreRoomBackend implements RoomBackend {
   Future<PrivateRoom?> findRoomByCode(String roomCode) async {
     final code = roomCode.trim().toUpperCase();
     if (!PrivateRoomPolicy.validCode(code)) return null;
-    final codeDoc = await _firestore.collection('roomCodes').doc(code).get();
+    final codeDoc = await _roomCodes.doc(code).get();
     final roomId = codeDoc.data()?['roomId'] as String?;
     if (roomId == null) return null;
     final roomDoc = await _rooms.doc(roomId).get();
