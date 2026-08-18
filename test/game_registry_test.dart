@@ -21,4 +21,22 @@ void main() {
     expect(first.map((game) => game.id).toSet().length, 8);
     expect(categories, containsAll(MiniGameCategory.values));
   });
+
+  test('registry sequence matches the server cross-platform vector', () {
+    final sequence = GameRegistry.sequence(seed: 20260818, count: 8);
+
+    expect(
+      sequence.map((game) => game.id).toList(),
+      const [
+        'number_order',
+        'direction_swipe',
+        'odd_one_out',
+        'memory_flash',
+        'symbol_pair',
+        'tap_target',
+        'shape_count',
+        'color_match',
+      ],
+    );
+  });
 }
