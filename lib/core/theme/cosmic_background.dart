@@ -105,10 +105,12 @@ class CosmicPanel extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(GameSpacing.md),
+    this.glow = false,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final bool glow;
 
   @override
   Widget build(BuildContext context) {
@@ -117,8 +119,13 @@ class CosmicPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: GameColors.surfaceGlass,
         borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong, width: 0.8),
-        boxShadow: GameShadows.card,
+        border: Border.all(
+          color: glow
+              ? GameColors.accent.withValues(alpha: 0.32)
+              : GameColors.surfaceStrong,
+          width: 0.8,
+        ),
+        boxShadow: glow ? GameShadows.primaryGlow : GameShadows.card,
       ),
       child: child,
     );
