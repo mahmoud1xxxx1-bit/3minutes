@@ -8,6 +8,8 @@ abstract class MatchBackend {
 
   Future<void> leaveQueue(String uid);
 
+  Future<void> clearTicket(String uid);
+
   Stream<MatchTicket?> watchTicket(String uid);
 
   Stream<MatchSession?> watchMatch(String matchId);
