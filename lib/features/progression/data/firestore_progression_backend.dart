@@ -1,15 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/firebase/server_collections.dart';
 import '../domain/achievement.dart';
 import '../domain/mission.dart';
 import 'progression_backend.dart';
 
 class FirestoreProgressionBackend implements ProgressionBackend {
-  FirestoreProgressionBackend({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  FirestoreProgressionBackend({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions ?? FirebaseFunctions.instanceFor(region: 'me-central2');
 
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
   @override
   Stream<Map<String, PlayerAchievement>> watchAchievements(String uid) {
@@ -78,6 +84,42 @@ class FirestoreProgressionBackend implements ProgressionBackend {
         claimedPremiumLevels: _intSet(data['claimedPremiumLevels']),
       );
     });
+  }
+
+  @override
+  Future<void> claimMissionReward(String missionId) async {
+    _requireAuthority();
+    await _functions.httpsCallable('claimMissionReward').call<void>({
+      'missionId': missionId,
+    });
+  }
+
+  @override
+  Future<void> claimAchievementReward(String achievementId) async {
+    _requireAuthority();
+    await _functions.httpsCallable('claimAchievementReward').call<void>({
+      'achievementId': achievementId,
+    });
+  }
+
+  @override
+  Future<void> claimSeasonPassReward({
+    required int level,
+    required SeasonPassClaimTrack track,
+  }) async {
+    _requireAuthority();
+    await _functions.httpsCallable('claimSeasonPassReward').call<void>({
+      'level': level,
+      'track': track.name,
+    });
+  }
+
+  void _requireAuthority() {
+    if (AppConfig.backendPhase != BackendPhase.blaze) {
+      throw UnsupportedError(
+        'Progression rewards require the server-authoritative Blaze backend.',
+      );
+    }
   }
 
   Set<int> _intSet(Object? value) {
