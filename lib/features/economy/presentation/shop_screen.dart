@@ -27,10 +27,16 @@ class _ShopScreenState extends State<ShopScreen> {
   String? _message;
 
   String _slotLabel(AppLocalizations l10n, CosmeticSlot slot) => switch (slot) {
+        CosmeticSlot.avatar => l10n.avatar,
         CosmeticSlot.avatarFrame => l10n.avatarFrame,
         CosmeticSlot.badge => l10n.badge,
         CosmeticSlot.profileBackground => l10n.profileBackground,
         CosmeticSlot.nameStyle => l10n.nameStyle,
+        CosmeticSlot.matchIntro => slot.name,
+        CosmeticSlot.victoryEffect => slot.name,
+        CosmeticSlot.rankAura => slot.name,
+        CosmeticSlot.emote => slot.name,
+        CosmeticSlot.roomTheme => slot.name,
       };
 
   String _itemName(AppLocalizations l10n, CosmeticItem item) => switch (item.id) {
@@ -51,15 +57,22 @@ class _ShopScreenState extends State<ShopScreen> {
         CosmeticRarity.rare => l10n.rare,
         CosmeticRarity.epic => l10n.epic,
         CosmeticRarity.legendary => l10n.legendary,
+        CosmeticRarity.mythic => rarity.name,
       };
 
   bool _isEquipped(PlayerInventory inventory, CosmeticItem item) {
     return switch (item.slot) {
+      CosmeticSlot.avatar => inventory.equippedAvatarId == item.id,
       CosmeticSlot.avatarFrame => inventory.equippedAvatarFrameId == item.id,
       CosmeticSlot.badge => inventory.equippedBadgeId == item.id,
       CosmeticSlot.profileBackground =>
         inventory.equippedProfileBackgroundId == item.id,
       CosmeticSlot.nameStyle => inventory.equippedNameStyleId == item.id,
+      CosmeticSlot.matchIntro => inventory.equippedMatchIntroId == item.id,
+      CosmeticSlot.victoryEffect => inventory.equippedVictoryEffectId == item.id,
+      CosmeticSlot.rankAura => inventory.equippedRankAuraId == item.id,
+      CosmeticSlot.emote => inventory.equippedEmoteId == item.id,
+      CosmeticSlot.roomTheme => inventory.equippedRoomThemeId == item.id,
     };
   }
 
@@ -223,36 +236,23 @@ class _ShopScreenState extends State<ShopScreen> {
                     ),
                     if (inventory != null) ...[
                       const SizedBox(height: GameSpacing.md),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: GameSpacing.sm,
-                          vertical: GameSpacing.xs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: GameColors.rewardGold.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(GameRadii.pill),
-                          border: Border.all(
-                            color: GameColors.rewardGold.withValues(alpha: 0.35),
+                      Wrap(
+                        spacing: GameSpacing.sm,
+                        runSpacing: GameSpacing.xs,
+                        children: [
+                          _BalancePill(
+                            icon: Icons.monetization_on_rounded,
+                            value: '${inventory.coins}',
+                            label: l10n.coins,
+                            color: GameColors.rewardGold,
                           ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.monetization_on_rounded,
-                              size: 18,
-                              color: GameColors.rewardGold,
-                            ),
-                            const SizedBox(width: GameSpacing.xs),
-                            Text(
-                              '${inventory.coins} ${l10n.coins}',
-                              style: const TextStyle(
-                                color: GameColors.rewardGold,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
+                          _BalancePill(
+                            icon: Icons.star_rounded,
+                            value: '${inventory.prestigeStars}',
+                            label: l10n.stars,
+                            color: GameColors.rankLegend,
+                          ),
+                        ],
                       ),
                     ],
                   ],
@@ -305,6 +305,46 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 }
 
+class _BalancePill extends StatelessWidget {
+  const _BalancePill({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameSpacing.sm,
+        vertical: GameSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(GameRadii.pill),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: GameSpacing.xs),
+          Text(
+            '$value $label',
+            style: TextStyle(color: color, fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CosmeticCard extends StatelessWidget {
   const _CosmeticCard({
     required this.item,
@@ -331,10 +371,11 @@ class _CosmeticCard extends StatelessWidget {
   final VoidCallback onEquip;
 
   Color get _rarityColor => switch (item.rarity) {
-        CosmeticRarity.common => GameColors.rankSilver,
-        CosmeticRarity.rare => GameColors.rankDiamond,
-        CosmeticRarity.epic => GameColors.rankMaster,
-        CosmeticRarity.legendary => GameColors.rewardGold,
+        CosmeticRarity.common => GameColors.rarityCommon,
+        CosmeticRarity.rare => GameColors.rarityRare,
+        CosmeticRarity.epic => GameColors.rarityEpic,
+        CosmeticRarity.legendary => GameColors.rarityLegendary,
+        CosmeticRarity.mythic => GameColors.rarityMythic,
       };
 
   @override
@@ -372,35 +413,15 @@ class _CosmeticCard extends StatelessWidget {
                   spacing: GameSpacing.sm,
                   runSpacing: 3,
                   children: [
-                    Text(
-                      slotLabel,
-                      style: const TextStyle(color: GameColors.muted),
-                    ),
+                    Text(slotLabel, style: const TextStyle(color: GameColors.muted)),
                     Text(
                       rarityLabel,
-                      style: TextStyle(
-                        color: rarityColor,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: TextStyle(color: rarityColor, fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
                 const SizedBox(height: GameSpacing.xs),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.monetization_on_rounded,
-                      size: 17,
-                      color: GameColors.rewardGold,
-                    ),
-                    const SizedBox(width: GameSpacing.xs),
-                    Text(
-                      '${item.coinPrice}',
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ],
-                ),
+                _PriceLine(item: item),
               ],
             ),
           ),
@@ -421,6 +442,65 @@ class _CosmeticCard extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _PriceLine extends StatelessWidget {
+  const _PriceLine({required this.item});
+
+  final CosmeticItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (item.priceType) {
+      CosmeticPriceType.coins => _PriceValue(
+          icon: Icons.monetization_on_rounded,
+          value: '${item.coinPrice}',
+          color: GameColors.rewardGold,
+        ),
+      CosmeticPriceType.prestigeStars => _PriceValue(
+          icon: Icons.star_rounded,
+          value: '${item.starPrice}',
+          color: GameColors.rankLegend,
+        ),
+      CosmeticPriceType.premium => _PriceValue(
+          icon: Icons.workspace_premium_rounded,
+          value: item.premiumPriceCents > 0
+              ? '\$${(item.premiumPriceCents / 100).toStringAsFixed(2)}'
+              : 'Premium',
+          color: GameColors.rarityEpic,
+        ),
+      CosmeticPriceType.achievement => const _PriceValue(
+          icon: Icons.emoji_events_rounded,
+          value: 'Achievement',
+          color: GameColors.success,
+        ),
+      CosmeticPriceType.seasonalPlacement => const _PriceValue(
+          icon: Icons.leaderboard_rounded,
+          value: 'Season',
+          color: GameColors.rankLegend,
+        ),
+    };
+  }
+}
+
+class _PriceValue extends StatelessWidget {
+  const _PriceValue({required this.icon, required this.value, required this.color});
+
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 17, color: color),
+        const SizedBox(width: GameSpacing.xs),
+        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900)),
+      ],
     );
   }
 }
