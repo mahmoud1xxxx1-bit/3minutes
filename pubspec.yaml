@@ -19,6 +19,7 @@ dependencies:
   cloud_functions: ^6.0.3
   google_sign_in: ^7.2.0
   in_app_purchase: ^3.3.0
+  flutter_svg: ^2.2.1
 
 dev_dependencies:
   flutter_test:
@@ -28,3 +29,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/ranks/
