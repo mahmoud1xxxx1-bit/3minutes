@@ -22,7 +22,33 @@ class FirestorePartyBackend implements PartyBackend {
   }
 
   @override
+  Stream<Party?> watchMembership(String uid) {
+    return _parties
+        .where('memberUids', arrayContains: uid)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.isEmpty ? null : _fromDoc(snapshot.docs.first));
+  }
+
+  @override
+  Stream<List<Party>> watchInvitations(String uid) {
+    return _parties
+        .where('pendingInviteUids', arrayContains: uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map(_fromDoc)
+            .toList(growable: false));
+  }
+
+  @override
   Future<Party> createParty({required String leaderUid}) async {
+    final existing = await _parties
+        .where('memberUids', arrayContains: leaderUid)
+        .limit(1)
+        .get();
+    if (existing.docs.isNotEmpty) return _fromDoc(existing.docs.first);
+
     final ref = _parties.doc();
     final now = DateTime.now().toUtc();
     await ref.set({
@@ -55,17 +81,15 @@ class FirestorePartyBackend implements PartyBackend {
       if (party.leaderUid != leaderUid) {
         throw StateError('Only the party leader can invite players.');
       }
-      if (party.memberUids.contains(invitedUid)) return;
+      if (party.memberUids.contains(invitedUid) ||
+          party.pendingInviteUids.contains(invitedUid)) {
+        return;
+      }
       if (party.memberUids.length >= PartyPolicy.maxMembers) {
         throw StateError('Party is full.');
       }
-      final pending = (doc.data()?['pendingInviteUids'] as List<dynamic>?)
-              ?.whereType<String>()
-              .toSet() ??
-          <String>{};
-      pending.add(invitedUid);
       tx.update(ref, {
-        'pendingInviteUids': pending.toList(growable: false),
+        'pendingInviteUids': [...party.pendingInviteUids, invitedUid],
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -81,18 +105,35 @@ class FirestorePartyBackend implements PartyBackend {
       final doc = await tx.get(ref);
       if (!doc.exists) throw StateError('Party not found.');
       final party = _fromDoc(doc);
-      final pending = (doc.data()?['pendingInviteUids'] as List<dynamic>?)
-              ?.whereType<String>()
-              .toSet() ??
-          <String>{};
-      if (!pending.contains(uid)) throw StateError('Party invite not found.');
+      if (!party.pendingInviteUids.contains(uid)) {
+        throw StateError('Party invite not found.');
+      }
       if (party.memberUids.length >= PartyPolicy.maxMembers) {
         throw StateError('Party is full.');
       }
-      pending.remove(uid);
+      final pending = party.pendingInviteUids.where((id) => id != uid).toList();
       tx.update(ref, {
         'memberUids': [...party.memberUids, uid],
-        'pendingInviteUids': pending.toList(growable: false),
+        'pendingInviteUids': pending,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
+  Future<void> declineInvite({
+    required String partyId,
+    required String uid,
+  }) async {
+    final ref = _parties.doc(partyId);
+    await _firestore.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      if (!doc.exists) return;
+      final party = _fromDoc(doc);
+      if (!party.pendingInviteUids.contains(uid)) return;
+      tx.update(ref, {
+        'pendingInviteUids':
+            party.pendingInviteUids.where((id) => id != uid).toList(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -150,6 +191,10 @@ class FirestorePartyBackend implements PartyBackend {
       id: doc.id,
       leaderUid: (data['leaderUid'] as String?) ?? '',
       memberUids: (data['memberUids'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toList(growable: false) ??
+          const <String>[],
+      pendingInviteUids: (data['pendingInviteUids'] as List<dynamic>?)
               ?.whereType<String>()
               .toList(growable: false) ??
           const <String>[],
