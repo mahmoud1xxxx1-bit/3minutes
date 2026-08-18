@@ -15,7 +15,8 @@ class RankProgress {
 
   bool get isMaxTier => nextTierStartRp == null;
 
-  int get rpIntoTier => (currentRp - tierStartRp).clamp(0, 1 << 30);
+  int get rpIntoTier =>
+      (currentRp - tierStartRp).clamp(0, 1 << 30).toInt();
 
   int? get rpToNextTier {
     final next = nextTierStartRp;
@@ -29,7 +30,7 @@ class RankProgress {
     if (next == null) return 1;
     final span = next - tierStartRp;
     if (span <= 0) return 1;
-    return ((currentRp - tierStartRp) / span).clamp(0.0, 1.0);
+    return ((currentRp - tierStartRp) / span).clamp(0.0, 1.0).toDouble();
   }
 }
 
