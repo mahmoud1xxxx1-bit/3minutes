@@ -37,6 +37,7 @@ class MatchRuntime {
 
   MatchProgress recordResult(MiniGameResult result) {
     if (allGamesCompleted) return _progress;
+    _validateResult(result);
 
     final completedGames = _progress.completedGames + 1;
     _progress = MatchProgress(
@@ -47,5 +48,15 @@ class MatchRuntime {
       elapsedMs: _progress.elapsedMs + result.duration.inMilliseconds,
     );
     return _progress;
+  }
+
+  void _validateResult(MiniGameResult result) {
+    if (result.score < 0 ||
+        result.accuracy < 0 ||
+        result.accuracy > 1 ||
+        result.mistakes < 0 ||
+        result.duration.isNegative) {
+      throw ArgumentError('Mini-game returned an invalid normalized result.');
+    }
   }
 }
