@@ -13,6 +13,8 @@ import 'features/match/data/firestore_social_match_backend.dart';
 import 'features/match/data/match_backend.dart';
 import 'features/match/data/social_match_backend.dart';
 import 'features/profile/data/profile_repository.dart';
+import 'features/progression/data/firestore_progression_backend.dart';
+import 'features/progression/data/progression_backend.dart';
 import 'features/social/data/firestore_room_backend.dart';
 import 'features/social/data/firestore_social_backend.dart';
 import 'features/social/data/room_backend.dart';
@@ -34,6 +36,7 @@ Future<void> main() async {
       socialMatchBackend: FirestoreSocialMatchBackend(),
       competitionBackend: FirestoreCompetitionBackend(),
       economyBackend: FirestoreEconomyBackend(),
+      progressionBackend: FirestoreProgressionBackend(),
       socialBackend: FirestoreSocialBackend(),
       roomBackend: FirestoreRoomBackend(),
     ),
@@ -49,6 +52,7 @@ class ThreeMinutesApp extends StatelessWidget {
     required this.socialMatchBackend,
     required this.competitionBackend,
     required this.economyBackend,
+    required this.progressionBackend,
     required this.socialBackend,
     required this.roomBackend,
   });
@@ -59,6 +63,7 @@ class ThreeMinutesApp extends StatelessWidget {
   final SocialMatchBackend socialMatchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
+  final ProgressionBackend progressionBackend;
   final SocialBackend socialBackend;
   final RoomBackend roomBackend;
 
@@ -77,6 +82,7 @@ class ThreeMinutesApp extends StatelessWidget {
         socialMatchBackend: socialMatchBackend,
         competitionBackend: competitionBackend,
         economyBackend: economyBackend,
+        progressionBackend: progressionBackend,
         socialBackend: socialBackend,
         roomBackend: roomBackend,
       ),
