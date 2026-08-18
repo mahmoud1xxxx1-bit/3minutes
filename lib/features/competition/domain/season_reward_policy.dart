@@ -3,15 +3,18 @@ import 'rank_tier.dart';
 class SeasonRewardPolicy {
   const SeasonRewardPolicy._();
 
-  // Persistent stars are identity rewards. They never affect gameplay.
+  // Persistent stars are identity/prestige rewards. They never affect gameplay
+  // and cannot be purchased with coins or real money.
   static int starsForPeakTier(RankTier tier) {
     return switch (tier) {
-      RankTier.bronze => 0,
-      RankTier.silver => 1,
-      RankTier.gold => 2,
-      RankTier.platinum => 3,
-      RankTier.diamond => 5,
-      RankTier.master => 8,
+      RankTier.bronze => 1,
+      RankTier.silver => 2,
+      RankTier.gold => 4,
+      RankTier.platinum => 7,
+      RankTier.diamond => 11,
+      RankTier.master => 16,
+      RankTier.grandmaster => 24,
+      RankTier.legend => 35,
     };
   }
 
