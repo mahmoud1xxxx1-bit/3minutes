@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../competition/domain/rank_tier.dart';
@@ -34,8 +35,13 @@ class ProfileShowcaseScreen extends StatelessWidget {
     final tier = RankPolicy.tierFor(profile.rankPoints);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(l10n.profile, style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.transparent,
+        title: Text(
+          l10n.profile,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
         actions: [
           IconButton(
             tooltip: l10n.editProfile,
@@ -51,46 +57,84 @@ class ProfileShowcaseScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SafeArea(
-        child: StreamBuilder<PlayerInventory?>(
-          stream: economyBackend.watchInventory(profile.uid),
-          builder: (context, snapshot) {
-            final inventory = snapshot.data;
-            return ListView(
-              padding: const EdgeInsets.all(GameSpacing.md),
-              children: [
-                _HeroIdentity(profile: profile, tier: tier),
-                const SizedBox(height: GameSpacing.md),
-                _StatsGrid(profile: profile),
-                const SizedBox(height: GameSpacing.lg),
-                Text(
-                  pcopy.achievements,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+      body: CosmicBackground(
+        child: SafeArea(
+          top: false,
+          child: StreamBuilder<PlayerInventory?>(
+            stream: economyBackend.watchInventory(profile.uid),
+            builder: (context, snapshot) {
+              final inventory = snapshot.data;
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  GameSpacing.md,
+                  GameSpacing.sm,
+                  GameSpacing.md,
+                  110,
                 ),
-                const SizedBox(height: GameSpacing.sm),
-                _AchievementShowcase(profile: profile, copy: pcopy),
-                const SizedBox(height: GameSpacing.lg),
-                Text(
-                  Localizations.localeOf(context).languageCode == 'ar' ? 'المظهر المجهز' : 'Equipped style',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: GameSpacing.sm),
-                _EquippedShowcase(inventory: inventory),
-                const SizedBox(height: GameSpacing.lg),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ProfileScreen(profile: profile, profileRepository: profileRepository),
-                    ),
+                children: [
+                  _HeroIdentity(profile: profile, tier: tier),
+                  const SizedBox(height: GameSpacing.md),
+                  _StatsGrid(profile: profile),
+                  const SizedBox(height: GameSpacing.lg),
+                  _SectionTitle(
+                    icon: Icons.emoji_events_rounded,
+                    title: pcopy.achievements,
+                    color: GameColors.rewardGold,
                   ),
-                  icon: const Icon(Icons.tune_rounded),
-                  label: Text(l10n.editProfile),
-                ),
-              ],
-            );
-          },
+                  const SizedBox(height: GameSpacing.sm),
+                  _AchievementShowcase(profile: profile, copy: pcopy),
+                  const SizedBox(height: GameSpacing.lg),
+                  _SectionTitle(
+                    icon: Icons.auto_awesome_rounded,
+                    title: Localizations.localeOf(context).languageCode == 'ar'
+                        ? 'المظهر المجهز'
+                        : 'Equipped style',
+                    color: GameColors.violet,
+                  ),
+                  const SizedBox(height: GameSpacing.sm),
+                  _EquippedShowcase(inventory: inventory),
+                  const SizedBox(height: GameSpacing.lg),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ProfileScreen(
+                          profile: profile,
+                          profileRepository: profileRepository,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.tune_rounded),
+                    label: Text(l10n.editProfile),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.icon,
+    required this.title,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: GameSpacing.sm),
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+      ],
     );
   }
 }
@@ -103,54 +147,63 @@ class _HeroIdentity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Container(
+
+    return CosmicPanel(
+      glow: true,
       padding: const EdgeInsets.all(GameSpacing.lg),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(GameRadii.panel),
-        gradient: const LinearGradient(
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.bottomEnd,
-          colors: [Color(0xFF1D2A40), GameColors.surface],
-        ),
-        border: Border.all(color: GameColors.accent.withValues(alpha: .28)),
-      ),
       child: Column(
         children: [
           Container(
-            width: 104,
-            height: 104,
+            width: 108,
+            height: 108,
+            padding: const EdgeInsets.all(3),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: GameColors.background,
-              border: Border.all(color: GameColors.accent, width: 3),
-              boxShadow: [BoxShadow(color: GameColors.accent.withValues(alpha: .18), blurRadius: 28)],
+              gradient: GameColors.cosmicGradient,
+              boxShadow: GameShadows.primaryGlow,
             ),
-            child: const Icon(Icons.person_rounded, size: 58),
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: GameColors.surface,
+              ),
+              child: Icon(Icons.person_rounded, size: 58),
+            ),
           ),
           const SizedBox(height: GameSpacing.md),
           Text(
             profile.gameName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
           if (profile.selectedTitleId != null) ...[
             const SizedBox(height: 4),
-            Text(profile.selectedTitleId!, style: const TextStyle(color: GameColors.rewardGold, fontWeight: FontWeight.w800)),
+            Text(
+              profile.selectedTitleId!,
+              style: const TextStyle(
+                color: GameColors.rewardGold,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
           ],
           const SizedBox(height: GameSpacing.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: GameSpacing.sm,
+            runSpacing: GameSpacing.xs,
             children: [
               RankBadge(tier: tier),
-              const SizedBox(width: GameSpacing.sm),
               SeasonStarBadge(stars: profile.stars),
             ],
           ),
           const SizedBox(height: GameSpacing.sm),
           Text(
             '${l10n.levelWithValue(profile.level)} • ${l10n.rpWithValue(profile.rankPoints)}',
-            style: const TextStyle(color: GameColors.muted, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              color: GameColors.muted,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),
@@ -174,35 +227,88 @@ class _StatsGrid extends StatelessWidget {
       mainAxisSpacing: GameSpacing.sm,
       childAspectRatio: 2.25,
       children: [
-        _StatCard(icon: Icons.emoji_events_rounded, label: l10n.wins, value: '${profile.wins}'),
-        _StatCard(icon: Icons.sports_esports_rounded, label: l10n.matches, value: '${profile.gamesPlayed}'),
-        _StatCard(icon: Icons.percent_rounded, label: ar ? 'نسبة الفوز' : 'Win rate', value: '${(profile.winRate * 100).toStringAsFixed(1)}%'),
-        _StatCard(icon: Icons.local_fire_department_rounded, label: ar ? 'أفضل سلسلة' : 'Best streak', value: '${profile.bestWinStreak}'),
+        _StatCard(
+          icon: Icons.emoji_events_rounded,
+          label: l10n.wins,
+          value: '${profile.wins}',
+          color: GameColors.rewardGold,
+        ),
+        _StatCard(
+          icon: Icons.sports_esports_rounded,
+          label: l10n.matches,
+          value: '${profile.gamesPlayed}',
+          color: GameColors.accentBright,
+        ),
+        _StatCard(
+          icon: Icons.percent_rounded,
+          label: ar ? 'نسبة الفوز' : 'Win rate',
+          value: '${(profile.winRate * 100).toStringAsFixed(1)}%',
+          color: GameColors.success,
+        ),
+        _StatCard(
+          icon: Icons.local_fire_department_rounded,
+          label: ar ? 'أفضل سلسلة' : 'Best streak',
+          value: '${profile.bestWinStreak}',
+          color: GameColors.violet,
+        ),
       ],
     );
   }
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.icon, required this.label, required this.value});
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
   final IconData icon;
   final String label;
   final String value;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.sm),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
-      ),
       child: Row(
         children: [
-          Icon(icon, color: GameColors.accent),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 21),
+          ),
           const SizedBox(width: GameSpacing.sm),
-          Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)), Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: GameColors.muted, fontSize: 11))])),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: GameColors.muted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -218,20 +324,50 @@ class _AchievementShowcase extends StatelessWidget {
   Widget build(BuildContext context) {
     final ids = profile.showcaseAchievementIds;
     if (ids.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(GameSpacing.md),
-        decoration: BoxDecoration(color: GameColors.surface, borderRadius: BorderRadius.circular(GameRadii.card), border: Border.all(color: GameColors.surfaceStrong)),
-        child: Text(Localizations.localeOf(context).languageCode == 'ar' ? 'اختر حتى 3 إنجازات لعرضها هنا.' : 'Choose up to 3 achievements to showcase here.', style: const TextStyle(color: GameColors.muted)),
+      return CosmicPanel(
+        child: Text(
+          Localizations.localeOf(context).languageCode == 'ar'
+              ? 'اختر حتى 3 إنجازات لعرضها هنا.'
+              : 'Choose up to 3 achievements to showcase here.',
+          style: const TextStyle(color: GameColors.muted),
+        ),
       );
     }
+
     return Row(
       children: [
         for (var i = 0; i < ids.length; i++) ...[
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(GameSpacing.sm),
-              decoration: BoxDecoration(color: GameColors.rewardGold.withValues(alpha: .08), borderRadius: BorderRadius.circular(GameRadii.card), border: Border.all(color: GameColors.rewardGold.withValues(alpha: .28))),
-              child: Column(children: [const Icon(Icons.emoji_events_rounded, color: GameColors.rewardGold), const SizedBox(height: 6), Text(copy.achievement(AchievementCatalog.byId(ids[i])?.id ?? ids[i]), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11))]),
+              decoration: BoxDecoration(
+                color: GameColors.rewardGold.withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(GameRadii.card),
+                border: Border.all(
+                  color: GameColors.rewardGold.withValues(alpha: .28),
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.emoji_events_rounded,
+                    color: GameColors.rewardGold,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    copy.achievement(
+                      AchievementCatalog.byId(ids[i])?.id ?? ids[i],
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           if (i != ids.length - 1) const SizedBox(width: GameSpacing.sm),
@@ -258,21 +394,32 @@ class _EquippedShowcase extends StatelessWidget {
       inventory?.equippedEmoteId,
       inventory?.equippedRoomThemeId,
     ].whereType<String>().toList();
+
     if (ids.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(GameSpacing.md),
-        decoration: BoxDecoration(color: GameColors.surface, borderRadius: BorderRadius.circular(GameRadii.card), border: Border.all(color: GameColors.surfaceStrong)),
-        child: Text(Localizations.localeOf(context).languageCode == 'ar' ? 'جهز عناصر من المتجر لتظهر هنا.' : 'Equip shop cosmetics to display them here.', style: const TextStyle(color: GameColors.muted)),
+      return CosmicPanel(
+        child: Text(
+          Localizations.localeOf(context).languageCode == 'ar'
+              ? 'جهز عناصر من المتجر لتظهر هنا.'
+              : 'Equip shop cosmetics to display them here.',
+          style: const TextStyle(color: GameColors.muted),
+        ),
       );
     }
-    return Wrap(
-      spacing: GameSpacing.sm,
-      runSpacing: GameSpacing.sm,
-      children: [
-        for (final id in ids)
-          if (CosmeticCatalog.byId(id) case final CosmeticItem item)
-            CosmeticPreview(item: item, rarityColor: _rarityColor(item.rarity), size: 66),
-      ],
+
+    return CosmicPanel(
+      child: Wrap(
+        spacing: GameSpacing.sm,
+        runSpacing: GameSpacing.sm,
+        children: [
+          for (final id in ids)
+            if (CosmeticCatalog.byId(id) case final CosmeticItem item)
+              CosmeticPreview(
+                item: item,
+                rarityColor: _rarityColor(item.rarity),
+                size: 66,
+              ),
+        ],
+      ),
     );
   }
 
