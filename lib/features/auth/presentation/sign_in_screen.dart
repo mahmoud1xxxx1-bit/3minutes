@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/auth_service.dart';
 
 class SignInScreen extends StatefulWidget {
@@ -30,45 +32,91 @@ class _SignInScreenState extends State<SignInScreen> {
       await widget.authService.signInWithGoogle();
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Google sign-in failed. Please try again.';
-      });
+      setState(() => _error = AppLocalizations.of(context).googleSignInFailed);
     } finally {
-      if (mounted) {
-        setState(() => _busy = false);
-      }
+      if (mounted) setState(() => _busy = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(GameSpacing.lg),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
+              Center(
+                child: Container(
+                  width: 112,
+                  height: 112,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      begin: AlignmentDirectional.topStart,
+                      end: AlignmentDirectional.bottomEnd,
+                      colors: [Color(0xFF34CDEB), Color(0xFF197EA8)],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: GameColors.accent.withValues(alpha: 0.18),
+                        blurRadius: 34,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '3',
+                      style: TextStyle(
+                        color: GameColors.background,
+                        fontSize: 52,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: GameSpacing.lg),
               Text(
-                '3 MINUTES',
+                l10n.appName,
+                textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
+                      letterSpacing: 1.2,
                     ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: GameSpacing.sm),
               Text(
-                'Two players. One clock.',
-                style: Theme.of(context).textTheme.titleMedium,
+                l10n.signInTagline,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: GameColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
               const Spacer(),
               if (_error != null) ...[
-                Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                Container(
+                  padding: const EdgeInsets.all(GameSpacing.md),
+                  decoration: BoxDecoration(
+                    color: GameColors.danger.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(GameRadii.card),
+                    border: Border.all(
+                      color: GameColors.danger.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Text(
+                    _error!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: GameColors.danger),
+                  ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: GameSpacing.md),
               ],
               FilledButton.icon(
                 onPressed: _busy ? null : _signIn,
@@ -77,10 +125,12 @@ class _SignInScreenState extends State<SignInScreen> {
                         dimension: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.login),
-                label: Text(_busy ? 'Signing in...' : 'Continue with Google'),
+                    : const Icon(Icons.login_rounded),
+                label: Text(
+                  _busy ? l10n.signingIn : l10n.continueWithGoogle,
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: GameSpacing.md),
             ],
           ),
         ),
