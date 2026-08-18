@@ -48,12 +48,12 @@ class SeasonPassPolicy {
   }
 
   static int freeCoinRewardForLevel(int level) {
-    final safeLevel = level.clamp(1, maxLevel);
+    final safeLevel = level.clamp(1, maxLevel).toInt();
     return 40 + safeLevel * 10;
   }
 
   static int premiumCoinRewardForLevel(int level) {
-    final safeLevel = level.clamp(1, maxLevel);
+    final safeLevel = level.clamp(1, maxLevel).toInt();
     return 100 + safeLevel * 20;
   }
 }
