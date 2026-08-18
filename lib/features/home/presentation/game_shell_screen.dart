@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/platform/room_invite_service.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
@@ -18,6 +21,7 @@ import '../../progression/data/progression_backend.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
 import '../../social/presentation/friends_screen.dart';
+import '../../social/presentation/room_hub_screen.dart';
 import '../../social/presentation/social_copy.dart';
 import 'cosmic_home_screen.dart';
 
@@ -53,6 +57,53 @@ class GameShellScreen extends StatefulWidget {
 
 class _GameShellScreenState extends State<GameShellScreen> {
   int _index = 0;
+  StreamSubscription<String>? _inviteSubscription;
+  String? _pendingInviteCode;
+  String? _openingInviteCode;
+
+  @override
+  void initState() {
+    super.initState();
+    _inviteSubscription = RoomInviteService.roomCodes.listen(_queueInvite);
+    unawaited(
+      RoomInviteService.takeInitialRoomCode().then((code) {
+        if (code != null) _queueInvite(code);
+      }),
+    );
+  }
+
+  @override
+  void dispose() {
+    unawaited(_inviteSubscription?.cancel());
+    super.dispose();
+  }
+
+  void _queueInvite(String code) {
+    if (!mounted || code == _openingInviteCode) return;
+    setState(() => _pendingInviteCode = code);
+  }
+
+  void _openPendingInvite(PlayerProfile profile) {
+    final code = _pendingInviteCode;
+    if (code == null || code == _openingInviteCode) return;
+    _openingInviteCode = code;
+    _pendingInviteCode = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => RoomHubScreen(
+            profile: profile,
+            roomBackend: widget.roomBackend,
+            socialBackend: widget.socialBackend,
+            socialMatchBackend: widget.socialMatchBackend,
+            initialRoomCode: code,
+          ),
+        ),
+      );
+      if (mounted) _openingInviteCode = null;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +120,10 @@ class _GameShellScreenState extends State<GameShellScreen> {
               child: Center(child: CircularProgressIndicator()),
             ),
           );
+        }
+
+        if (_pendingInviteCode != null && _openingInviteCode == null) {
+          _openPendingInvite(profile);
         }
 
         final pages = <Widget>[
@@ -109,7 +164,10 @@ class _GameShellScreenState extends State<GameShellScreen> {
               decoration: BoxDecoration(
                 color: GameColors.surfaceGlass,
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: GameColors.surfaceStrong, width: 0.8),
+                border: Border.all(
+                  color: GameColors.surfaceStrong,
+                  width: .8,
+                ),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x33000000),
