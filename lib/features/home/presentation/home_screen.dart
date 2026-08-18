@@ -9,6 +9,7 @@ import '../../competition/data/competition_backend.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/leaderboard_screen.dart';
 import '../../competition/presentation/rank_badge.dart';
+import '../../competition/presentation/season_screen.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
@@ -124,6 +125,26 @@ class HomeScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: GameSpacing.sm),
+                              Expanded(
+                                child: _MenuTile(
+                                  icon: Icons.auto_awesome_rounded,
+                                  label: l10n.season,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => SeasonScreen(
+                                          competitionBackend: competitionBackend,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: GameSpacing.sm),
+                          Row(
+                            children: [
                               Expanded(
                                 child: _MenuTile(
                                   icon: Icons.person_rounded,
@@ -462,8 +483,8 @@ class _MenuTile extends StatelessWidget {
           child: Column(
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: GameColors.accentSoft,
                   borderRadius: BorderRadius.circular(12),
