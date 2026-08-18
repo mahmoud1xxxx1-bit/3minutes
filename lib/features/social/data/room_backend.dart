@@ -16,6 +16,17 @@ abstract class RoomBackend {
     required String uid,
   });
 
+  Future<void> setReady({
+    required String roomId,
+    required String uid,
+    required bool ready,
+  });
+
+  Future<void> startRoom({
+    required String roomId,
+    required String hostUid,
+  });
+
   Future<void> leaveRoom({
     required String roomId,
     required String uid,
