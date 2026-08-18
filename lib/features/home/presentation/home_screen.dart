@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/domain/rank_tier.dart';
+import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/domain/match_ticket.dart';
 import '../../match/presentation/match_history_screen.dart';
@@ -103,10 +104,17 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: _MenuTile(
                           icon: Icons.storefront,
                           label: 'Shop',
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const ShopScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
