@@ -1,7 +1,14 @@
 enum CoinTransactionReason {
   matchReward,
+  firstWinReward,
+  levelReward,
+  dailyMissionReward,
+  weeklyMissionReward,
+  achievementReward,
+  seasonPassReward,
   purchase,
   seasonReward,
+  premiumCoinPack,
   adminGrant,
   reversal,
 }
