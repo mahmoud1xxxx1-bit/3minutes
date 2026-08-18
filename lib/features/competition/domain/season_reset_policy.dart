@@ -3,16 +3,18 @@ import 'rank_tier.dart';
 class SeasonResetPolicy {
   const SeasonResetPolicy._();
 
-  // Initial launch-tuning values. The server applies these exactly once during
-  // season rollover based on the player's peak tier from the closing season.
+  // The reset is based on peak tier, not final-day tier. Strong players keep a
+  // meaningful head start while every season still creates room to climb.
   static int startingRpForPeakTier(RankTier peakTier) {
     return switch (peakTier) {
       RankTier.bronze => 0,
       RankTier.silver => 250,
       RankTier.gold => 500,
-      RankTier.platinum => 800,
-      RankTier.diamond => 1100,
-      RankTier.master => 1400,
+      RankTier.platinum => 900,
+      RankTier.diamond => 1400,
+      RankTier.master => 2200,
+      RankTier.grandmaster => 3500,
+      RankTier.legend => 5000,
     };
   }
 }
