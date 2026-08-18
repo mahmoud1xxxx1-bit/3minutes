@@ -7,6 +7,9 @@ import '../data/cosmetic_catalog.dart';
 import '../data/economy_backend.dart';
 import '../domain/cosmetic_item.dart';
 import 'cosmetic_preview.dart';
+import 'shop_copy.dart';
+
+enum _ShopSection { featured, coins, prestige, premium, owned }
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({
@@ -25,40 +28,7 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen> {
   String? _busyItemId;
   String? _message;
-
-  String _slotLabel(AppLocalizations l10n, CosmeticSlot slot) => switch (slot) {
-        CosmeticSlot.avatar => l10n.avatar,
-        CosmeticSlot.avatarFrame => l10n.avatarFrame,
-        CosmeticSlot.badge => l10n.badge,
-        CosmeticSlot.profileBackground => l10n.profileBackground,
-        CosmeticSlot.nameStyle => l10n.nameStyle,
-        CosmeticSlot.matchIntro => slot.name,
-        CosmeticSlot.victoryEffect => slot.name,
-        CosmeticSlot.rankAura => slot.name,
-        CosmeticSlot.emote => slot.name,
-        CosmeticSlot.roomTheme => slot.name,
-      };
-
-  String _itemName(AppLocalizations l10n, CosmeticItem item) => switch (item.id) {
-        'frame_classic' => l10n.cosmeticFrameClassic,
-        'frame_neon' => l10n.cosmeticFrameNeon,
-        'badge_timer' => l10n.cosmeticBadgeTimer,
-        'badge_crown' => l10n.cosmeticBadgeCrown,
-        'background_grid' => l10n.cosmeticBackgroundGrid,
-        'background_arena' => l10n.cosmeticBackgroundArena,
-        'name_bold' => l10n.cosmeticNameBold,
-        'name_champion' => l10n.cosmeticNameChampion,
-        _ => item.name,
-      };
-
-  String _rarityLabel(AppLocalizations l10n, CosmeticRarity rarity) =>
-      switch (rarity) {
-        CosmeticRarity.common => l10n.common,
-        CosmeticRarity.rare => l10n.rare,
-        CosmeticRarity.epic => l10n.epic,
-        CosmeticRarity.legendary => l10n.legendary,
-        CosmeticRarity.mythic => rarity.name,
-      };
+  _ShopSection _section = _ShopSection.featured;
 
   bool _isEquipped(PlayerInventory inventory, CosmeticItem item) {
     return switch (item.slot) {
@@ -78,23 +48,18 @@ class _ShopScreenState extends State<ShopScreen> {
 
   Future<void> _purchase(CosmeticItem item) async {
     if (_busyItemId != null || !AppConfig.economyPurchasesEnabled) return;
+    final copy = ShopCopy.of(context);
     setState(() {
       _busyItemId = item.id;
       _message = null;
     });
     try {
-      final receipt = await widget.economyBackend.purchaseCosmetic(
+      await widget.economyBackend.purchaseCosmetic(
         uid: widget.uid,
         cosmeticId: item.id,
       );
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
-      setState(() {
-        _message = l10n.purchaseSuccess(
-          _itemName(l10n, item),
-          receipt.remainingCoins,
-        );
-      });
+      setState(() => _message = '${copy.itemName(item)} ✓');
     } catch (_) {
       if (!mounted) return;
       setState(() => _message = AppLocalizations.of(context).purchaseFailed);
@@ -115,8 +80,8 @@ class _ShopScreenState extends State<ShopScreen> {
         cosmeticId: item.id,
       );
       if (!mounted) return;
-      final l10n = AppLocalizations.of(context);
-      setState(() => _message = l10n.equipSuccess(_itemName(l10n, item)));
+      final copy = ShopCopy.of(context);
+      setState(() => _message = '${copy.itemName(item)} ✓');
     } catch (_) {
       if (!mounted) return;
       setState(() => _message = AppLocalizations.of(context).equipFailed);
@@ -132,10 +97,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          l10n.shop,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: Text(l10n.shop, style: const TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: SafeArea(
         child: purchasesEnabled
@@ -146,12 +108,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(GameSpacing.lg),
-                        child: Text(l10n.couldNotLoadInventory),
-                      ),
-                    );
+                    return Center(child: Text(l10n.couldNotLoadInventory));
                   }
                   final inventory = snapshot.data ??
                       const PlayerInventory(
@@ -179,128 +136,367 @@ class _ShopScreenState extends State<ShopScreen> {
     required bool purchasesEnabled,
     required PlayerInventory? inventory,
   }) {
-    final l10n = AppLocalizations.of(context);
+    final copy = ShopCopy.of(context);
+    final items = _itemsForSection(inventory);
+    final heroItem = items.isNotEmpty ? items.first : CosmeticCatalog.featured.first;
 
-    return ListView(
-      padding: const EdgeInsets.all(GameSpacing.md),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(GameSpacing.lg),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(GameRadii.panel),
-            gradient: const LinearGradient(
-              begin: AlignmentDirectional.topStart,
-              end: AlignmentDirectional.bottomEnd,
-              colors: [GameColors.surfaceRaised, GameColors.surface],
-            ),
-            border: Border.all(color: GameColors.surfaceStrong),
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            GameSpacing.md,
+            GameSpacing.sm,
+            GameSpacing.md,
+            0,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: purchasesEnabled
-                      ? GameColors.success.withValues(alpha: 0.12)
-                      : GameColors.accentSoft,
-                  borderRadius: BorderRadius.circular(15),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _WalletHeader(
+                  inventory: inventory,
+                  purchasesEnabled: purchasesEnabled,
                 ),
-                child: Icon(
-                  purchasesEnabled
-                      ? Icons.verified_user_rounded
-                      : Icons.lock_rounded,
-                  color: purchasesEnabled
-                      ? GameColors.success
-                      : GameColors.accent,
+                const SizedBox(height: GameSpacing.md),
+                _SectionTabs(
+                  selected: _section,
+                  copy: copy,
+                  onChanged: (section) => setState(() => _section = section),
                 ),
-              ),
-              const SizedBox(width: GameSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.secureCosmeticsShop,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    const SizedBox(height: GameSpacing.xs),
-                    Text(
-                      purchasesEnabled
-                          ? l10n.shopSecureDescription
-                          : l10n.shopLockedDescription,
-                      style: const TextStyle(color: GameColors.muted),
-                    ),
-                    if (inventory != null) ...[
-                      const SizedBox(height: GameSpacing.md),
-                      Wrap(
-                        spacing: GameSpacing.sm,
-                        runSpacing: GameSpacing.xs,
-                        children: [
-                          _BalancePill(
-                            icon: Icons.monetization_on_rounded,
-                            value: '${inventory.coins}',
-                            label: l10n.coins,
-                            color: GameColors.rewardGold,
-                          ),
-                          _BalancePill(
-                            icon: Icons.star_rounded,
-                            value: '${inventory.prestigeStars}',
-                            label: l10n.stars,
-                            color: GameColors.rankLegend,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
+                const SizedBox(height: GameSpacing.md),
+                _FeaturedHero(
+                  item: heroItem,
+                  name: copy.itemName(heroItem),
+                  description: copy.itemDescription(heroItem),
+                  copy: copy,
                 ),
-              ),
-            ],
+                if (_message != null) ...[
+                  const SizedBox(height: GameSpacing.sm),
+                  _MessageBanner(message: _message!),
+                ],
+                const SizedBox(height: GameSpacing.lg),
+                _SectionHeading(
+                  title: _sectionTitle(copy),
+                  subtitle: _sectionSubtitle(copy),
+                ),
+                const SizedBox(height: GameSpacing.sm),
+              ],
+            ),
           ),
         ),
-        if (_message != null) ...[
-          const SizedBox(height: GameSpacing.sm),
-          Container(
-            padding: const EdgeInsets.all(GameSpacing.sm),
-            decoration: BoxDecoration(
-              color: GameColors.surface,
-              borderRadius: BorderRadius.circular(GameRadii.button),
-              border: Border.all(color: GameColors.surfaceStrong),
+        if (items.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(GameSpacing.xl),
+                child: Text(
+                  copy.noOwned,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: GameColors.muted),
+                ),
+              ),
             ),
-            child: Text(
-              _message!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: GameColors.muted),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              GameSpacing.md,
+              0,
+              GameSpacing.md,
+              GameSpacing.xl,
+            ),
+            sliver: SliverList.separated(
+              itemCount: items.length,
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: GameSpacing.sm),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return _CosmeticCard(
+                  item: item,
+                  itemName: copy.itemName(item),
+                  description: copy.itemDescription(item),
+                  slotLabel: _slotLabel(item.slot),
+                  rarityLabel: _rarityLabel(item.rarity),
+                  purchasesEnabled: purchasesEnabled,
+                  owned: inventory?.ownedCosmeticIds.contains(item.id) ?? false,
+                  equipped:
+                      inventory == null ? false : _isEquipped(inventory, item),
+                  busy: _busyItemId == item.id,
+                  onPurchase: () => _purchase(item),
+                  onEquip: () => _equip(item),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  List<CosmeticItem> _itemsForSection(PlayerInventory? inventory) {
+    return switch (_section) {
+      _ShopSection.featured => CosmeticCatalog.featured,
+      _ShopSection.coins =>
+        CosmeticCatalog.forPriceType(CosmeticPriceType.coins),
+      _ShopSection.prestige =>
+        CosmeticCatalog.forPriceType(CosmeticPriceType.prestigeStars),
+      _ShopSection.premium =>
+        CosmeticCatalog.forPriceType(CosmeticPriceType.premium),
+      _ShopSection.owned => inventory == null
+          ? const <CosmeticItem>[]
+          : CosmeticCatalog.items
+              .where((item) => inventory.ownedCosmeticIds.contains(item.id))
+              .toList(growable: false),
+    };
+  }
+
+  String _sectionTitle(ShopCopy copy) => switch (_section) {
+        _ShopSection.featured => copy.featured,
+        _ShopSection.coins => copy.coins,
+        _ShopSection.prestige => copy.prestige,
+        _ShopSection.premium => copy.premium,
+        _ShopSection.owned => copy.owned,
+      };
+
+  String _sectionSubtitle(ShopCopy copy) => switch (_section) {
+        _ShopSection.featured => copy.featuredSubtitle,
+        _ShopSection.coins => copy.coinSubtitle,
+        _ShopSection.prestige => copy.prestigeSubtitle,
+        _ShopSection.premium => copy.premiumSubtitle,
+        _ShopSection.owned => copy.ownedSubtitle,
+      };
+
+  String _slotLabel(CosmeticSlot slot) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return switch (slot) {
+      CosmeticSlot.avatar => ar ? 'أفاتار' : 'Avatar',
+      CosmeticSlot.avatarFrame => ar ? 'إطار' : 'Frame',
+      CosmeticSlot.badge => ar ? 'شارة' : 'Badge',
+      CosmeticSlot.profileBackground => ar ? 'خلفية' : 'Background',
+      CosmeticSlot.nameStyle => ar ? 'نمط الاسم' : 'Name style',
+      CosmeticSlot.matchIntro => ar ? 'دخول المباراة' : 'Match intro',
+      CosmeticSlot.victoryEffect => ar ? 'تأثير الفوز' : 'Victory effect',
+      CosmeticSlot.rankAura => ar ? 'هالة الرتبة' : 'Rank aura',
+      CosmeticSlot.emote => ar ? 'إيموت' : 'Emote',
+      CosmeticSlot.roomTheme => ar ? 'ثيم الغرفة' : 'Room theme',
+    };
+  }
+
+  String _rarityLabel(CosmeticRarity rarity) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return switch (rarity) {
+      CosmeticRarity.common => ar ? 'عادي' : 'Common',
+      CosmeticRarity.rare => ar ? 'نادر' : 'Rare',
+      CosmeticRarity.epic => ar ? 'ملحمي' : 'Epic',
+      CosmeticRarity.legendary => ar ? 'أسطوري' : 'Legendary',
+      CosmeticRarity.mythic => ar ? 'خرافي' : 'Mythic',
+    };
+  }
+}
+
+class _WalletHeader extends StatelessWidget {
+  const _WalletHeader({required this.inventory, required this.purchasesEnabled});
+
+  final PlayerInventory? inventory;
+  final bool purchasesEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final copy = ShopCopy.of(context);
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.md),
+      decoration: BoxDecoration(
+        color: GameColors.surface,
+        borderRadius: BorderRadius.circular(GameRadii.panel),
+        border: Border.all(color: GameColors.surfaceStrong),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _BalancePill(
+              icon: Icons.monetization_on_rounded,
+              value: '${inventory?.coins ?? 0}',
+              label: copy.coins,
+              color: GameColors.rewardGold,
+            ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          Expanded(
+            child: _BalancePill(
+              icon: Icons.star_rounded,
+              value: '${inventory?.prestigeStars ?? 0}',
+              label: copy.prestige,
+              color: GameColors.rankLegend,
+            ),
+          ),
+          if (!purchasesEnabled) ...[
+            const SizedBox(width: GameSpacing.sm),
+            const Icon(Icons.lock_rounded, color: GameColors.muted, size: 20),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTabs extends StatelessWidget {
+  const _SectionTabs({
+    required this.selected,
+    required this.copy,
+    required this.onChanged,
+  });
+
+  final _ShopSection selected;
+  final ShopCopy copy;
+  final ValueChanged<_ShopSection> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = <_ShopSection, String>{
+      _ShopSection.featured: copy.featured,
+      _ShopSection.coins: copy.coins,
+      _ShopSection.prestige: copy.prestige,
+      _ShopSection.premium: copy.premium,
+      _ShopSection.owned: copy.owned,
+    };
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final section in _ShopSection.values) ...[
+            ChoiceChip(
+              selected: selected == section,
+              onSelected: (_) => onChanged(section),
+              label: Text(labels[section]!),
+            ),
+            const SizedBox(width: GameSpacing.xs),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FeaturedHero extends StatelessWidget {
+  const _FeaturedHero({
+    required this.item,
+    required this.name,
+    required this.description,
+    required this.copy,
+  });
+
+  final CosmeticItem item;
+  final String name;
+  final String description;
+  final ShopCopy copy;
+
+  Color get rarityColor => switch (item.rarity) {
+        CosmeticRarity.common => GameColors.rarityCommon,
+        CosmeticRarity.rare => GameColors.rarityRare,
+        CosmeticRarity.epic => GameColors.rarityEpic,
+        CosmeticRarity.legendary => GameColors.rarityLegendary,
+        CosmeticRarity.mythic => GameColors.rarityMythic,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final color = rarityColor;
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.lg),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(GameRadii.panel),
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: [
+            color.withValues(alpha: 0.18),
+            GameColors.surface,
+            GameColors.background,
+          ],
+        ),
+        border: Border.all(color: color.withValues(alpha: 0.50)),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.10), blurRadius: 24),
+        ],
+      ),
+      child: Row(
+        children: [
+          CosmeticPreview(item: item, rarityColor: color, size: 112),
+          const SizedBox(width: GameSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: GameSpacing.xs,
+                  runSpacing: GameSpacing.xs,
+                  children: [
+                    _MiniTag(label: copy.exclusive, color: color),
+                    if (item.isAnimated)
+                      _MiniTag(label: copy.animated, color: GameColors.accent),
+                  ],
+                ),
+                const SizedBox(height: GameSpacing.sm),
+                Text(
+                  name,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: GameSpacing.xs),
+                Text(description, style: const TextStyle(color: GameColors.muted)),
+                const SizedBox(height: GameSpacing.sm),
+                _PriceLine(item: item),
+              ],
             ),
           ),
         ],
-        const SizedBox(height: GameSpacing.lg),
+      ),
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.subtitle});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
-          l10n.catalog,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
         ),
-        const SizedBox(height: GameSpacing.sm),
-        for (final item in CosmeticCatalog.items) ...[
-          _CosmeticCard(
-            item: item,
-            itemName: _itemName(l10n, item),
-            slotLabel: _slotLabel(l10n, item.slot),
-            rarityLabel: _rarityLabel(l10n, item.rarity),
-            purchasesEnabled: purchasesEnabled,
-            owned: inventory?.ownedCosmeticIds.contains(item.id) ?? false,
-            equipped: inventory == null ? false : _isEquipped(inventory, item),
-            busy: _busyItemId == item.id,
-            onPurchase: () => _purchase(item),
-            onEquip: () => _equip(item),
-          ),
-          const SizedBox(height: GameSpacing.sm),
-        ],
+        const SizedBox(height: 3),
+        Text(subtitle, style: const TextStyle(color: GameColors.muted)),
       ],
+    );
+  }
+}
+
+class _MessageBanner extends StatelessWidget {
+  const _MessageBanner({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.sm),
+      decoration: BoxDecoration(
+        color: GameColors.success.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(GameRadii.button),
+        border: Border.all(color: GameColors.success.withValues(alpha: 0.30)),
+      ),
+      child: Text(
+        message,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: GameColors.success, fontWeight: FontWeight.w800),
+      ),
     );
   }
 }
@@ -321,23 +517,23 @@ class _BalancePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: GameSpacing.sm,
-        vertical: GameSpacing.xs,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: GameSpacing.sm, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(GameRadii.pill),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        border: Border.all(color: color.withValues(alpha: 0.26)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 18, color: color),
           const SizedBox(width: GameSpacing.xs),
-          Text(
-            '$value $label',
-            style: TextStyle(color: color, fontWeight: FontWeight.w900),
+          Flexible(
+            child: Text(
+              '$value ${label.toUpperCase()}',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: color, fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       ),
@@ -349,6 +545,7 @@ class _CosmeticCard extends StatelessWidget {
   const _CosmeticCard({
     required this.item,
     required this.itemName,
+    required this.description,
     required this.slotLabel,
     required this.rarityLabel,
     required this.purchasesEnabled,
@@ -361,6 +558,7 @@ class _CosmeticCard extends StatelessWidget {
 
   final CosmeticItem item;
   final String itemName;
+  final String description;
   final String slotLabel;
   final String rarityLabel;
   final bool purchasesEnabled;
@@ -370,7 +568,7 @@ class _CosmeticCard extends StatelessWidget {
   final VoidCallback onPurchase;
   final VoidCallback onEquip;
 
-  Color get _rarityColor => switch (item.rarity) {
+  Color get rarityColor => switch (item.rarity) {
         CosmeticRarity.common => GameColors.rarityCommon,
         CosmeticRarity.rare => GameColors.rarityRare,
         CosmeticRarity.epic => GameColors.rarityEpic,
@@ -381,66 +579,103 @@ class _CosmeticCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final rarityColor = _rarityColor;
+    final copy = ShopCopy.of(context);
+    final color = rarityColor;
 
     return Container(
       padding: const EdgeInsets.all(GameSpacing.md),
       decoration: BoxDecoration(
         color: GameColors.surface,
         borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: rarityColor.withValues(alpha: 0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.36)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CosmeticPreview(
-            item: item,
-            rarityColor: rarityColor,
-            size: 58,
-          ),
+          CosmeticPreview(item: item, rarityColor: color, size: 76),
           const SizedBox(width: GameSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  itemName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 3),
-                Wrap(
-                  spacing: GameSpacing.sm,
-                  runSpacing: 3,
+                Row(
                   children: [
-                    Text(slotLabel, style: const TextStyle(color: GameColors.muted)),
-                    Text(
-                      rarityLabel,
-                      style: TextStyle(color: rarityColor, fontWeight: FontWeight.w800),
+                    Expanded(
+                      child: Text(
+                        itemName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                      ),
                     ),
+                    if (item.isAnimated)
+                      _MiniTag(label: copy.animated, color: GameColors.accent),
                   ],
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: GameColors.muted, fontSize: 12),
+                ),
                 const SizedBox(height: GameSpacing.xs),
-                _PriceLine(item: item),
+                Wrap(
+                  spacing: GameSpacing.sm,
+                  runSpacing: 4,
+                  children: [
+                    Text(slotLabel, style: const TextStyle(color: GameColors.muted, fontSize: 11)),
+                    Text(
+                      rarityLabel,
+                      style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900),
+                    ),
+                    _PriceLine(item: item),
+                  ],
+                ),
+                const SizedBox(height: GameSpacing.sm),
+                if (!purchasesEnabled)
+                  _StatusPill(label: l10n.locked, color: GameColors.muted)
+                else if (equipped)
+                  _StatusPill(label: l10n.equipped, color: GameColors.success)
+                else
+                  SizedBox(
+                    height: 36,
+                    child: OutlinedButton(
+                      onPressed: busy ? null : (owned ? onEquip : onPurchase),
+                      child: busy
+                          ? const SizedBox.square(
+                              dimension: 15,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(owned ? l10n.equip : l10n.buy),
+                    ),
+                  ),
               ],
             ),
           ),
-          const SizedBox(width: GameSpacing.sm),
-          if (!purchasesEnabled)
-            _StatusPill(label: l10n.locked, color: GameColors.muted)
-          else if (equipped)
-            _StatusPill(label: l10n.equipped, color: GameColors.success)
-          else
-            OutlinedButton(
-              onPressed: busy ? null : (owned ? onEquip : onPurchase),
-              child: busy
-                  ? const SizedBox.square(
-                      dimension: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(owned ? l10n.equip : l10n.buy),
-            ),
         ],
+      ),
+    );
+  }
+}
+
+class _MiniTag extends StatelessWidget {
+  const _MiniTag({required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(GameRadii.pill),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900),
       ),
     );
   }
@@ -448,7 +683,6 @@ class _CosmeticCard extends StatelessWidget {
 
 class _PriceLine extends StatelessWidget {
   const _PriceLine({required this.item});
-
   final CosmeticItem item;
 
   @override
@@ -466,9 +700,7 @@ class _PriceLine extends StatelessWidget {
         ),
       CosmeticPriceType.premium => _PriceValue(
           icon: Icons.workspace_premium_rounded,
-          value: item.premiumPriceCents > 0
-              ? '\$${(item.premiumPriceCents / 100).toStringAsFixed(2)}'
-              : 'Premium',
+          value: '\$${(item.premiumPriceCents / 100).toStringAsFixed(2)}',
           color: GameColors.rarityEpic,
         ),
       CosmeticPriceType.achievement => const _PriceValue(
@@ -487,7 +719,6 @@ class _PriceLine extends StatelessWidget {
 
 class _PriceValue extends StatelessWidget {
   const _PriceValue({required this.icon, required this.value, required this.color});
-
   final IconData icon;
   final String value;
   final Color color;
@@ -497,9 +728,9 @@ class _PriceValue extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 17, color: color),
-        const SizedBox(width: GameSpacing.xs),
-        Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900)),
+        Icon(icon, size: 15, color: color),
+        const SizedBox(width: 3),
+        Text(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
       ],
     );
   }
@@ -507,7 +738,6 @@ class _PriceValue extends StatelessWidget {
 
 class _StatusPill extends StatelessWidget {
   const _StatusPill({required this.label, required this.color});
-
   final String label;
   final Color color;
 
@@ -522,11 +752,7 @@ class _StatusPill extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-        ),
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900),
       ),
     );
   }
