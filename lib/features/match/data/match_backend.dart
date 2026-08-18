@@ -31,6 +31,11 @@ abstract class MatchBackend {
     required String uid,
   });
 
+  Future<void> finalizeMatch({
+    required String matchId,
+    required String uid,
+  });
+
   Future<void> requestRematch({
     required String matchId,
     required String uid,
