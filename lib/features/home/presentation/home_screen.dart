@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/domain/rank_tier.dart';
+import '../../competition/presentation/leaderboard_screen.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/domain/match_ticket.dart';
@@ -78,10 +79,17 @@ class HomeScreen extends StatelessWidget {
                   const Spacer(),
                   Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: _MenuTile(
                           icon: Icons.leaderboard,
                           label: 'Leaderboard',
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const LeaderboardScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 10),
