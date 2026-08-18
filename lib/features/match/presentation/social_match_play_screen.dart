@@ -1,0 +1,548 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../../../core/config/app_config.dart';
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../minigames/data/game_registry.dart';
+import '../../minigames/domain/mini_game_contract.dart';
+import '../../minigames/presentation/mini_game_copy.dart';
+import '../../minigames/presentation/mini_game_host.dart';
+import '../data/social_match_backend.dart';
+import '../domain/match_progress.dart';
+import '../domain/match_runtime.dart';
+import '../domain/multiplayer_match.dart';
+import '../domain/multiplayer_result.dart';
+
+class SocialMatchPlayScreen extends StatefulWidget {
+  const SocialMatchPlayScreen({
+    super.key,
+    required this.matchId,
+    required this.uid,
+    required this.matchBackend,
+  });
+
+  final String matchId;
+  final String uid;
+  final SocialMatchBackend matchBackend;
+
+  @override
+  State<SocialMatchPlayScreen> createState() => _SocialMatchPlayScreenState();
+}
+
+class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
+  Timer? _ticker;
+  MatchRuntime? _runtime;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (mounted) setState(() {});
+    });
+    unawaited(
+      widget.matchBackend.setConnectionState(
+        matchId: widget.matchId,
+        uid: widget.uid,
+        state: ParticipantConnectionState.connected,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    unawaited(
+      widget.matchBackend.setConnectionState(
+        matchId: widget.matchId,
+        uid: widget.uid,
+        state: ParticipantConnectionState.disconnected,
+      ),
+    );
+    super.dispose();
+  }
+
+  MatchParticipant? _me(MultiplayerMatch match) {
+    for (final participant in match.participants) {
+      if (participant.uid == widget.uid) return participant;
+    }
+    return null;
+  }
+
+  MatchRuntime? _ensureRuntime(MultiplayerMatch match) {
+    final countdownStartedAt = match.countdownStartedAt;
+    final me = _me(match);
+    if (countdownStartedAt == null || me == null) return null;
+
+    final savedProgress = me.progress;
+    final current = _runtime;
+    final serverIsAhead = current != null &&
+        (savedProgress.completedGames > current.progress.completedGames ||
+            savedProgress.totalScore > current.progress.totalScore ||
+            savedProgress.elapsedMs > current.progress.elapsedMs);
+
+    if (current == null || serverIsAhead) {
+      _runtime = MatchRuntime(
+        seed: match.seed,
+        startedAt: countdownStartedAt.add(const Duration(seconds: 3)),
+        gameCount: AppConfig.gamesPerMatch,
+        initialProgress: savedProgress,
+      );
+    }
+    return _runtime;
+  }
+
+  Future<void> _completeGame(
+    MultiplayerMatch match,
+    MiniGameResult result,
+  ) async {
+    final runtime = _runtime;
+    if (runtime == null || _submitting || runtime.isExpired(DateTime.now())) {
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final next = runtime.previewResult(result);
+      await widget.matchBackend.submitProgress(
+        matchId: match.id,
+        uid: widget.uid,
+        progress: next,
+      );
+      runtime.recordResult(result);
+    } catch (_) {
+      if (mounted) setState(() => _error = AppLocalizations.of(context).tryAgain);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String _clock(Duration remaining) {
+    final totalSeconds = (remaining.inMilliseconds + 999) ~/ 1000;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: SafeArea(
+          child: StreamBuilder<MultiplayerMatch?>(
+            stream: widget.matchBackend.watchMatch(widget.matchId),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(GameSpacing.lg),
+                    child: Text(
+                      l10n.connectionLostRoom,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: GameColors.muted),
+                    ),
+                  ),
+                );
+              }
+              final match = snapshot.data;
+              if (match == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (match.registryVersion != GameRegistry.version) {
+                return Center(
+                  child: Text(
+                    l10n.legacyMatchTitle,
+                    style: const TextStyle(color: GameColors.warning),
+                  ),
+                );
+              }
+              final runtime = _ensureRuntime(match);
+              if (runtime == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final now = DateTime.now();
+              final remaining = runtime.remaining(now);
+              final expired = runtime.isExpired(now);
+              final everyoneFinished = match.participants.every(
+                (participant) =>
+                    participant.progress.completedGames >= AppConfig.gamesPerMatch,
+              );
+
+              if (expired || everyoneFinished) {
+                return _SocialResultView(
+                  uid: widget.uid,
+                  match: match,
+                );
+              }
+
+              if (runtime.allGamesCompleted) {
+                return _WaitingForPlayersView(
+                  match: match,
+                  remaining: remaining,
+                );
+              }
+
+              final game = runtime.currentGame!;
+              final gameIndex = runtime.progress.completedGames;
+              final gameSeed = runtime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
+              return Padding(
+                padding: const EdgeInsets.all(GameSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SocialMatchHud(
+                      match: match,
+                      uid: widget.uid,
+                      gameIndex: gameIndex,
+                      remainingLabel: _clock(remaining),
+                      danger: remaining.inSeconds <= 20,
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: GameSpacing.sm),
+                      Text(
+                        _error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: GameColors.danger),
+                      ),
+                    ],
+                    const SizedBox(height: GameSpacing.sm),
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: GameColors.surface,
+                          borderRadius: BorderRadius.circular(GameRadii.panel),
+                          border: Border.all(color: GameColors.surfaceStrong),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: AbsorbPointer(
+                          absorbing: _submitting,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(GameSpacing.md),
+                                  child: MiniGameHost(
+                                    key: ValueKey('$gameIndex-${game.id}'),
+                                    game: game,
+                                    config: MiniGameConfig(
+                                      seed: gameSeed,
+                                      difficulty: 1,
+                                    ),
+                                    onComplete: (result) =>
+                                        _completeGame(match, result),
+                                  ),
+                                ),
+                              ),
+                              if (_submitting)
+                                const Positioned.fill(
+                                  child: ColoredBox(
+                                    color: Color(0x77080D14),
+                                    child: Center(
+                                      child: CircularProgressIndicator(),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: GameSpacing.sm),
+                    Text(
+                      MiniGameCopy.fromContext(context).title(game.id),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialMatchHud extends StatelessWidget {
+  const _SocialMatchHud({
+    required this.match,
+    required this.uid,
+    required this.gameIndex,
+    required this.remainingLabel,
+    required this.danger,
+  });
+
+  final MultiplayerMatch match;
+  final String uid;
+  final int gameIndex;
+  final String remainingLabel;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.sm),
+      decoration: BoxDecoration(
+        color: GameColors.surface,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        border: Border.all(color: GameColors.surfaceStrong),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: GameColors.accentSoft,
+                  borderRadius: BorderRadius.circular(GameRadii.pill),
+                ),
+                child: Text(
+                  '${gameIndex + 1}/${AppConfig.gamesPerMatch}',
+                  style: const TextStyle(
+                    color: GameColors.accent,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                remainingLabel,
+                style: TextStyle(
+                  color: danger ? GameColors.danger : GameColors.textStrong,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: GameSpacing.sm),
+          Row(
+            children: [
+              for (final participant in match.participants)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: _MiniProgress(
+                      participant: participant,
+                      isSelf: participant.uid == uid,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniProgress extends StatelessWidget {
+  const _MiniProgress({required this.participant, required this.isSelf});
+
+  final MatchParticipant participant;
+  final bool isSelf;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = participant.progress.completedGames / AppConfig.gamesPerMatch;
+    return Column(
+      children: [
+        Text(
+          isSelf ? '●' : participant.displayName.characters.firstOrNull ?? '?',
+          maxLines: 1,
+          style: TextStyle(
+            color: isSelf ? GameColors.accent : GameColors.muted,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(GameRadii.pill),
+          child: LinearProgressIndicator(
+            value: value.clamp(0, 1),
+            minHeight: 5,
+            backgroundColor: GameColors.surfaceRaised,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WaitingForPlayersView extends StatelessWidget {
+  const _WaitingForPlayersView({required this.match, required this.remaining});
+
+  final MultiplayerMatch match;
+  final Duration remaining;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(GameSpacing.lg),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.hourglass_top_rounded,
+            size: 64,
+            color: GameColors.accent,
+          ),
+          const SizedBox(height: GameSpacing.md),
+          Text(
+            l10n.waitingForOpponent,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: GameSpacing.lg),
+          for (final participant in match.participants)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(child: Text(participant.displayName)),
+                  Text(
+                    '${participant.progress.completedGames}/${AppConfig.gamesPerMatch}',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: GameSpacing.md),
+          Text(
+            '${remaining.inSeconds}s',
+            style: const TextStyle(color: GameColors.muted),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SocialResultView extends StatelessWidget {
+  const _SocialResultView({required this.uid, required this.match});
+
+  final String uid;
+  final MultiplayerMatch match;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final placements = MultiplayerResultPolicy.rank(match.participants);
+    final byUid = {for (final p in match.participants) p.uid: p};
+    final myPlacement = placements.firstWhere((item) => item.uid == uid);
+    final title = myPlacement.position == 1 ? l10n.victory : '#${myPlacement.position}';
+
+    return Padding(
+      padding: const EdgeInsets.all(GameSpacing.lg),
+      child: Column(
+        children: [
+          const Spacer(),
+          Icon(
+            myPlacement.position == 1
+                ? Icons.emoji_events_rounded
+                : Icons.leaderboard_rounded,
+            size: 72,
+            color: myPlacement.position == 1
+                ? GameColors.rewardGold
+                : GameColors.accent,
+          ),
+          const SizedBox(height: GameSpacing.sm),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: GameSpacing.lg),
+          Expanded(
+            flex: 3,
+            child: ListView.separated(
+              itemCount: placements.length,
+              separatorBuilder: (_, __) => const SizedBox(height: GameSpacing.sm),
+              itemBuilder: (context, index) {
+                final placement = placements[index];
+                final participant = byUid[placement.uid]!;
+                final isSelf = participant.uid == uid;
+                return Container(
+                  padding: const EdgeInsets.all(GameSpacing.md),
+                  decoration: BoxDecoration(
+                    color: isSelf ? GameColors.accentSoft : GameColors.surface,
+                    borderRadius: BorderRadius.circular(GameRadii.card),
+                    border: Border.all(
+                      color: isSelf
+                          ? GameColors.accent.withValues(alpha: 0.45)
+                          : GameColors.surfaceStrong,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 42,
+                        child: Text(
+                          '#${placement.position}',
+                          style: TextStyle(
+                            color: placement.position == 1
+                                ? GameColors.rewardGold
+                                : GameColors.textStrong,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          participant.displayName,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                      Text(
+                        '${participant.progress.completedGames}/8 • ${participant.progress.totalScore}',
+                        style: const TextStyle(
+                          color: GameColors.muted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: GameSpacing.md),
+          Text(
+            Localizations.localeOf(context).languageCode == 'ar'
+                ? 'مباريات الأصدقاء لا تمنح RP.'
+                : 'Friend matches do not award RP.',
+            style: const TextStyle(
+              color: GameColors.rewardGold,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: GameSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+              child: Text(l10n.home),
+            ),
+          ),
+          const Spacer(),
+        ],
+      ),
+    );
+  }
+}
