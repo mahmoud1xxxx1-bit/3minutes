@@ -80,17 +80,35 @@ void main() {
     expect(PartyPolicy.canStartMatch(party), isTrue);
   });
 
-  test('room invite uses canonical join URL', () {
+  test('room invite uses app-native join URL', () {
     expect(
       RoomInvitePolicy.buildUri('AB12C').toString(),
-      'https://3minutes.game/join/AB12C',
+      'threeminutes://join/AB12C',
     );
   });
 
   test('repeated friend matches eventually stop coin farming', () {
-    expect(SocialRewardPolicy.applyCoinMultiplier(baseCoins: 100, matchesTogetherToday: 0), 100);
-    expect(SocialRewardPolicy.applyCoinMultiplier(baseCoins: 100, matchesTogetherToday: 6), 35);
-    expect(SocialRewardPolicy.applyCoinMultiplier(baseCoins: 100, matchesTogetherToday: 10), 0);
+    expect(
+      SocialRewardPolicy.applyCoinMultiplier(
+        baseCoins: 100,
+        matchesTogetherToday: 0,
+      ),
+      100,
+    );
+    expect(
+      SocialRewardPolicy.applyCoinMultiplier(
+        baseCoins: 100,
+        matchesTogetherToday: 6,
+      ),
+      35,
+    );
+    expect(
+      SocialRewardPolicy.applyCoinMultiplier(
+        baseCoins: 100,
+        matchesTogetherToday: 10,
+      ),
+      0,
+    );
     expect(SocialRewardPolicy.awardsRankPointsForFriendLobby(), isFalse);
   });
 }
