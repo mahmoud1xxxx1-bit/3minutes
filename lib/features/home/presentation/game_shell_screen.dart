@@ -5,7 +5,7 @@ import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/data/competition_backend.dart';
-import '../../competition/presentation/season_screen.dart';
+import '../../competition/presentation/season_hub_screen.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
@@ -14,7 +14,6 @@ import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_screen.dart';
 import '../../progression/data/progression_backend.dart';
-import '../../progression/presentation/progression_screen.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
 import '../../social/presentation/friends_screen.dart';
@@ -54,17 +53,6 @@ class GameShellScreen extends StatefulWidget {
 class _GameShellScreenState extends State<GameShellScreen> {
   int _index = 0;
 
-  void _openProgression(PlayerProfile profile) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ProgressionScreen(
-          uid: profile.uid,
-          backend: widget.progressionBackend,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -92,9 +80,10 @@ class _GameShellScreenState extends State<GameShellScreen> {
             socialBackend: widget.socialBackend,
             roomBackend: widget.roomBackend,
           ),
-          SeasonScreen(
+          SeasonHubScreen(
+            uid: profile.uid,
             competitionBackend: widget.competitionBackend,
-            onOpenProgression: () => _openProgression(profile),
+            progressionBackend: widget.progressionBackend,
           ),
           FriendsScreen(profile: profile, socialBackend: widget.socialBackend),
           ShopScreen(uid: profile.uid, economyBackend: widget.economyBackend),
