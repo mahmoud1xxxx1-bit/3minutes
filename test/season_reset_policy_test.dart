@@ -12,6 +12,6 @@ void main() {
       expect(starts[i], greaterThan(starts[i - 1]));
     }
     expect(starts.first, 0);
-    expect(starts.last, 1400);
+    expect(starts.last, 5000);
   });
 }
