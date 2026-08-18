@@ -11,6 +11,11 @@ abstract class EconomyBackend {
     required String cosmeticId,
   });
 
+  Future<void> unlockPrestigeCosmetic({
+    required String uid,
+    required String cosmeticId,
+  });
+
   Future<PlayerInventory> equipCosmetic({
     required String uid,
     required String cosmeticId,
