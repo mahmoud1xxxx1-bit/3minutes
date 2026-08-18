@@ -5,6 +5,7 @@ import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
+import '../../profile/presentation/profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -62,23 +63,35 @@ class HomeScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                   const Spacer(),
-                  const Row(
+                  Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: _MenuTile(
                           icon: Icons.leaderboard,
                           label: 'Leaderboard',
                         ),
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: _MenuTile(
                           icon: Icons.person,
                           label: 'Profile',
+                          onTap: profile == null
+                              ? null
+                              : () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => ProfileScreen(
+                                        profile: profile,
+                                        profileRepository: profileRepository,
+                                      ),
+                                    ),
+                                  );
+                                },
                         ),
                       ),
-                      SizedBox(width: 10),
-                      Expanded(
+                      const SizedBox(width: 10),
+                      const Expanded(
                         child: _MenuTile(
                           icon: Icons.storefront,
                           label: 'Shop',
@@ -151,27 +164,33 @@ class _MenuTile extends StatelessWidget {
   const _MenuTile({
     required this.icon,
     required this.label,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-        child: Column(
-          children: [
-            Icon(icon),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
-          ],
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+          child: Column(
+            children: [
+              Icon(icon),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ],
+          ),
         ),
       ),
     );
