@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../profile/domain/player_profile.dart';
@@ -43,7 +44,10 @@ class _PartyScreenState extends State<PartyScreen> {
 
   String _newRoomCode() {
     final random = Random.secure();
-    return List.generate(5, (_) => _alphabet[random.nextInt(_alphabet.length)]).join();
+    return List.generate(
+      5,
+      (_) => _alphabet[random.nextInt(_alphabet.length)],
+    ).join();
   }
 
   Future<void> _createParty() async {
@@ -98,7 +102,10 @@ class _PartyScreenState extends State<PartyScreen> {
     if (roomId == null || roomId == _lastOpenedRoomId || _busy) return;
     _lastOpenedRoomId = roomId;
     try {
-      await widget.roomBackend.joinRoom(roomId: roomId, uid: widget.profile.uid);
+      await widget.roomBackend.joinRoom(
+        roomId: roomId,
+        uid: widget.profile.uid,
+      );
       final room = await widget.roomBackend
           .watchRoom(roomId)
           .firstWhere((value) => value != null);
@@ -130,44 +137,53 @@ class _PartyScreenState extends State<PartyScreen> {
   Widget build(BuildContext context) {
     final copy = SocialCopy.of(context);
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(copy.party, style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.transparent,
+        title: Text(
+          copy.party,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
-      body: SafeArea(
-        child: StreamBuilder<Party?>(
-          stream: widget.partyBackend.watchMembership(widget.profile.uid),
-          builder: (context, membershipSnapshot) {
-            final party = membershipSnapshot.data;
-            if (membershipSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (party != null) {
-              if (party.activeRoomId != null && party.activeRoomId != _lastOpenedRoomId) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) _openActiveRoom(party);
-                });
+      body: CosmicBackground(
+        child: SafeArea(
+          top: false,
+          child: StreamBuilder<Party?>(
+            stream: widget.partyBackend.watchMembership(widget.profile.uid),
+            builder: (context, membershipSnapshot) {
+              final party = membershipSnapshot.data;
+              if (membershipSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
               }
-              return _PartyLobby(
-                party: party,
-                profile: widget.profile,
+              if (party != null) {
+                if (party.activeRoomId != null &&
+                    party.activeRoomId != _lastOpenedRoomId) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _openActiveRoom(party);
+                  });
+                }
+                return _PartyLobby(
+                  party: party,
+                  profile: widget.profile,
+                  partyBackend: widget.partyBackend,
+                  socialBackend: widget.socialBackend,
+                  copy: copy,
+                  busy: _busy,
+                  error: _error,
+                  onStart: () => _launchPartyRoom(party),
+                );
+              }
+              return _NoPartyView(
+                uid: widget.profile.uid,
                 partyBackend: widget.partyBackend,
                 socialBackend: widget.socialBackend,
                 copy: copy,
                 busy: _busy,
                 error: _error,
-                onStart: () => _launchPartyRoom(party),
+                onCreate: _createParty,
               );
-            }
-            return _NoPartyView(
-              uid: widget.profile.uid,
-              partyBackend: widget.partyBackend,
-              socialBackend: widget.socialBackend,
-              copy: copy,
-              busy: _busy,
-              error: _error,
-              onCreate: _createParty,
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -196,21 +212,32 @@ class _NoPartyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(GameSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        GameSpacing.md,
+        GameSpacing.sm,
+        GameSpacing.md,
+        110,
+      ),
       children: [
         _PartyHero(copy: copy),
         const SizedBox(height: GameSpacing.md),
-        FilledButton.icon(
+        CosmicPrimaryButton(
           onPressed: busy ? null : onCreate,
-          icon: const Icon(Icons.group_add_rounded),
-          label: Text(copy.createParty),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.group_add_rounded),
+              const SizedBox(width: GameSpacing.sm),
+              Text(copy.createParty),
+            ],
+          ),
         ),
         if (error != null) ...[
           const SizedBox(height: GameSpacing.sm),
-          Text(error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
+          _ErrorText(error!),
         ],
         const SizedBox(height: GameSpacing.xl),
-        Text(copy.partyInvitations, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(copy.partyInvitations, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: GameSpacing.sm),
         StreamBuilder<List<Party>>(
           stream: partyBackend.watchInvitations(uid),
@@ -268,7 +295,12 @@ class _PartyLobby extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLeader = party.leaderUid == profile.uid;
     return ListView(
-      padding: const EdgeInsets.all(GameSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        GameSpacing.md,
+        GameSpacing.sm,
+        GameSpacing.md,
+        110,
+      ),
       children: [
         _PartyHero(copy: copy),
         const SizedBox(height: GameSpacing.md),
@@ -287,7 +319,7 @@ class _PartyLobby extends StatelessWidget {
           ],
         ),
         const SizedBox(height: GameSpacing.lg),
-        Text(copy.partyMembers, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+        Text(copy.partyMembers, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: GameSpacing.sm),
         for (final uid in party.memberUids) ...[
           _PartyMemberCard(
@@ -307,7 +339,7 @@ class _PartyLobby extends StatelessWidget {
         ],
         if (isLeader && party.size < PartyPolicy.maxMembers) ...[
           const SizedBox(height: GameSpacing.md),
-          Text(copy.inviteFriends, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
+          Text(copy.inviteFriends, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: GameSpacing.sm),
           _FriendInviteList(
             party: party,
@@ -318,32 +350,45 @@ class _PartyLobby extends StatelessWidget {
           ),
         ],
         const SizedBox(height: GameSpacing.lg),
-        Text(
-          PartyPolicy.canStartMatch(party) ? copy.roomRule : copy.partyWaitingSize,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: PartyPolicy.canStartMatch(party) ? GameColors.success : GameColors.muted,
-            fontWeight: FontWeight.w700,
+        CosmicPanel(
+          child: Text(
+            PartyPolicy.canStartMatch(party) ? copy.roomRule : copy.partyWaitingSize,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: PartyPolicy.canStartMatch(party)
+                  ? GameColors.success
+                  : GameColors.muted,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         const SizedBox(height: GameSpacing.sm),
         if (isLeader)
-          FilledButton.icon(
+          CosmicPrimaryButton(
             onPressed: busy || !PartyPolicy.canStartMatch(party) ? null : onStart,
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: Text(copy.startPartyMatch),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.play_arrow_rounded),
+                const SizedBox(width: GameSpacing.sm),
+                Text(copy.startPartyMatch),
+              ],
+            ),
           ),
         const SizedBox(height: GameSpacing.sm),
         OutlinedButton.icon(
           onPressed: busy
               ? null
-              : () => partyBackend.leaveParty(partyId: party.id, uid: profile.uid),
+              : () => partyBackend.leaveParty(
+                    partyId: party.id,
+                    uid: profile.uid,
+                  ),
           icon: const Icon(Icons.logout_rounded),
           label: Text(copy.leaveParty),
         ),
         if (error != null) ...[
           const SizedBox(height: GameSpacing.sm),
-          Text(error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
+          _ErrorText(error!),
         ],
       ],
     );
@@ -372,7 +417,8 @@ class _FriendInviteList extends StatelessWidget {
       builder: (context, snapshot) {
         final accepted = (snapshot.data ?? const <Friendship>[])
             .where((item) => item.status == FriendshipStatus.accepted)
-            .map((item) => item.requesterUid == uid ? item.recipientUid : item.requesterUid)
+            .map((item) =>
+                item.requesterUid == uid ? item.recipientUid : item.requesterUid)
             .where((friendUid) => !party.memberUids.contains(friendUid))
             .toSet()
             .toList(growable: false);
@@ -396,7 +442,11 @@ class _FriendInviteList extends StatelessWidget {
                                 leaderUid: uid,
                                 invitedUid: friendUid,
                               ),
-                      icon: Icon(pending ? Icons.schedule_rounded : Icons.person_add_alt_1_rounded),
+                      icon: Icon(
+                        pending
+                            ? Icons.schedule_rounded
+                            : Icons.person_add_alt_1_rounded,
+                      ),
                       label: Text(pending ? copy.invited : copy.invite),
                     ),
                   );
@@ -432,32 +482,39 @@ class _PartyInviteCard extends StatelessWidget {
       future: socialBackend.loadPlayerSummary(party.leaderUid),
       builder: (context, snapshot) {
         final leader = snapshot.data;
-        return Container(
-          padding: const EdgeInsets.all(GameSpacing.md),
-          decoration: BoxDecoration(
-            color: GameColors.surface,
-            borderRadius: BorderRadius.circular(GameRadii.card),
-            border: Border.all(color: GameColors.accent.withValues(alpha: 0.25)),
-          ),
+        return CosmicPanel(
+          glow: true,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(leader?.displayName ?? copy.partyLeader, style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(
+                leader?.displayName ?? copy.partyLeader,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
               const SizedBox(height: 4),
-              Text('${party.size}/6 • ${copy.party}', style: const TextStyle(color: GameColors.muted)),
+              Text(
+                '${party.size}/6 • ${copy.party}',
+                style: const TextStyle(color: GameColors.muted),
+              ),
               const SizedBox(height: GameSpacing.sm),
               Row(
                 children: [
                   Expanded(
                     child: FilledButton(
-                      onPressed: () => partyBackend.acceptInvite(partyId: party.id, uid: uid),
+                      onPressed: () => partyBackend.acceptInvite(
+                        partyId: party.id,
+                        uid: uid,
+                      ),
                       child: Text(copy.accept),
                     ),
                   ),
                   const SizedBox(width: GameSpacing.sm),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => partyBackend.declineInvite(partyId: party.id, uid: uid),
+                      onPressed: () => partyBackend.declineInvite(
+                        partyId: party.id,
+                        uid: uid,
+                      ),
                       child: Text(copy.decline),
                     ),
                   ),
@@ -497,18 +554,26 @@ class _PartyMemberCard extends StatelessWidget {
       builder: (context, snapshot) {
         final player = snapshot.data;
         if (player == null) {
-          return const SizedBox(height: 58, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+          return const SizedBox(
+            height: 58,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          );
         }
         return _SimplePlayerCard(
           player: player,
-          subtitle: [if (isLeader) copy.partyLeader, if (isSelf) copy.you].join(' • '),
+          subtitle: [if (isLeader) copy.partyLeader, if (isSelf) copy.you]
+              .join(' • '),
           trailing: canRemove
               ? IconButton(
                   tooltip: copy.removeFromParty,
                   onPressed: onRemove,
                   icon: const Icon(Icons.person_remove_rounded),
                 )
-              : Icon(isLeader ? Icons.workspace_premium_rounded : Icons.circle, color: isLeader ? GameColors.rewardGold : GameColors.muted, size: 20),
+              : Icon(
+                  isLeader ? Icons.workspace_premium_rounded : Icons.circle,
+                  color: isLeader ? GameColors.rewardGold : GameColors.muted,
+                  size: 20,
+                ),
         );
       },
     );
@@ -516,31 +581,45 @@ class _PartyMemberCard extends StatelessWidget {
 }
 
 class _SimplePlayerCard extends StatelessWidget {
-  const _SimplePlayerCard({required this.player, required this.trailing, this.subtitle});
+  const _SimplePlayerCard({
+    required this.player,
+    required this.trailing,
+    this.subtitle,
+  });
   final SocialPlayerSummary player;
   final Widget trailing;
   final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.sm),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
-      ),
       child: Row(
         children: [
-          const CircleAvatar(backgroundColor: GameColors.accentSoft, child: Icon(Icons.person_rounded, color: GameColors.accent)),
+          const CircleAvatar(
+            backgroundColor: GameColors.accentSoft,
+            child: Icon(
+              Icons.person_rounded,
+              color: GameColors.accentBright,
+            ),
+          ),
           const SizedBox(width: GameSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(player.displayName, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  player.displayName,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 if (subtitle != null && subtitle!.isNotEmpty)
-                  Text(subtitle!, style: const TextStyle(color: GameColors.muted, fontSize: 11)),
+                  Text(
+                    subtitle!,
+                    style: const TextStyle(
+                      color: GameColors.muted,
+                      fontSize: 11,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -557,27 +636,41 @@ class _PartyHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CosmicPanel(
+      glow: true,
       padding: const EdgeInsets.all(GameSpacing.lg),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(GameRadii.panel),
-        gradient: const LinearGradient(
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.bottomEnd,
-          colors: [GameColors.surfaceRaised, GameColors.surface],
-        ),
-        border: Border.all(color: GameColors.rarityEpic.withValues(alpha: 0.3)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.groups_3_rounded, size: 44, color: GameColors.rarityEpic),
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              gradient: GameColors.cosmicGradient,
+              borderRadius: BorderRadius.circular(19),
+              boxShadow: GameShadows.primaryGlow,
+            ),
+            child: const Icon(
+              Icons.groups_3_rounded,
+              size: 34,
+              color: Colors.white,
+            ),
+          ),
           const SizedBox(height: GameSpacing.sm),
-          Text(copy.party, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+          Text(copy.party, style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: GameSpacing.xs),
-          Text(copy.partySubtitle, style: const TextStyle(color: GameColors.muted)),
+          Text(
+            copy.partySubtitle,
+            style: const TextStyle(color: GameColors.muted),
+          ),
           const SizedBox(height: GameSpacing.xs),
-          Text(copy.partySizeRule, style: const TextStyle(color: GameColors.rewardGold, fontWeight: FontWeight.w700)),
+          Text(
+            copy.partySizeRule,
+            style: const TextStyle(
+              color: GameColors.rewardGold,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
@@ -591,18 +684,19 @@ class _Metric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(GameSpacing.md),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
-      ),
+    return CosmicPanel(
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 3),
-          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted, fontSize: 11)),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: GameColors.muted, fontSize: 11),
+          ),
         ],
       ),
     );
@@ -615,14 +709,27 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.lg),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: GameColors.muted),
       ),
-      child: Text(label, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted)),
+    );
+  }
+}
+
+class _ErrorText extends StatelessWidget {
+  const _ErrorText(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: GameColors.danger),
     );
   }
 }
