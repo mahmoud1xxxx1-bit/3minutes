@@ -1,0 +1,1 @@
+Temporary CI marker for validating the updated Firebase OAuth configuration and stable debug signing. No game logic changes.
