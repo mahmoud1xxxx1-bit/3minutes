@@ -36,9 +36,8 @@ class FirestorePartyBackend implements PartyBackend {
     return _parties
         .where('pendingInviteUids', arrayContains: uid)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map(_fromDoc)
-            .toList(growable: false));
+        .map((snapshot) =>
+            snapshot.docs.map(_fromDoc).toList(growable: false));
   }
 
   @override
@@ -55,6 +54,7 @@ class FirestorePartyBackend implements PartyBackend {
       'leaderUid': leaderUid,
       'memberUids': [leaderUid],
       'pendingInviteUids': <String>[],
+      'activeRoomId': null,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
@@ -140,6 +140,27 @@ class FirestorePartyBackend implements PartyBackend {
   }
 
   @override
+  Future<void> setActiveRoom({
+    required String partyId,
+    required String leaderUid,
+    required String? roomId,
+  }) async {
+    final ref = _parties.doc(partyId);
+    await _firestore.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      if (!doc.exists) throw StateError('Party not found.');
+      final party = _fromDoc(doc);
+      if (party.leaderUid != leaderUid) {
+        throw StateError('Only the party leader can change the active room.');
+      }
+      tx.update(ref, {
+        'activeRoomId': roomId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
   Future<void> leaveParty({required String partyId, required String uid}) async {
     final ref = _parties.doc(partyId);
     await _firestore.runTransaction((tx) async {
@@ -156,6 +177,7 @@ class FirestorePartyBackend implements PartyBackend {
       tx.update(ref, {
         'leaderUid': nextLeader,
         'memberUids': remaining,
+        if (party.leaderUid == uid) 'activeRoomId': null,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
@@ -198,6 +220,7 @@ class FirestorePartyBackend implements PartyBackend {
               ?.whereType<String>()
               .toList(growable: false) ??
           const <String>[],
+      activeRoomId: data['activeRoomId'] as String?,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ??
           DateTime.fromMillisecondsSinceEpoch(0),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ??
