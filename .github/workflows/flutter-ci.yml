@@ -23,6 +23,34 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Restore stable debug signing key
+        id: debug-key-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.android/debug.keystore
+          key: 3minutes-ci-debug-keystore-v1
+
+      - name: Create stable debug signing key
+        if: steps.debug-key-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=3 Minutes CI Debug,O=3 Minutes,C=SA"
+
+      - name: Show debug signing fingerprints
+        run: |
+          keytool -list -v \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey | grep -E 'SHA1:|SHA256:'
+
       - name: Resolve dependencies
         run: flutter pub get
 
