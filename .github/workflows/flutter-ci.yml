@@ -16,6 +16,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package.json
+
+      - name: Install Cloud Functions dependencies
+        run: npm install --prefix functions --no-audit --no-fund
+
+      - name: Build Cloud Functions
+        run: npm run --prefix functions build
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
