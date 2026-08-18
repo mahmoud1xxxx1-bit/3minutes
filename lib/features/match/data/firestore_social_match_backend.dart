@@ -5,7 +5,9 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/firebase/server_collections.dart';
+import '../../competition/data/mini_game_evidence_policy.dart';
 import '../../competition/domain/match_integrity_policy.dart';
+import '../../competition/domain/mini_game_evidence.dart';
 import '../../minigames/data/game_registry.dart';
 import '../domain/match_progress.dart';
 import '../domain/multiplayer_match.dart';
@@ -57,7 +59,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
     final now = DateTime.now().toUtc();
     final seed = Random.secure().nextInt(0x7fffffff);
 
-    final result = await _firestore.runTransaction<MultiplayerMatch>((tx) async {
+    return _firestore.runTransaction<MultiplayerMatch>((tx) async {
       final existing = await tx.get(ref);
       if (existing.exists) return _fromDoc(existing);
 
@@ -103,8 +105,6 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
       });
       return match;
     });
-
-    return result;
   }
 
   @override
@@ -112,6 +112,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
     required String matchId,
     required String uid,
     required MatchProgress progress,
+    required MiniGameEvidence evidence,
   }) async {
     final report = MatchIntegrityPolicy.validateProgress(
       progress: progress,
@@ -121,25 +122,60 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
       throw StateError('Invalid social match progress: ${report.reasons.join(',')}');
     }
 
-    final ref = _matches.doc(matchId);
+    final matchRef = _matches.doc(matchId);
+    final evidenceRef = _firestore
+        .collection(ServerCollections.socialEvidence)
+        .doc(matchId)
+        .collection('players')
+        .doc(uid);
+
     await _firestore.runTransaction((tx) async {
-      final doc = await tx.get(ref);
-      if (!doc.exists) throw StateError('Social match not found.');
-      final data = doc.data()!;
+      final matchDoc = await tx.get(matchRef);
+      final evidenceDoc = await tx.get(evidenceRef);
+      if (!matchDoc.exists) throw StateError('Social match not found.');
+      final data = matchDoc.data()!;
+      if ((data['registryVersion'] as num?)?.toInt() != GameRegistry.version) {
+        throw StateError('Registry version mismatch.');
+      }
       final participants = Map<String, dynamic>.from(
         data['participants'] as Map<String, dynamic>? ?? const {},
       );
       final raw = participants[uid];
       if (raw is! Map) throw StateError('Player is not a match participant.');
-      final participant = _participantFromMap(
-        uid,
-        Map<String, dynamic>.from(raw),
-      );
+      final participant = _participantFromMap(uid, Map<String, dynamic>.from(raw));
       final current = participant.progress;
-      if (progress.completedGames < current.completedGames ||
-          progress.totalScore < current.totalScore ||
-          progress.elapsedMs < current.elapsedMs) {
-        throw StateError('Social match progress cannot move backwards.');
+
+      final rawEvidence = evidenceDoc.data()?['evidence'];
+      final existingEvidence = rawEvidence is List
+          ? rawEvidence
+              .whereType<Map>()
+              .map((item) => MiniGameEvidence.fromMap(item))
+              .toList(growable: true)
+          : <MiniGameEvidence>[];
+      if (existingEvidence.length != current.completedGames ||
+          evidence.gameIndex != existingEvidence.length) {
+        throw StateError('Social evidence must advance exactly one game.');
+      }
+      final combined = [...existingEvidence, evidence];
+      final seed = (data['seed'] as num?)?.toInt() ?? 0;
+      if (!MiniGameEvidencePolicy.isValidMatchEvidence(
+        matchSeed: seed,
+        gameCount: AppConfig.gamesPerMatch,
+        evidence: combined,
+      )) {
+        throw StateError('Mini-game evidence failed integrity checks.');
+      }
+
+      final expectedScore = combined.fold<int>(0, (sum, item) => sum + item.score);
+      final expectedAccuracy = combined.fold<double>(0, (sum, item) => sum + item.accuracy);
+      final expectedMistakes = combined.fold<int>(0, (sum, item) => sum + item.mistakes);
+      final expectedElapsed = combined.fold<int>(0, (sum, item) => sum + item.durationMs);
+      if (progress.completedGames != combined.length ||
+          progress.totalScore != expectedScore ||
+          (progress.accuracyTotal - expectedAccuracy).abs() > 0.000001 ||
+          progress.mistakes != expectedMistakes ||
+          progress.elapsedMs != expectedElapsed) {
+        throw StateError('Progress does not match submitted evidence.');
       }
 
       participants[uid] = _participantToMap(
@@ -155,7 +191,14 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
               : participant.finishedAt,
         ),
       );
-      tx.update(ref, {'participants': participants});
+      tx.set(evidenceRef, {
+        'uid': uid,
+        'matchId': matchId,
+        'registryVersion': GameRegistry.version,
+        'evidence': combined.map((item) => item.toMap()).toList(growable: false),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      tx.update(matchRef, {'participants': participants});
     });
   }
 
@@ -175,10 +218,7 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
       );
       final raw = participants[uid];
       if (raw is! Map) return;
-      final participant = _participantFromMap(
-        uid,
-        Map<String, dynamic>.from(raw),
-      );
+      final participant = _participantFromMap(uid, Map<String, dynamic>.from(raw));
       participants[uid] = _participantToMap(
         MatchParticipant(
           uid: participant.uid,
@@ -237,18 +277,16 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
     );
   }
 
-  static Map<String, dynamic> _participantToMap(MatchParticipant participant) {
-    return {
-      'displayName': participant.displayName,
-      'avatarId': participant.avatarId,
-      'isReady': participant.isReady,
-      'connectionState': participant.connectionState.name,
-      'progress': _progressToMap(participant.progress),
-      'finishedAt': participant.finishedAt == null
-          ? null
-          : Timestamp.fromDate(participant.finishedAt!),
-    };
-  }
+  static Map<String, dynamic> _participantToMap(MatchParticipant participant) => {
+        'displayName': participant.displayName,
+        'avatarId': participant.avatarId,
+        'isReady': participant.isReady,
+        'connectionState': participant.connectionState.name,
+        'progress': _progressToMap(participant.progress),
+        'finishedAt': participant.finishedAt == null
+            ? null
+            : Timestamp.fromDate(participant.finishedAt!),
+      };
 
   static MatchParticipant _participantFromMap(
     String uid,
@@ -272,27 +310,23 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
     );
   }
 
-  static Map<String, dynamic> _progressToMap(MatchProgress progress) {
-    return {
-      'completedGames': progress.completedGames,
-      'totalScore': progress.totalScore,
-      'accuracyTotal': progress.accuracyTotal,
-      'mistakes': progress.mistakes,
-      'elapsedMs': progress.elapsedMs,
-      'completedAt': progress.completedAt == null
-          ? null
-          : Timestamp.fromDate(progress.completedAt!),
-    };
-  }
+  static Map<String, dynamic> _progressToMap(MatchProgress progress) => {
+        'completedGames': progress.completedGames,
+        'totalScore': progress.totalScore,
+        'accuracyTotal': progress.accuracyTotal,
+        'mistakes': progress.mistakes,
+        'elapsedMs': progress.elapsedMs,
+        'completedAt': progress.completedAt == null
+            ? null
+            : Timestamp.fromDate(progress.completedAt!),
+      };
 
-  static MatchProgress _progressFromMap(Map<String, dynamic> data) {
-    return MatchProgress(
-      completedGames: (data['completedGames'] as num?)?.toInt() ?? 0,
-      totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
-      accuracyTotal: (data['accuracyTotal'] as num?)?.toDouble() ?? 0,
-      mistakes: (data['mistakes'] as num?)?.toInt() ?? 0,
-      elapsedMs: (data['elapsedMs'] as num?)?.toInt() ?? 0,
-      completedAt: (data['completedAt'] as Timestamp?)?.toDate(),
-    );
-  }
+  static MatchProgress _progressFromMap(Map<String, dynamic> data) => MatchProgress(
+        completedGames: (data['completedGames'] as num?)?.toInt() ?? 0,
+        totalScore: (data['totalScore'] as num?)?.toInt() ?? 0,
+        accuracyTotal: (data['accuracyTotal'] as num?)?.toDouble() ?? 0,
+        mistakes: (data['mistakes'] as num?)?.toInt() ?? 0,
+        elapsedMs: (data['elapsedMs'] as num?)?.toInt() ?? 0,
+        completedAt: (data['completedAt'] as Timestamp?)?.toDate(),
+      );
 }
