@@ -29,8 +29,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await FirebaseAppCheck.instance.activate(
-    providerAndroid:
-        kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
+    providerAndroid: kReleaseMode
+        ? const AndroidPlayIntegrityProvider()
+        : const AndroidDebugProvider(),
   );
 
   final authService = AuthService();
