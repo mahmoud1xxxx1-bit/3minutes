@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../minigames/data/game_registry.dart';
 import '../data/match_backend.dart';
 import '../domain/match_session.dart';
+import 'match_play_screen.dart';
 
 class MatchRoomScreen extends StatefulWidget {
   const MatchRoomScreen({
@@ -25,6 +25,7 @@ class MatchRoomScreen extends StatefulWidget {
 class _MatchRoomScreenState extends State<MatchRoomScreen> {
   Timer? _ticker;
   bool _readyBusy = false;
+  bool _navigating = false;
   String? _error;
 
   @override
@@ -71,6 +72,23 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     return (remainingMs / 1000).ceil();
   }
 
+  void _openPlay() {
+    if (_navigating) return;
+    _navigating = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => MatchPlayScreen(
+            matchId: widget.matchId,
+            uid: widget.uid,
+            matchBackend: widget.matchBackend,
+          ),
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,11 +107,9 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
             }
 
             final countdown = _countdown(match);
-            final started = countdown == 0;
-            final sequence = GameRegistry.sequence(
-              seed: match.seed,
-              count: match.gameCount,
-            );
+            if (countdown == 0) {
+              _openPlay();
+            }
 
             return Padding(
               padding: const EdgeInsets.all(20),
@@ -118,17 +134,15 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
                   const Spacer(),
                   if (countdown != null) ...[
                     Text(
-                      started ? 'GO!' : '$countdown',
+                      countdown == 0 ? 'GO!' : '$countdown',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
                             fontWeight: FontWeight.w900,
                           ),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      started
-                          ? 'Both phones now use the same deterministic game order.'
-                          : 'Both players are ready',
+                    const Text(
+                      'Both players are ready',
                       textAlign: TextAlign.center,
                     ),
                   ] else ...[
@@ -138,31 +152,16 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
                     ),
                   ],
                   const Spacer(),
-                  if (started) ...[
-                    Text(
-                      'Game order',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (var i = 0; i < sequence.length; i++)
-                          Chip(label: Text('${i + 1}. ${sequence[i].title}')),
-                      ],
-                    ),
-                  ] else if (!match.isReady(widget.uid)) ...[
+                  if (countdown == null && !match.isReady(widget.uid))
                     FilledButton(
                       onPressed: _readyBusy ? null : _markReady,
                       child: Text(_readyBusy ? 'Getting ready...' : 'READY'),
-                    ),
-                  ] else ...[
+                    )
+                  else if (countdown == null)
                     const FilledButton(
                       onPressed: null,
                       child: Text('Waiting for opponent...'),
                     ),
-                  ],
                   if (_error != null) ...[
                     const SizedBox(height: 10),
                     Text(
