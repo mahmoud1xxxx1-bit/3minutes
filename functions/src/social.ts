@@ -2,11 +2,19 @@ import {
   FieldValue,
   Timestamp,
   getFirestore,
+  type DocumentData,
 } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { COLLECTIONS, intValue, parseProgress, stringValue } from "./firestore.js";
-import { MATCH_DURATION_MS } from "./registry.js";
+import {
+  MATCH_DURATION_MS,
+  MATCH_GAME_COUNT,
+  parseEvidence,
+  validateEvidence,
+  type MiniGameEvidence,
+} from "./registry.js";
+import type { MatchProgress } from "./policy.js";
 
 const CALLABLE_OPTIONS = {
   region: "me-central2",
@@ -32,19 +40,27 @@ function objectValue(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function averageAccuracy(progress: ReturnType<typeof parseProgress>): number {
+function progressFromEvidence(evidence: MiniGameEvidence[]): MatchProgress {
+  return {
+    completedGames: evidence.length,
+    totalScore: evidence.reduce((sum, item) => sum + item.score, 0),
+    accuracyTotal: evidence.reduce((sum, item) => sum + item.accuracy, 0),
+    mistakes: evidence.reduce((sum, item) => sum + item.mistakes, 0),
+    elapsedMs: evidence.reduce((sum, item) => sum + item.durationMs, 0),
+    completedAtMs: null,
+  };
+}
+
+function averageAccuracy(progress: MatchProgress): number {
   return progress.completedGames <= 0
     ? 0
     : progress.accuracyTotal / progress.completedGames;
 }
 
-function rankParticipants(
-  order: string[],
-  participants: Record<string, unknown>,
-): string[] {
+function rankParticipants(order: string[], progressByUid: Map<string, MatchProgress>): string[] {
   return [...order].sort((uidA, uidB) => {
-    const a = parseProgress(objectValue(participants[uidA]).progress);
-    const b = parseProgress(objectValue(participants[uidB]).progress);
+    const a = progressByUid.get(uidA)!;
+    const b = progressByUid.get(uidB)!;
     const games = b.completedGames - a.completedGames;
     if (games !== 0) return games;
     const score = b.totalScore - a.totalScore;
@@ -94,17 +110,12 @@ function advanceMission(
 ): void {
   const previous = objectValue(states[id]);
   const sameWindow = previous.windowId === window;
-  const progressBefore = sameWindow ? Math.max(0, intValue(previous.progress)) : 0;
+  const before = sameWindow ? Math.max(0, intValue(previous.progress)) : 0;
   const claimedAt = sameWindow && previous.claimedAt instanceof Timestamp
     ? previous.claimedAt
     : null;
-  const progress = Math.min(target, progressBefore + delta);
-  states[id] = {
-    windowId: window,
-    progress,
-    completed: progress >= target,
-    claimedAt,
-  };
+  const progress = Math.min(target, before + delta);
+  states[id] = { windowId: window, progress, completed: progress >= target, claimedAt };
 }
 
 function advanceAchievement(
@@ -130,6 +141,42 @@ function advanceAchievement(
       ? previous.rewardClaimedAt
       : null,
   };
+}
+
+function ensureEvidenceMatchesSavedProgress(
+  uid: string,
+  evidence: MiniGameEvidence[],
+  savedProgressRaw: unknown,
+  matchSeed: number,
+  gameCount: number,
+): MatchProgress {
+  const saved = parseProgress(savedProgressRaw);
+  if (!validateEvidence({
+    matchSeed,
+    gameCount,
+    completedGames: saved.completedGames,
+    evidence,
+  })) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Social evidence failed integrity checks for ${uid}.`,
+    );
+  }
+  const derived = progressFromEvidence(evidence);
+  const accuracyDelta = Math.abs(derived.accuracyTotal - saved.accuracyTotal);
+  if (
+    derived.completedGames !== saved.completedGames ||
+    derived.totalScore !== saved.totalScore ||
+    accuracyDelta > 0.000001 ||
+    derived.mistakes !== saved.mistakes ||
+    derived.elapsedMs !== saved.elapsedMs
+  ) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Social progress does not match verified evidence for ${uid}.`,
+    );
+  }
+  return derived;
 }
 
 export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
@@ -166,19 +213,48 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const countdown = match.countdownStartedAt instanceof Timestamp
       ? match.countdownStartedAt.toMillis()
       : null;
-    if (countdown === null) throw new HttpsError("failed-precondition", "Social match did not start correctly.");
+    if (countdown === null) {
+      throw new HttpsError("failed-precondition", "Social match did not start correctly.");
+    }
     const allFinished = participantOrder.every(
-      (uid) => parseProgress(objectValue(participantMap[uid]).progress).completedGames >= 8,
+      (uid) => parseProgress(objectValue(participantMap[uid]).progress).completedGames >= MATCH_GAME_COUNT,
     );
     const deadlinePassed = Date.now() >= countdown + 3000 + MATCH_DURATION_MS;
     if (!allFinished && !deadlinePassed) {
       throw new HttpsError("failed-precondition", "Social match is still in progress.");
     }
 
-    const ranked = rankParticipants(participantOrder, participantMap);
+    const matchSeed = intValue(match.seed);
+    const gameCount = intValue(match.gameCount, MATCH_GAME_COUNT);
+    const evidenceRefs = participantOrder.map((uid) =>
+      db.collection(COLLECTIONS.socialEvidence)
+        .doc(matchId)
+        .collection(COLLECTIONS.players)
+        .doc(uid),
+    );
+    const evidenceSnaps = await Promise.all(evidenceRefs.map((ref) => transaction.get(ref)));
+    const progressByUid = new Map<string, MatchProgress>();
+    for (let i = 0; i < participantOrder.length; i += 1) {
+      const uid = participantOrder[i]!;
+      let evidence: MiniGameEvidence[];
+      try {
+        evidence = parseEvidence(evidenceSnaps[i]?.data()?.evidence ?? []);
+      } catch (error) {
+        throw new HttpsError(
+          "failed-precondition",
+          error instanceof Error ? error.message : "Invalid social evidence.",
+        );
+      }
+      const savedProgress = objectValue(participantMap[uid]).progress;
+      progressByUid.set(
+        uid,
+        ensureEvidenceMatchesSavedProgress(uid, evidence, savedProgress, matchSeed, gameCount),
+      );
+    }
+
+    const ranked = rankParticipants(participantOrder, progressByUid);
     const groupKey = [...participantOrder].sort().join("_");
     const usageRef = db.collection(COLLECTIONS.socialPairUsage).doc(`${dayId(now)}_${groupKey}`);
-
     const userRefs = participantOrder.map((uid) => db.collection(COLLECTIONS.users).doc(uid));
     const inventoryRefs = participantOrder.map((uid) => db.collection(COLLECTIONS.inventories).doc(uid));
     const missionRefs = participantOrder.map((uid) => db.collection(COLLECTIONS.playerMissions).doc(uid));
@@ -203,8 +279,10 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
 
     for (let i = 0; i < participantOrder.length; i += 1) {
       const uid = participantOrder[i]!;
-      const profile = userSnaps[i]?.data();
-      if (!profile) throw new HttpsError("failed-precondition", "All social players need profiles.");
+      const profile = userSnaps[i]?.data() as DocumentData | undefined;
+      if (!profile) {
+        throw new HttpsError("failed-precondition", "All social players need profiles.");
+      }
       const position = ranked.indexOf(uid) + 1;
       const coinsAwarded = Math.floor(placementBaseCoins(position) * multiplier);
       rewards[uid] = coinsAwarded;
@@ -299,6 +377,7 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       repeatedGroupMatchesBefore: matchesToday,
       multiplier,
       rankedRpAwarded: 0,
+      evidenceVerified: true,
       settledAt: now.toISOString(),
     };
     transaction.create(settlementRef, {
