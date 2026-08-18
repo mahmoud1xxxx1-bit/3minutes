@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../data/achievement_catalog.dart';
 import '../data/mission_catalog.dart';
@@ -49,6 +50,25 @@ class ProgressionScreen extends StatelessWidget {
   }
 }
 
+Future<void> _claim(
+  BuildContext context,
+  Future<void> Function() action,
+) async {
+  final copy = ProgressionCopy.of(context);
+  try {
+    await action();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(copy.rewardClaimed)),
+    );
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(copy.rewardUnavailable)),
+    );
+  }
+}
+
 class _MissionsTab extends StatelessWidget {
   const _MissionsTab({required this.uid, required this.backend});
   final String uid;
@@ -77,6 +97,7 @@ class _MissionsTab extends StatelessWidget {
                   definition: definition,
                   state: states[definition.id],
                   copy: copy,
+                  backend: backend,
                 ),
                 const SizedBox(height: GameSpacing.sm),
               ],
@@ -90,16 +111,24 @@ class _MissionsTab extends StatelessWidget {
 }
 
 class _MissionCard extends StatelessWidget {
-  const _MissionCard({required this.definition, required this.state, required this.copy});
+  const _MissionCard({
+    required this.definition,
+    required this.state,
+    required this.copy,
+    required this.backend,
+  });
   final MissionDefinition definition;
   final PlayerMissionState? state;
   final ProgressionCopy copy;
+  final ProgressionBackend backend;
 
   @override
   Widget build(BuildContext context) {
-    final progress = (state?.progress ?? 0).clamp(0, definition.target);
+    final progress = (state?.progress ?? 0).clamp(0, definition.target).toInt();
     final fraction = definition.target <= 0 ? 0.0 : progress / definition.target;
     final complete = state?.completed ?? false;
+    final claimed = state?.claimedAt != null;
+    final authorityReady = AppConfig.backendPhase == BackendPhase.blaze;
     return Container(
       padding: const EdgeInsets.all(GameSpacing.md),
       decoration: BoxDecoration(
@@ -129,11 +158,25 @@ class _MissionCard extends StatelessWidget {
           const SizedBox(height: GameSpacing.sm),
           Wrap(
             spacing: GameSpacing.sm,
+            runSpacing: GameSpacing.xs,
             children: [
               _RewardPill(icon: Icons.monetization_on_rounded, label: '${definition.coinReward} ${copy.coins}', color: GameColors.rewardGold),
               _RewardPill(icon: Icons.bolt_rounded, label: '${definition.seasonXpReward} ${copy.seasonXp}', color: GameColors.accent),
             ],
           ),
+          if (complete) ...[
+            const SizedBox(height: GameSpacing.sm),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: !claimed && authorityReady
+                    ? () => _claim(context, () => backend.claimMissionReward(definition.id))
+                    : null,
+                icon: Icon(claimed ? Icons.check_circle_rounded : Icons.redeem_rounded),
+                label: Text(claimed ? copy.claimed : copy.claim),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -159,9 +202,11 @@ class _AchievementsTab extends StatelessWidget {
           itemBuilder: (context, index) {
             final definition = AchievementCatalog.definitions[index];
             final state = states[definition.id];
-            final progress = (state?.progress ?? 0).clamp(0, definition.target);
+            final progress = (state?.progress ?? 0).clamp(0, definition.target).toInt();
             final fraction = definition.target <= 0 ? 0.0 : progress / definition.target;
             final completed = state?.completed ?? false;
+            final claimed = state?.rewardClaimedAt != null;
+            final authorityReady = AppConfig.backendPhase == BackendPhase.blaze;
             return Container(
               padding: const EdgeInsets.all(GameSpacing.md),
               decoration: BoxDecoration(
@@ -169,30 +214,47 @@ class _AchievementsTab extends StatelessWidget {
                 borderRadius: BorderRadius.circular(GameRadii.card),
                 border: Border.all(color: completed ? GameColors.rewardGold.withValues(alpha: .5) : GameColors.surfaceStrong),
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: (completed ? GameColors.rewardGold : GameColors.accent).withValues(alpha: .1),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(completed ? Icons.emoji_events_rounded : Icons.lock_outline_rounded, color: completed ? GameColors.rewardGold : GameColors.accent),
+                  Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: (completed ? GameColors.rewardGold : GameColors.accent).withValues(alpha: .1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(completed ? Icons.emoji_events_rounded : Icons.lock_outline_rounded, color: completed ? GameColors.rewardGold : GameColors.accent),
+                      ),
+                      const SizedBox(width: GameSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(copy.achievement(definition.id), style: const TextStyle(fontWeight: FontWeight.w900)),
+                            const SizedBox(height: GameSpacing.xs),
+                            LinearProgressIndicator(value: fraction, minHeight: 7, backgroundColor: GameColors.surfaceRaised),
+                            const SizedBox(height: GameSpacing.xs),
+                            Text('$progress/${definition.target} • ${definition.coinReward} ${copy.coins}', style: const TextStyle(color: GameColors.muted, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: GameSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(copy.achievement(definition.id), style: const TextStyle(fontWeight: FontWeight.w900)),
-                        const SizedBox(height: GameSpacing.xs),
-                        LinearProgressIndicator(value: fraction, minHeight: 7, backgroundColor: GameColors.surfaceRaised),
-                        const SizedBox(height: GameSpacing.xs),
-                        Text('$progress/${definition.target} • ${definition.coinReward} ${copy.coins}', style: const TextStyle(color: GameColors.muted, fontSize: 12)),
-                      ],
+                  if (completed) ...[
+                    const SizedBox(height: GameSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: !claimed && authorityReady
+                            ? () => _claim(context, () => backend.claimAchievementReward(definition.id))
+                            : null,
+                        icon: Icon(claimed ? Icons.check_circle_rounded : Icons.redeem_rounded),
+                        label: Text(claimed ? copy.claimed : copy.claim),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             );
@@ -240,12 +302,22 @@ class _SeasonPassTab extends StatelessWidget {
                   LinearProgressIndicator(value: fraction, minHeight: 10, backgroundColor: GameColors.surfaceRaised),
                   const SizedBox(height: GameSpacing.sm),
                   Text('${state.seasonXp} ${copy.seasonXp}', style: const TextStyle(color: GameColors.muted)),
+                  if (!state.premiumUnlocked) ...[
+                    const SizedBox(height: GameSpacing.sm),
+                    Text(copy.premiumPassLocked, style: const TextStyle(color: GameColors.muted, fontSize: 12)),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: GameSpacing.lg),
             for (var tier = 1; tier <= SeasonPassPolicy.maxLevel; tier++) ...[
-              _SeasonTierRow(tier: tier, currentLevel: level, premiumUnlocked: state.premiumUnlocked, copy: copy),
+              _SeasonTierRow(
+                tier: tier,
+                currentLevel: level,
+                state: state,
+                backend: backend,
+                copy: copy,
+              ),
               const SizedBox(height: GameSpacing.sm),
             ],
           ],
@@ -256,15 +328,27 @@ class _SeasonPassTab extends StatelessWidget {
 }
 
 class _SeasonTierRow extends StatelessWidget {
-  const _SeasonTierRow({required this.tier, required this.currentLevel, required this.premiumUnlocked, required this.copy});
+  const _SeasonTierRow({
+    required this.tier,
+    required this.currentLevel,
+    required this.state,
+    required this.backend,
+    required this.copy,
+  });
   final int tier;
   final int currentLevel;
-  final bool premiumUnlocked;
+  final PlayerSeasonPassState state;
+  final ProgressionBackend backend;
   final ProgressionCopy copy;
 
   @override
   Widget build(BuildContext context) {
     final unlocked = tier <= currentLevel;
+    final authorityReady = AppConfig.backendPhase == BackendPhase.blaze;
+    final freeClaimed = state.claimedFreeLevels.contains(tier);
+    final premiumClaimed = state.claimedPremiumLevels.contains(tier);
+    final freeCoins = SeasonPassPolicy.freeCoinRewardForLevel(tier);
+    final premiumCoins = SeasonPassPolicy.premiumCoinRewardForLevel(tier);
     return Container(
       padding: const EdgeInsets.all(GameSpacing.sm),
       decoration: BoxDecoration(
@@ -275,9 +359,43 @@ class _SeasonTierRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(width: 38, child: Text('$tier', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900))),
-          Expanded(child: _TrackReward(label: copy.free, unlocked: unlocked, premium: false)),
+          Expanded(
+            child: _TrackReward(
+              label: copy.free,
+              rewardCoins: freeCoins,
+              unlocked: unlocked,
+              claimed: freeClaimed,
+              premium: false,
+              onClaim: unlocked && !freeClaimed && authorityReady
+                  ? () => _claim(
+                        context,
+                        () => backend.claimSeasonPassReward(
+                          level: tier,
+                          track: SeasonPassClaimTrack.free,
+                        ),
+                      )
+                  : null,
+            ),
+          ),
           const SizedBox(width: GameSpacing.sm),
-          Expanded(child: _TrackReward(label: copy.premium, unlocked: unlocked && premiumUnlocked, premium: true)),
+          Expanded(
+            child: _TrackReward(
+              label: copy.premium,
+              rewardCoins: premiumCoins,
+              unlocked: unlocked && state.premiumUnlocked,
+              claimed: premiumClaimed,
+              premium: true,
+              onClaim: unlocked && state.premiumUnlocked && !premiumClaimed && authorityReady
+                  ? () => _claim(
+                        context,
+                        () => backend.claimSeasonPassReward(
+                          level: tier,
+                          track: SeasonPassClaimTrack.premium,
+                        ),
+                      )
+                  : null,
+            ),
+          ),
         ],
       ),
     );
@@ -285,13 +403,24 @@ class _SeasonTierRow extends StatelessWidget {
 }
 
 class _TrackReward extends StatelessWidget {
-  const _TrackReward({required this.label, required this.unlocked, required this.premium});
+  const _TrackReward({
+    required this.label,
+    required this.rewardCoins,
+    required this.unlocked,
+    required this.claimed,
+    required this.premium,
+    required this.onClaim,
+  });
   final String label;
+  final int rewardCoins;
   final bool unlocked;
+  final bool claimed;
   final bool premium;
+  final VoidCallback? onClaim;
 
   @override
   Widget build(BuildContext context) {
+    final copy = ProgressionCopy.of(context);
     final color = premium ? GameColors.rarityEpic : GameColors.accent;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: GameSpacing.sm, vertical: GameSpacing.xs),
@@ -300,11 +429,29 @@ class _TrackReward extends StatelessWidget {
         borderRadius: BorderRadius.circular(GameRadii.button),
         border: Border.all(color: color.withValues(alpha: unlocked ? .35 : .12)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(unlocked ? Icons.card_giftcard_rounded : Icons.lock_outline_rounded, size: 16, color: unlocked ? color : GameColors.muted),
-          const SizedBox(width: GameSpacing.xs),
-          Expanded(child: Text(label, style: TextStyle(color: unlocked ? color : GameColors.muted, fontWeight: FontWeight.w800, fontSize: 12))),
+          Row(
+            children: [
+              Icon(claimed ? Icons.check_circle_rounded : unlocked ? Icons.card_giftcard_rounded : Icons.lock_outline_rounded, size: 16, color: claimed || unlocked ? color : GameColors.muted),
+              const SizedBox(width: GameSpacing.xs),
+              Expanded(child: Text(label, style: TextStyle(color: unlocked ? color : GameColors.muted, fontWeight: FontWeight.w800, fontSize: 12))),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('$rewardCoins ${copy.coins}', style: const TextStyle(color: GameColors.muted, fontSize: 10, fontWeight: FontWeight.w700)),
+          if (unlocked) ...[
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 30,
+              child: FilledButton(
+                onPressed: claimed ? null : onClaim,
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 6)),
+                child: Text(claimed ? copy.claimed : copy.claim, style: const TextStyle(fontSize: 11)),
+              ),
+            ),
+          ],
         ],
       ),
     );
