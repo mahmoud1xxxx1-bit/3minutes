@@ -1,0 +1,2 @@
+Temporary CI trigger for latest social evidence and ranked authority validation.
+Do not merge.
