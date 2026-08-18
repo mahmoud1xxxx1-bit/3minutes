@@ -1,3 +1,4 @@
+import '../../competition/domain/mini_game_evidence.dart';
 import '../domain/match_progress.dart';
 import '../domain/multiplayer_match.dart';
 
@@ -16,6 +17,7 @@ abstract class SocialMatchBackend {
     required String matchId,
     required String uid,
     required MatchProgress progress,
+    required MiniGameEvidence evidence,
   });
 
   Future<void> setConnectionState({
