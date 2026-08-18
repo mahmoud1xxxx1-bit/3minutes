@@ -7,6 +7,7 @@ import '../../competition/data/competition_backend.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/leaderboard_screen.dart';
 import '../../competition/presentation/rank_badge.dart';
+import '../../economy/data/economy_backend.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/domain/match_ticket.dart';
@@ -25,6 +26,7 @@ class HomeScreen extends StatelessWidget {
     required this.profileRepository,
     required this.matchBackend,
     required this.competitionBackend,
+    required this.economyBackend,
   });
 
   final User user;
@@ -32,6 +34,7 @@ class HomeScreen extends StatelessWidget {
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
   final CompetitionBackend competitionBackend;
+  final EconomyBackend economyBackend;
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +128,10 @@ class HomeScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) => const ShopScreen(),
+                                builder: (_) => ShopScreen(
+                                  uid: user.uid,
+                                  economyBackend: economyBackend,
+                                ),
                               ),
                             );
                           },
