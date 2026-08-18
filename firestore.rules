@@ -11,7 +11,9 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow read: if isOwner(uid);
+      // Player documents currently contain public game identity/progression only.
+      // Writes to progression fields remain server-authoritative.
+      allow read: if signedIn();
       allow create: if isOwner(uid)
         && request.resource.data.keys().hasOnly([
           'gameName',
@@ -44,8 +46,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Spark-era queue. Blaze will move opponent claim and match creation to
-    // Cloud Functions while keeping the same MatchBackend contract in Flutter.
+    // Spark-era ranked queue. Secure Blaze authority uses Cloud Functions.
     match /matchmaking/{uid} {
       allow read: if signedIn();
 
@@ -63,9 +64,6 @@ service cloud.firestore {
         && request.resource.data.status == 'waiting'
         && request.resource.data.matchId == null;
 
-      // Initial claim may be performed by the opponent inside the matchmaking
-      // transaction. Once matched, only the ticket owner may repoint their own
-      // ticket to an agreed rematch.
       allow update: if (
           signedIn()
           && resource.data.status == 'waiting'
@@ -201,8 +199,6 @@ service cloud.firestore {
         && request.resource.data.progressA.completedGames == 0
         && request.resource.data.progressB.completedGames == 0;
 
-      // READY: each player changes only their own flag. The second READY may
-      // atomically start the common countdown.
       allow update: if participant()
         && coreIdentityUnchanged()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -237,7 +233,6 @@ service cloud.firestore {
           )
         );
 
-      // Progress updates happen only after one mini-game completes.
       allow update: if participant()
         && coreIdentityUnchanged()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -263,7 +258,6 @@ service cloud.firestore {
             && progressMovesForward(resource.data.progressB, request.resource.data.progressB))
         );
 
-      // A participant may cancel only before the shared countdown starts.
       allow update: if participant()
         && coreIdentityUnchanged()
         && resource.data.status == 'waitingReady'
@@ -275,8 +269,6 @@ service cloud.firestore {
           'updatedAt'
         ]);
 
-      // Result metadata is non-ranked on Spark. Ranked authority moves to
-      // Cloud Functions on Blaze; this transition does not alter progress.
       allow update: if participant()
         && coreIdentityUnchanged()
         && resource.data.status != 'cancelled'
@@ -288,8 +280,6 @@ service cloud.firestore {
           'updatedAt'
         ]);
 
-      // Rematch request/retract: a player controls only their own flag. When
-      // both flags are true, one client may attach the newly created match id.
       allow update: if participant()
         && coreIdentityUnchanged()
         && resource.data.status != 'cancelled'
@@ -328,9 +318,238 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Server-populated competition read models. Clients can read them after
-    // authentication but cannot create, update, or delete authoritative data.
+    // Social identity lookup. Codes are globally readable to signed-in players,
+    // but only the code owner may claim/update their own code.
+    match /friendCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code == code;
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      function memberBefore() {
+        return signedIn() && request.auth.uid in resource.data.memberUids;
+      }
+
+      function memberAfter() {
+        return signedIn() && request.auth.uid in request.resource.data.memberUids;
+      }
+
+      allow read: if memberBefore();
+
+      allow create: if signedIn()
+        && request.resource.data.requesterUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid != request.auth.uid
+        && request.auth.uid in request.resource.data.memberUids
+        && request.resource.data.recipientUid in request.resource.data.memberUids
+        && request.resource.data.memberUids.size() == 2
+        && (
+          request.resource.data.status == 'pending'
+          || request.resource.data.status == 'blocked'
+        );
+
+      allow update: if memberBefore()
+        && memberAfter()
+        && request.resource.data.requesterUid == resource.data.requesterUid
+        && request.resource.data.recipientUid == resource.data.recipientUid
+        && request.resource.data.memberUids == resource.data.memberUids
+        && (
+          (
+            resource.data.status == 'pending'
+            && request.auth.uid == resource.data.recipientUid
+            && request.resource.data.status == 'accepted'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'updatedAt'
+            ])
+          )
+          || (
+            request.resource.data.status == 'blocked'
+            && request.resource.data.blockedByUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'blockedByUid',
+              'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if memberBefore();
+    }
+
+    // Recent players are written by trusted settlement/social authority only.
+    match /recentPlayers/{uid}/players/{otherUid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /roomCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.roomId is string
+        && request.resource.data.expiresAt is timestamp;
+      allow update, delete: if false;
+    }
+
+    match /privateRooms/{roomId} {
+      function roomMemberBefore() {
+        return signedIn() && request.auth.uid in resource.data.participantUids;
+      }
+
+      function roomMemberAfter() {
+        return signedIn() && request.auth.uid in request.resource.data.participantUids;
+      }
+
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.maxPlayers in [2, 4, 6]
+        && request.resource.data.participantUids == [request.auth.uid]
+        && request.resource.data.readyUids.size() == 0
+        && request.resource.data.status == 'lobby';
+
+      // A signed-in player may join only an open room and may add only themself.
+      allow update: if signedIn()
+        && resource.data.status == 'lobby'
+        && !(request.auth.uid in resource.data.participantUids)
+        && request.auth.uid in request.resource.data.participantUids
+        && request.resource.data.participantUids.size() == resource.data.participantUids.size() + 1
+        && request.resource.data.participantUids.size() <= resource.data.maxPlayers
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'participantUids'
+        ]);
+
+      // Room members can only change lobby state; ranked/economy fields do not
+      // exist in private rooms.
+      allow update: if roomMemberBefore()
+        && roomMemberAfter()
+        && request.resource.data.hostUid == resource.data.hostUid
+        && request.resource.data.maxPlayers == resource.data.maxPlayers
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.expiresAt == resource.data.expiresAt
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'readyUids'
+          ])
+          || (
+            request.auth.uid == resource.data.hostUid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'countdownStartedAt'
+            ])
+          )
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'participantUids',
+            'readyUids'
+          ])
+        );
+
+      // Host may cancel by changing only status. Host departure uses this path.
+      allow update: if roomMemberBefore()
+        && request.auth.uid == resource.data.hostUid
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status'
+        ]);
+
+      allow delete: if false;
+    }
+
+    match /parties/{partyId} {
+      function partyMember() {
+        return signedIn() && request.auth.uid in resource.data.memberUids;
+      }
+
+      function partyInvited() {
+        return signedIn() && request.auth.uid in resource.data.pendingInviteUids;
+      }
+
+      allow read: if partyMember() || partyInvited();
+
+      allow create: if signedIn()
+        && request.resource.data.leaderUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.pendingInviteUids.size() == 0;
+
+      // Casual Party state has no RP, Coins, Stars or ranked authority. Leader
+      // manages invites/members/active room; invitees can accept or decline only
+      // while they are explicitly present in pendingInviteUids.
+      allow update: if partyMember()
+        && (
+          request.auth.uid == resource.data.leaderUid
+          || (
+            request.resource.data.leaderUid == resource.data.leaderUid
+            && request.resource.data.memberUids == resource.data.memberUids
+          )
+        )
+        && request.resource.data.memberUids.size() >= 1
+        && request.resource.data.memberUids.size() <= 6
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'leaderUid',
+          'memberUids',
+          'pendingInviteUids',
+          'activeRoomId',
+          'updatedAt'
+        ]);
+
+      allow update: if partyInvited()
+        && request.resource.data.leaderUid == resource.data.leaderUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'memberUids',
+          'pendingInviteUids',
+          'updatedAt'
+        ])
+        && request.resource.data.memberUids.size() <= 6;
+
+      allow delete: if partyMember() && resource.data.memberUids.size() == 1;
+    }
+
+    match /socialMatches/{matchId} {
+      function socialMemberBefore() {
+        return signedIn() && request.auth.uid in resource.data.participantOrder;
+      }
+
+      allow read: if socialMemberBefore();
+
+      allow create: if signedIn()
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.maxPlayers in [2, 4, 6]
+        && request.resource.data.gameCount == 8
+        && request.resource.data.participantOrder.size() == request.resource.data.maxPlayers
+        && request.auth.uid in request.resource.data.participantOrder
+        && request.resource.data.participants[request.auth.uid] is map;
+
+      // Each player may update only their own nested participant state
+      // (progress/connection). Match seed/order/config remain immutable.
+      allow update: if socialMemberBefore()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'participants'
+        ])
+        && request.resource.data.participants.diff(resource.data.participants)
+          .affectedKeys().hasOnly([request.auth.uid]);
+
+      allow delete: if false;
+    }
+
+    // Server-populated competition read models.
     match /seasons/{seasonId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /seasonHistory/{seasonId} {
       allow read: if signedIn();
       allow write: if false;
     }
@@ -340,8 +559,7 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Economy state is private to the owner. Coin balance, entitlements, and
-    // equipped cosmetics are server-authoritative and never client-writable.
+    // Economy is private and server-authoritative.
     match /inventories/{uid} {
       allow read: if isOwner(uid);
       allow write: if false;
@@ -352,13 +570,50 @@ service cloud.firestore {
       }
     }
 
-    // Settlement and ledger records remain completely server-only from the
-    // client. Admin SDK operations in Cloud Functions bypass these rules.
+    // Progression state is owner-readable and server-writable only.
+    match /playerAchievements/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /playerMissions/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /seasonPass/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /achievements/{achievementId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /missions/{missionId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Authoritative settlements, ledgers and receipts are server-only.
     match /rankedSettlements/{matchId} {
       allow read, write: if false;
     }
 
     match /coinTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /prestigeStarTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /purchaseReceipts/{receiptId} {
+      allow read, write: if false;
+    }
+
+    match /rankedEvidence/{matchId}/{document=**} {
       allow read, write: if false;
     }
 
