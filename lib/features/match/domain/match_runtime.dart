@@ -51,7 +51,8 @@ class MatchRuntime {
   }
 
   void _validateResult(MiniGameResult result) {
-    if (result.score < 0 ||
+    if (!result.completed ||
+        result.score < 0 ||
         result.accuracy < 0 ||
         result.accuracy > 1 ||
         result.mistakes < 0 ||
