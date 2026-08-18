@@ -5,7 +5,7 @@ import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../competition/data/competition_backend.dart';
 import '../../economy/data/economy_backend.dart';
-import '../../home/presentation/home_screen.dart';
+import '../../home/presentation/game_shell_screen.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../profile/data/profile_repository.dart';
@@ -89,7 +89,7 @@ class _AuthGateState extends State<AuthGate> {
               );
             }
 
-            return HomeScreen(
+            return GameShellScreen(
               user: user,
               authService: widget.authService,
               profileRepository: widget.profileRepository,
