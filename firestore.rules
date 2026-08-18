@@ -63,19 +63,37 @@ service cloud.firestore {
         && request.resource.data.status == 'waiting'
         && request.resource.data.matchId == null;
 
-      allow update: if signedIn()
-        && resource.data.status == 'waiting'
-        && request.resource.data.status == 'matched'
-        && request.resource.data.matchId is string
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.gameName == resource.data.gameName
-        && request.resource.data.avatarId == resource.data.avatarId
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'status',
-          'matchId',
-          'updatedAt'
-        ]);
+      // Initial claim may be performed by the opponent inside the matchmaking
+      // transaction. Once matched, only the ticket owner may repoint their own
+      // ticket to an agreed rematch.
+      allow update: if (
+          signedIn()
+          && resource.data.status == 'waiting'
+          && request.resource.data.status == 'matched'
+          && request.resource.data.matchId is string
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.gameName == resource.data.gameName
+          && request.resource.data.avatarId == resource.data.avatarId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'matchId',
+            'updatedAt'
+          ])
+        ) || (
+          isOwner(uid)
+          && resource.data.status == 'matched'
+          && request.resource.data.status == 'matched'
+          && request.resource.data.matchId is string
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.gameName == resource.data.gameName
+          && request.resource.data.avatarId == resource.data.avatarId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'matchId',
+            'updatedAt'
+          ])
+        );
 
       allow delete: if isOwner(uid);
     }
@@ -127,6 +145,19 @@ service cloud.firestore {
           );
       }
 
+      function coreIdentityUnchanged() {
+        return request.resource.data.playerAId == resource.data.playerAId
+          && request.resource.data.playerAName == resource.data.playerAName
+          && request.resource.data.playerAAvatarId == resource.data.playerAAvatarId
+          && request.resource.data.playerBId == resource.data.playerBId
+          && request.resource.data.playerBName == resource.data.playerBName
+          && request.resource.data.playerBAvatarId == resource.data.playerBAvatarId
+          && request.resource.data.seed == resource.data.seed
+          && request.resource.data.gameCount == resource.data.gameCount
+          && request.resource.data.registryVersion == resource.data.registryVersion
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
+
       allow read: if participant();
 
       allow create: if signedIn()
@@ -145,6 +176,10 @@ service cloud.firestore {
           'readyB',
           'progressA',
           'progressB',
+          'rematchA',
+          'rematchB',
+          'rematchMatchId',
+          'cancelledBy',
           'countdownStartedAt',
           'createdAt',
           'updatedAt'
@@ -155,6 +190,10 @@ service cloud.firestore {
         && request.resource.data.status == 'waitingReady'
         && request.resource.data.readyA == false
         && request.resource.data.readyB == false
+        && request.resource.data.rematchA == false
+        && request.resource.data.rematchB == false
+        && request.resource.data.rematchMatchId == null
+        && request.resource.data.cancelledBy == null
         && request.resource.data.countdownStartedAt == null
         && request.resource.data.gameCount == 8
         && validProgress(request.resource.data.progressA)
@@ -162,9 +201,10 @@ service cloud.firestore {
         && request.resource.data.progressA.completedGames == 0
         && request.resource.data.progressB.completedGames == 0;
 
-      // READY updates: each player may change only their own ready flag. The
-      // second READY may atomically start the shared countdown.
+      // READY: each player changes only their own flag. The second READY may
+      // atomically start the common countdown.
       allow update: if participant()
+        && coreIdentityUnchanged()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'readyA',
           'readyB',
@@ -174,6 +214,10 @@ service cloud.firestore {
         ])
         && request.resource.data.progressA == resource.data.progressA
         && request.resource.data.progressB == resource.data.progressB
+        && request.resource.data.rematchA == resource.data.rematchA
+        && request.resource.data.rematchB == resource.data.rematchB
+        && request.resource.data.rematchMatchId == resource.data.rematchMatchId
+        && request.resource.data.cancelledBy == resource.data.cancelledBy
         && (
           (request.auth.uid == resource.data.playerAId
             && request.resource.data.readyB == resource.data.readyB
@@ -193,8 +237,9 @@ service cloud.firestore {
           )
         );
 
-      // Progress updates happen only after a mini-game ends, not for every tap.
+      // Progress updates happen only after one mini-game completes.
       allow update: if participant()
+        && coreIdentityUnchanged()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'progressA',
           'progressB',
@@ -204,6 +249,10 @@ service cloud.firestore {
         && request.resource.data.readyB == resource.data.readyB
         && request.resource.data.status == resource.data.status
         && request.resource.data.countdownStartedAt == resource.data.countdownStartedAt
+        && request.resource.data.rematchA == resource.data.rematchA
+        && request.resource.data.rematchB == resource.data.rematchB
+        && request.resource.data.rematchMatchId == resource.data.rematchMatchId
+        && request.resource.data.cancelledBy == resource.data.cancelledBy
         && (
           (request.auth.uid == resource.data.playerAId
             && request.resource.data.progressB == resource.data.progressB
@@ -212,6 +261,68 @@ service cloud.firestore {
           (request.auth.uid == resource.data.playerBId
             && request.resource.data.progressA == resource.data.progressA
             && progressMovesForward(resource.data.progressB, request.resource.data.progressB))
+        );
+
+      // A participant may cancel only before the shared countdown starts.
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && resource.data.status == 'waitingReady'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.cancelledBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'cancelledBy',
+          'updatedAt'
+        ]);
+
+      // Result metadata is non-ranked on Spark. Ranked authority moves to
+      // Cloud Functions on Blaze; this transition does not alter progress.
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && resource.data.status != 'cancelled'
+        && request.resource.data.status == 'finished'
+        && request.resource.data.progressA == resource.data.progressA
+        && request.resource.data.progressB == resource.data.progressB
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'updatedAt'
+        ]);
+
+      // Rematch request/retract: a player controls only their own flag. When
+      // both flags are true, one client may attach the newly created match id.
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && resource.data.status != 'cancelled'
+        && resource.data.rematchMatchId == null
+        && request.resource.data.readyA == resource.data.readyA
+        && request.resource.data.readyB == resource.data.readyB
+        && request.resource.data.progressA == resource.data.progressA
+        && request.resource.data.progressB == resource.data.progressB
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.countdownStartedAt == resource.data.countdownStartedAt
+        && request.resource.data.cancelledBy == resource.data.cancelledBy
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'rematchA',
+          'rematchB',
+          'rematchMatchId',
+          'updatedAt'
+        ])
+        && (
+          (request.auth.uid == resource.data.playerAId
+            && request.resource.data.rematchB == resource.data.rematchB
+            && request.resource.data.rematchA is bool)
+          ||
+          (request.auth.uid == resource.data.playerBId
+            && request.resource.data.rematchA == resource.data.rematchA
+            && request.resource.data.rematchB is bool)
+        )
+        && (
+          request.resource.data.rematchMatchId == null
+          || (
+            request.resource.data.rematchMatchId is string
+            && request.resource.data.rematchA == true
+            && request.resource.data.rematchB == true
+          )
         );
 
       allow delete: if false;
