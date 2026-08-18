@@ -1,3 +1,5 @@
+import '../../competition/domain/rank_tier.dart';
+
 class PlayerProfile {
   const PlayerProfile({
     required this.uid,
@@ -13,6 +15,8 @@ class PlayerProfile {
     this.ties = 0,
     this.bestWinStreak = 0,
     this.legendarySeasons = 0,
+    this.peakRankTier = RankTier.bronze,
+    this.showcaseRankTier,
     this.friendCode,
     this.selectedTitleId,
     this.showcaseAchievementIds = const <String>[],
@@ -35,11 +39,21 @@ class PlayerProfile {
   /// Legendary as their peak tier. This is permanent prestige, not currency.
   final int legendarySeasons;
 
+  /// Lifetime highest Ranked tier. Every tier up to this one is permanently
+  /// unlocked for profile/showcase display even after seasonal RP resets.
+  final RankTier peakRankTier;
+
+  /// Optional historical emblem chosen for profile/showcase presentation.
+  /// Competitive surfaces must continue to use RankPolicy.tierFor(rankPoints).
+  final RankTier? showcaseRankTier;
+
   final String? friendCode;
   final String? selectedTitleId;
   final List<String> showcaseAchievementIds;
 
   double get winRate => gamesPlayed <= 0 ? 0 : wins / gamesPlayed;
+
+  bool isRankEmblemUnlocked(RankTier tier) => tier.index <= peakRankTier.index;
 
   factory PlayerProfile.fromMap(String uid, Map<String, dynamic> map) {
     final achievements = (map['showcaseAchievementIds'] as List<dynamic>?)
@@ -49,6 +63,14 @@ class PlayerProfile {
         const <String>[];
 
     final rawLegendarySeasons = (map['legendarySeasons'] as num?)?.toInt() ?? 0;
+    final rankPoints = (map['rankPoints'] as num?)?.toInt() ?? 0;
+    final currentTier = RankPolicy.tierFor(rankPoints);
+    final peakRankTier = _rankTierFromName(map['peakRankTier']) ?? currentTier;
+    final requestedShowcaseTier = _rankTierFromName(map['showcaseRankTier']);
+    final showcaseRankTier = requestedShowcaseTier != null &&
+            requestedShowcaseTier.index <= peakRankTier.index
+        ? requestedShowcaseTier
+        : null;
 
     return PlayerProfile(
       uid: uid,
@@ -56,7 +78,7 @@ class PlayerProfile {
       avatarId: (map['avatarId'] as String?) ?? 'default_01',
       level: (map['level'] as num?)?.toInt() ?? 1,
       xp: (map['xp'] as num?)?.toInt() ?? 0,
-      rankPoints: (map['rankPoints'] as num?)?.toInt() ?? 0,
+      rankPoints: rankPoints,
       stars: (map['stars'] as num?)?.toInt() ?? 0,
       wins: (map['wins'] as num?)?.toInt() ?? 0,
       losses: (map['losses'] as num?)?.toInt() ?? 0,
@@ -64,10 +86,20 @@ class PlayerProfile {
       gamesPlayed: (map['gamesPlayed'] as num?)?.toInt() ?? 0,
       bestWinStreak: (map['bestWinStreak'] as num?)?.toInt() ?? 0,
       legendarySeasons: rawLegendarySeasons < 0 ? 0 : rawLegendarySeasons,
+      peakRankTier: peakRankTier,
+      showcaseRankTier: showcaseRankTier,
       friendCode: map['friendCode'] as String?,
       selectedTitleId: map['selectedTitleId'] as String?,
       showcaseAchievementIds: achievements,
     );
+  }
+
+  static RankTier? _rankTierFromName(Object? value) {
+    if (value is! String) return null;
+    for (final tier in RankTier.values) {
+      if (tier.name == value) return tier;
+    }
+    return null;
   }
 }
 
