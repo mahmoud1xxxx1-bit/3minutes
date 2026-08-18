@@ -9,8 +9,8 @@ void main() {
       peakTier: RankTier.diamond,
     );
 
-    expect(preview.starsAwarded, 5);
-    expect(preview.nextPersistentStars, 25);
-    expect(preview.nextSeasonStartingRp, 1100);
+    expect(preview.starsAwarded, 11);
+    expect(preview.nextPersistentStars, 31);
+    expect(preview.nextSeasonStartingRp, 2200);
   });
 }
