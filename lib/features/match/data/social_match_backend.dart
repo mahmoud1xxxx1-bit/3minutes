@@ -23,4 +23,6 @@ abstract class SocialMatchBackend {
     required String uid,
     required ParticipantConnectionState state,
   });
+
+  Future<void> settleMatch(String matchId);
 }
