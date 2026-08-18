@@ -31,6 +31,7 @@ class SocialCopy {
   String get noRequests => isArabic ? 'لا توجد طلبات جديدة' : 'No new requests';
   String get noRecentPlayers => isArabic ? 'لا يوجد لاعبون حديثون بعد' : 'No recent players yet';
   String get accept => isArabic ? 'قبول' : 'Accept';
+  String get decline => isArabic ? 'رفض' : 'Decline';
   String get remove => isArabic ? 'إزالة' : 'Remove';
   String get block => isArabic ? 'حظر' : 'Block';
   String get addFriend => isArabic ? 'إضافة صديق' : 'Add friend';
@@ -52,11 +53,30 @@ class SocialCopy {
       ? 'مباريات الأصدقاء لا تمنح RP.'
       : 'Friend matches do not award RP.';
   String get invite => isArabic ? 'دعوة' : 'Invite';
+  String get invited => isArabic ? 'تمت الدعوة' : 'Invited';
   String get shareRoom => isArabic ? 'مشاركة الغرفة' : 'Share room';
   String get inviteCopied => isArabic ? 'تم نسخ رابط الدعوة' : 'Invite link copied';
   String get roomFull => isArabic ? 'الغرفة مكتملة' : 'Room full';
   String get waitingPlayers => isArabic ? 'بانتظار اللاعبين' : 'Waiting for players';
   String get party => isArabic ? 'المجموعة' : 'Party';
+  String get partySubtitle => isArabic
+      ? 'كوّن مجموعة حتى 6 لاعبين وابقوا معًا للمباريات المتكررة.'
+      : 'Keep up to 6 players together for repeated matches.';
+  String get createParty => isArabic ? 'إنشاء مجموعة' : 'Create party';
+  String get partyInvitations => isArabic ? 'دعوات المجموعة' : 'Party invitations';
+  String get noPartyInvites => isArabic ? 'لا توجد دعوات مجموعة حاليًا' : 'No party invitations right now';
+  String get partyLeader => isArabic ? 'قائد المجموعة' : 'Party leader';
+  String get partyMembers => isArabic ? 'أعضاء المجموعة' : 'Party members';
+  String get inviteFriends => isArabic ? 'دعوة الأصدقاء' : 'Invite friends';
+  String get leaveParty => isArabic ? 'مغادرة المجموعة' : 'Leave party';
+  String get removeFromParty => isArabic ? 'إزالة من المجموعة' : 'Remove from party';
+  String get partySizeRule => isArabic
+      ? 'يمكن بدء المباراة عندما يكون العدد 2 أو 4 أو 6.'
+      : 'A party can start a match at 2, 4, or 6 members.';
+  String get partyWaitingSize => isArabic
+      ? 'أضف أو أزل لاعبًا حتى يصبح العدد 2 أو 4 أو 6.'
+      : 'Add or remove a player until the party size is 2, 4, or 6.';
+  String get startPartyMatch => isArabic ? 'ابدأ مباراة المجموعة' : 'Start party match';
   String get playAgainTogether => isArabic ? 'العبوا مرة أخرى' : 'Play again together';
   String get ready => isArabic ? 'جاهز' : 'Ready';
   String get notReady => isArabic ? 'غير جاهز' : 'Not ready';
