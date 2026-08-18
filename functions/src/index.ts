@@ -13,4 +13,10 @@ export {
 export { settleRankedMatch } from "./settlement.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";
 export { unlockPrestigeCosmetic } from "./prestige.js";
+export {
+  onRankedSettlementProgression,
+  claimMissionReward,
+  claimAchievementReward,
+  claimSeasonPassReward,
+} from "./progression.js";
 export { rolloverRankedSeason } from "./season.js";
