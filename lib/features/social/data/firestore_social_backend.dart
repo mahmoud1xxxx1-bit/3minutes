@@ -43,6 +43,8 @@ class FirestoreSocialBackend implements SocialBackend {
     final doc = await _firestore.collection('users').doc(uid).get();
     final data = doc.data();
     if (!doc.exists || data == null) return null;
+    final rawLegendarySeasons =
+        (data['legendarySeasons'] as num?)?.toInt() ?? 0;
     return SocialPlayerSummary(
       uid: uid,
       displayName: (data['gameName'] as String?) ?? 'Player',
@@ -50,6 +52,8 @@ class FirestoreSocialBackend implements SocialBackend {
       rankPoints: (data['rankPoints'] as num?)?.toInt() ?? 0,
       level: (data['level'] as num?)?.toInt() ?? 1,
       stars: (data['stars'] as num?)?.toInt() ?? 0,
+      legendarySeasons:
+          rawLegendarySeasons < 0 ? 0 : rawLegendarySeasons,
     );
   }
 
