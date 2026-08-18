@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../domain/player_name_rules.dart';
 import '../domain/player_profile.dart';
 
 class ProfileRepository {
@@ -24,7 +25,7 @@ class ProfileRepository {
     required String gameName,
     required String avatarId,
   }) async {
-    final cleanedName = _validateGameName(gameName);
+    final cleanedName = PlayerNameRules.validate(gameName);
 
     await _users.doc(uid).set({
       'gameName': cleanedName,
@@ -46,20 +47,12 @@ class ProfileRepository {
     required String gameName,
     required String avatarId,
   }) async {
-    final cleanedName = _validateGameName(gameName);
+    final cleanedName = PlayerNameRules.validate(gameName);
 
     await _users.doc(uid).update({
       'gameName': cleanedName,
       'avatarId': avatarId,
       'updatedAt': FieldValue.serverTimestamp(),
     });
-  }
-
-  String _validateGameName(String value) {
-    final cleaned = value.trim();
-    if (cleaned.length < 3 || cleaned.length > 20) {
-      throw ArgumentError('Game name must be between 3 and 20 characters.');
-    }
-    return cleaned;
   }
 }
