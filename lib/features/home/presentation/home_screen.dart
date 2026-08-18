@@ -14,6 +14,7 @@ import '../../competition/presentation/season_star_badge.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
+import '../../match/data/social_match_backend.dart';
 import '../../match/domain/match_ticket.dart';
 import '../../match/presentation/match_history_screen.dart';
 import '../../match/presentation/match_room_screen.dart';
@@ -34,6 +35,7 @@ class HomeScreen extends StatelessWidget {
     required this.authService,
     required this.profileRepository,
     required this.matchBackend,
+    required this.socialMatchBackend,
     required this.competitionBackend,
     required this.economyBackend,
     required this.socialBackend,
@@ -44,6 +46,7 @@ class HomeScreen extends StatelessWidget {
   final AuthService authService;
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
+  final SocialMatchBackend socialMatchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
   final SocialBackend socialBackend;
@@ -128,6 +131,7 @@ class HomeScreen extends StatelessWidget {
                                           profile: profile,
                                           roomBackend: roomBackend,
                                           socialBackend: socialBackend,
+                                          socialMatchBackend: socialMatchBackend,
                                         ),
                                       ),
                                     );
