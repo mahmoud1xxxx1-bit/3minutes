@@ -12,6 +12,7 @@ class PlayerProfile {
     required this.gamesPlayed,
     this.ties = 0,
     this.bestWinStreak = 0,
+    this.legendarySeasons = 0,
     this.friendCode,
     this.selectedTitleId,
     this.showcaseAchievementIds = const <String>[],
@@ -29,6 +30,11 @@ class PlayerProfile {
   final int ties;
   final int gamesPlayed;
   final int bestWinStreak;
+
+  /// Number of distinct completed seasons in which this player reached
+  /// Legendary as their peak tier. This is permanent prestige, not currency.
+  final int legendarySeasons;
+
   final String? friendCode;
   final String? selectedTitleId;
   final List<String> showcaseAchievementIds;
@@ -41,6 +47,8 @@ class PlayerProfile {
             .take(3)
             .toList(growable: false) ??
         const <String>[];
+
+    final rawLegendarySeasons = (map['legendarySeasons'] as num?)?.toInt() ?? 0;
 
     return PlayerProfile(
       uid: uid,
@@ -55,6 +63,7 @@ class PlayerProfile {
       ties: (map['ties'] as num?)?.toInt() ?? 0,
       gamesPlayed: (map['gamesPlayed'] as num?)?.toInt() ?? 0,
       bestWinStreak: (map['bestWinStreak'] as num?)?.toInt() ?? 0,
+      legendarySeasons: rawLegendarySeasons < 0 ? 0 : rawLegendarySeasons,
       friendCode: map['friendCode'] as String?,
       selectedTitleId: map['selectedTitleId'] as String?,
       showcaseAchievementIds: achievements,
