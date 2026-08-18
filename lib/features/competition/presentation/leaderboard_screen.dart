@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/competition_backend.dart';
 import '../domain/leaderboard_entry.dart';
 import '../domain/rank_tier.dart';
 import '../domain/season.dart';
 import '../domain/season_clock.dart';
 import '../domain/season_reward_policy.dart';
+import 'rank_badge.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({
@@ -21,53 +23,89 @@ class LeaderboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final liveEnabled = AppConfig.liveLeaderboardEnabled;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Leaderboard')),
+      appBar: AppBar(
+        title: Text(
+          l10n.leaderboard,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(GameSpacing.md),
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(GameSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          liveEnabled
-                              ? Icons.leaderboard_outlined
-                              : Icons.calendar_month_outlined,
-                        ),
-                        const SizedBox(width: GameSpacing.sm),
-                        Expanded(
-                          child: Text(
-                            'Season competition',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: GameSpacing.sm),
-                    Text('Each season lasts ${SeasonPolicy.duration.inDays} days.'),
-                    const SizedBox(height: GameSpacing.xs),
-                    const Text(
-                      'Your highest tier in the season awards permanent stars. Stars stay on your identity and never affect gameplay.',
-                    ),
-                    const SizedBox(height: GameSpacing.sm),
-                    Text(
-                      liveEnabled
-                          ? 'Live standings are protected by the secure competition backend.'
-                          : 'Live player standings activate with the secure competition backend so RP cannot be forged by a modified client.',
-                      style: const TextStyle(color: GameColors.muted),
-                    ),
-                  ],
+            Container(
+              padding: const EdgeInsets.all(GameSpacing.lg),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(GameRadii.panel),
+                gradient: const LinearGradient(
+                  begin: AlignmentDirectional.topStart,
+                  end: AlignmentDirectional.bottomEnd,
+                  colors: [GameColors.surfaceRaised, GameColors.surface],
                 ),
+                border: Border.all(color: GameColors.surfaceStrong),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: GameColors.accentSoft,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          liveEnabled
+                              ? Icons.leaderboard_rounded
+                              : Icons.calendar_month_rounded,
+                          color: GameColors.accent,
+                        ),
+                      ),
+                      const SizedBox(width: GameSpacing.md),
+                      Expanded(
+                        child: Text(
+                          l10n.seasonCompetition,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: GameSpacing.md),
+                  Text(
+                    l10n.seasonDuration(SeasonPolicy.duration.inDays),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: GameSpacing.xs),
+                  Text(
+                    l10n.seasonStarsExplanation,
+                    style: const TextStyle(color: GameColors.muted),
+                  ),
+                  const SizedBox(height: GameSpacing.sm),
+                  Container(
+                    padding: const EdgeInsets.all(GameSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: GameColors.background.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(GameRadii.button),
+                    ),
+                    child: Text(
+                      liveEnabled
+                          ? l10n.liveStandingsProtected
+                          : l10n.liveStandingsLocked,
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (liveEnabled) ...[
@@ -77,9 +115,9 @@ class LeaderboardScreen extends StatelessWidget {
             const SizedBox(height: GameSpacing.lg),
             if (liveEnabled) ...[
               Text(
-                'Live standings',
+                l10n.liveStandings,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w900,
                     ),
               ),
               const SizedBox(height: GameSpacing.sm),
@@ -87,33 +125,70 @@ class LeaderboardScreen extends StatelessWidget {
               const SizedBox(height: GameSpacing.lg),
             ],
             Text(
-              'Rank ladder',
+              l10n.rankLadder,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
             ),
             const SizedBox(height: GameSpacing.sm),
             for (final band in RankPolicy.bands) ...[
-              Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: GameColors.surfaceRaised,
-                    child: const Icon(Icons.shield_outlined),
-                  ),
-                  title: Text(
-                    band.tier.label,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  subtitle: Text(
-                    '${SeasonRewardPolicy.starsForPeakTier(band.tier)} season stars',
-                  ),
-                  trailing: Text('${band.minimumRp} RP'),
-                ),
-              ),
+              _RankBandCard(band: band),
               const SizedBox(height: GameSpacing.sm),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _RankBandCard extends StatelessWidget {
+  const _RankBandCard({required this.band});
+
+  final RankBand band;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final stars = SeasonRewardPolicy.starsForPeakTier(band.tier);
+
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.md),
+      decoration: BoxDecoration(
+        color: GameColors.surface,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        border: Border.all(color: GameColors.surfaceStrong),
+      ),
+      child: Row(
+        children: [
+          RankBadge(tier: band.tier),
+          const SizedBox(width: GameSpacing.md),
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  color: GameColors.rewardGold,
+                  size: 18,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    l10n.seasonStarsReward(stars),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: GameColors.muted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          Text(
+            l10n.rpWithValue(band.minimumRp),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ],
       ),
     );
   }
@@ -149,77 +224,71 @@ class _SeasonStatusState extends State<_SeasonStatus> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return StreamBuilder<Season?>(
       stream: widget.competitionBackend.watchCurrentSeason(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(GameSpacing.md),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
+          return const _StateCard(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(GameSpacing.md),
-              child: Text(
-                'Could not load the current season.',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          );
+          return _StateCard(child: Text(l10n.couldNotLoadSeason));
         }
 
         final season = snapshot.data;
         if (season == null) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(GameSpacing.md),
-              child: Text(
-                'No active season.',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          );
+          return _StateCard(child: Text(l10n.noActiveSeason));
         }
 
         final clock = SeasonClockPolicy.at(season: season, now: _now);
         final remaining = clock.remaining;
-        final days = remaining.inDays;
-        final hours = remaining.inHours.remainder(24);
         final remainingLabel = clock.active
-            ? '${days}d ${hours}h remaining'
-            : 'Season closed';
+            ? l10n.seasonRemaining(
+                remaining.inDays,
+                remaining.inHours.remainder(24),
+              )
+            : l10n.seasonClosed;
 
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(GameSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Season #${season.number}',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
+        return Container(
+          padding: const EdgeInsets.all(GameSpacing.md),
+          decoration: BoxDecoration(
+            color: GameColors.surface,
+            borderRadius: BorderRadius.circular(GameRadii.card),
+            border: Border.all(color: GameColors.surfaceStrong),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.seasonNumber(season.number),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
-                    Text(
-                      remainingLabel,
-                      style: const TextStyle(color: GameColors.muted),
+                  ),
+                  Text(
+                    remainingLabel,
+                    style: const TextStyle(
+                      color: GameColors.rewardGold,
+                      fontWeight: FontWeight.w700,
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: GameSpacing.sm),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(GameRadii.pill),
+                child: LinearProgressIndicator(
+                  value: clock.progress,
+                  minHeight: 9,
                 ),
-                const SizedBox(height: GameSpacing.sm),
-                LinearProgressIndicator(value: clock.progress),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
@@ -251,74 +320,124 @@ class _LiveStandingsState extends State<_LiveStandings> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return FutureBuilder<List<LeaderboardEntry>>(
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(GameSpacing.lg),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          );
+          return const _StateCard(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(GameSpacing.md),
-              child: Column(
-                children: [
-                  const Text('Could not load live standings.'),
-                  const SizedBox(height: GameSpacing.sm),
-                  OutlinedButton(
-                    onPressed: _reload,
-                    child: const Text('TRY AGAIN'),
-                  ),
-                ],
-              ),
+          return _StateCard(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.couldNotLoadStandings),
+                const SizedBox(height: GameSpacing.sm),
+                OutlinedButton(
+                  onPressed: _reload,
+                  child: Text(l10n.tryAgain),
+                ),
+              ],
             ),
           );
         }
 
         final entries = snapshot.data ?? const <LeaderboardEntry>[];
         if (entries.isEmpty) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(GameSpacing.md),
-              child: Text(
-                'No ranked players yet.',
-                textAlign: TextAlign.center,
-              ),
-            ),
-          );
+          return _StateCard(child: Text(l10n.noRankedPlayers));
         }
 
         return Column(
           children: [
             for (var index = 0; index < entries.length; index++) ...[
-              Card(
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: GameColors.surfaceRaised,
-                    child: Text('${index + 1}'),
-                  ),
-                  title: Text(entries[index].gameName),
-                  subtitle: Text(
-                    '${entries[index].tier.label} • ${entries[index].wins}W ${entries[index].losses}L',
-                  ),
-                  trailing: Text(
-                    '${entries[index].rankPoints} RP',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ),
+              _LeaderboardRow(index: index, entry: entries[index]),
               if (index + 1 < entries.length)
                 const SizedBox(height: GameSpacing.sm),
             ],
           ],
         );
       },
+    );
+  }
+}
+
+class _LeaderboardRow extends StatelessWidget {
+  const _LeaderboardRow({required this.index, required this.entry});
+
+  final int index;
+  final LeaderboardEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.sm),
+      decoration: BoxDecoration(
+        color: GameColors.surface,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        border: Border.all(color: GameColors.surfaceStrong),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: index < 3
+                ? GameColors.rewardGold.withValues(alpha: 0.16)
+                : GameColors.surfaceRaised,
+            child: Text(
+              '${index + 1}',
+              style: TextStyle(
+                color: index < 3 ? GameColors.rewardGold : GameColors.textStrong,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.gameName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                RankBadge(tier: entry.tier, compact: true),
+              ],
+            ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          Text(
+            l10n.rpWithValue(entry.rankPoints),
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StateCard extends StatelessWidget {
+  const _StateCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.lg),
+      decoration: BoxDecoration(
+        color: GameColors.surface,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        border: Border.all(color: GameColors.surfaceStrong),
+      ),
+      alignment: Alignment.center,
+      child: child,
     );
   }
 }
