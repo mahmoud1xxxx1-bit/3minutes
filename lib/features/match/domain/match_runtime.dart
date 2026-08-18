@@ -8,14 +8,16 @@ class MatchRuntime {
     required this.seed,
     required this.startedAt,
     required this.gameCount,
-  }) : gameSequence = GameRegistry.sequence(seed: seed, count: gameCount);
+    MatchProgress initialProgress = const MatchProgress.empty(),
+  })  : gameSequence = GameRegistry.sequence(seed: seed, count: gameCount),
+        _progress = initialProgress;
 
   final int seed;
   final DateTime startedAt;
   final int gameCount;
   final List<MiniGameDescriptor> gameSequence;
 
-  MatchProgress _progress = const MatchProgress.empty();
+  MatchProgress _progress;
 
   MatchProgress get progress => _progress;
 
