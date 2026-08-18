@@ -22,6 +22,8 @@ class RankBadge extends StatelessWidget {
         RankTier.platinum => GameColors.rankPlatinum,
         RankTier.diamond => GameColors.rankDiamond,
         RankTier.master => GameColors.rankMaster,
+        RankTier.grandmaster => GameColors.rankGrandmaster,
+        RankTier.legend => GameColors.rankLegend,
       };
 
   String _label(AppLocalizations l10n) => switch (tier) {
@@ -31,6 +33,8 @@ class RankBadge extends StatelessWidget {
         RankTier.platinum => l10n.platinum,
         RankTier.diamond => l10n.diamond,
         RankTier.master => l10n.master,
+        RankTier.grandmaster => l10n.grandmaster,
+        RankTier.legend => l10n.legend,
       };
 
   @override
@@ -50,10 +54,7 @@ class RankBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(GameRadii.pill),
         border: Border.all(color: color.withValues(alpha: 0.5)),
         boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.07),
-            blurRadius: 12,
-          ),
+          BoxShadow(color: color.withValues(alpha: 0.07), blurRadius: 12),
         ],
       ),
       child: Row(
