@@ -44,15 +44,30 @@ jobs:
             -validity 10000 \
             -dname "CN=3 Minutes CI Debug,O=3 Minutes,C=SA"
 
-      - name: Show debug signing fingerprints
+      - name: Verify debug signing fingerprints
         run: |
           keytool -list -v \
             -keystore ~/.android/debug.keystore \
             -storepass android \
-            -alias androiddebugkey | grep -E 'SHA1:|SHA256:'
+            -alias androiddebugkey | tee /tmp/signing.txt
+          grep -F 'SHA1: 9D:0C:AE:8A:CE:E4:97:46:EE:C8:1F:16:E6:B1:F1:7A:33:65:B9:EA' /tmp/signing.txt
+          grep -F 'SHA256: 4B:A2:BA:D2:AD:8F:B2:70:C0:F7:BA:B6:11:07:BA:6F:EE:33:2A:09:20:C9:50:39:CB:0E:83:BA:5D:FF:85:30' /tmp/signing.txt
 
       - name: Resolve dependencies
         run: flutter pub get
+
+      - name: Verify generated Google OAuth resources
+        run: |
+          cd android
+          ./gradlew :app:processDebugGoogleServices
+          cd ..
+          VALUES_FILE=$(find build android/app/build -path '*processDebugGoogleServices*values*values.xml' -print -quit 2>/dev/null || true)
+          if [ -z "$VALUES_FILE" ]; then
+            echo 'Generated Google Services values.xml not found'
+            exit 1
+          fi
+          cat "$VALUES_FILE"
+          grep -F '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com' "$VALUES_FILE"
 
       - name: Analyze
         run: flutter analyze
@@ -62,6 +77,12 @@ jobs:
 
       - name: Build Android debug APK
         run: flutter build apk --debug
+
+      - name: Verify APK certificate
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/apkcert.txt
+          grep -F 'Signer #1 certificate SHA-256 digest: 4ba2bad2ad8fb270c0f7bab61107ba6fee332a0920c95039cb0e83ba5dff8530' /tmp/apkcert.txt
 
       - name: Upload validated debug APK
         if: success()
