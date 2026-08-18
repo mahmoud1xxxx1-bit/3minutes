@@ -40,3 +40,41 @@ class SeasonHistoryPolicy {
     return true;
   }
 }
+
+/// Permanent prestige earned by reaching Legendary in distinct seasons.
+///
+/// A player can only earn one Legendary completion per season, even if their
+/// RP drops below Legendary and they climb back into it multiple times during
+/// that same season. The season history is therefore the source of truth.
+class LegendaryPrestigePolicy {
+  const LegendaryPrestigePolicy._();
+
+  static int count(Iterable<SeasonHistoryEntry> history) {
+    final legendarySeasonIds = <String>{};
+    for (final entry in history) {
+      if (!SeasonHistoryPolicy.isValid(entry)) continue;
+      if (entry.peakTier != RankTier.legend) continue;
+      legendarySeasonIds.add(entry.seasonId.trim());
+    }
+    return legendarySeasonIds.length;
+  }
+
+  static LegendaryPrestigeLevel levelFor(int legendarySeasons) {
+    final safeCount = legendarySeasons < 0 ? 0 : legendarySeasons;
+    if (safeCount >= 10) return LegendaryPrestigeLevel.legacy;
+    if (safeCount >= 5) return LegendaryPrestigeLevel.aura;
+    if (safeCount >= 3) return LegendaryPrestigeLevel.crowned;
+    if (safeCount >= 2) return LegendaryPrestigeLevel.doubleHalo;
+    if (safeCount >= 1) return LegendaryPrestigeLevel.legendary;
+    return LegendaryPrestigeLevel.none;
+  }
+}
+
+enum LegendaryPrestigeLevel {
+  none,
+  legendary,
+  doubleHalo,
+  crowned,
+  aura,
+  legacy;
+}
