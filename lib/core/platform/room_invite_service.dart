@@ -29,6 +29,21 @@ class RoomInviteService {
     }
   }
 
+  static Future<bool> shareRoomInvite(String inviteUri) async {
+    _ensureInitialized();
+    try {
+      final result = await _channel.invokeMethod<bool>(
+        'shareRoomInvite',
+        <String, Object?>{'text': inviteUri.trim()},
+      );
+      return result ?? false;
+    } on PlatformException {
+      return false;
+    } on MissingPluginException {
+      return false;
+    }
+  }
+
   static void _ensureInitialized() {
     if (_initialized) return;
     _initialized = true;
