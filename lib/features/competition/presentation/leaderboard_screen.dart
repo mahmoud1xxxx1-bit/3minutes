@@ -6,6 +6,7 @@ import '../data/competition_backend.dart';
 import '../domain/leaderboard_entry.dart';
 import '../domain/rank_tier.dart';
 import '../domain/season.dart';
+import '../domain/season_clock.dart';
 import '../domain/season_reward_policy.dart';
 
 class LeaderboardScreen extends StatelessWidget {
@@ -67,6 +68,10 @@ class LeaderboardScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (liveEnabled) ...[
+              const SizedBox(height: GameSpacing.md),
+              _SeasonStatus(competitionBackend: competitionBackend),
+            ],
             const SizedBox(height: GameSpacing.lg),
             if (liveEnabled) ...[
               Text(
@@ -108,6 +113,91 @@ class LeaderboardScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SeasonStatus extends StatelessWidget {
+  const _SeasonStatus({required this.competitionBackend});
+
+  final CompetitionBackend competitionBackend;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<Season?>(
+      stream: competitionBackend.watchCurrentSeason(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(GameSpacing.md),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(GameSpacing.md),
+              child: Text(
+                'Could not load the current season.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final season = snapshot.data;
+        if (season == null) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(GameSpacing.md),
+              child: Text(
+                'No active season.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        final clock = SeasonClockPolicy.at(season: season, now: DateTime.now());
+        final remaining = clock.remaining;
+        final days = remaining.inDays;
+        final hours = remaining.inHours.remainder(24);
+        final remainingLabel = clock.active
+            ? '${days}d ${hours}h remaining'
+            : 'Season closed';
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(GameSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Season #${season.number}',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ),
+                    Text(
+                      remainingLabel,
+                      style: const TextStyle(color: GameColors.muted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: GameSpacing.sm),
+                LinearProgressIndicator(value: clock.progress),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
