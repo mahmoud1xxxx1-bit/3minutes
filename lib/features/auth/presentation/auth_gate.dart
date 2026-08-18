@@ -10,6 +10,8 @@ import '../../match/data/match_backend.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_setup_screen.dart';
+import '../../social/data/room_backend.dart';
+import '../../social/data/social_backend.dart';
 import '../data/auth_service.dart';
 import 'sign_in_screen.dart';
 
@@ -21,6 +23,8 @@ class AuthGate extends StatefulWidget {
     required this.matchBackend,
     required this.competitionBackend,
     required this.economyBackend,
+    required this.socialBackend,
+    required this.roomBackend,
   });
 
   final AuthService authService;
@@ -28,6 +32,8 @@ class AuthGate extends StatefulWidget {
   final MatchBackend matchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
+  final SocialBackend socialBackend;
+  final RoomBackend roomBackend;
 
   @override
   State<AuthGate> createState() => _AuthGateState();
@@ -87,6 +93,8 @@ class _AuthGateState extends State<AuthGate> {
               matchBackend: widget.matchBackend,
               competitionBackend: widget.competitionBackend,
               economyBackend: widget.economyBackend,
+              socialBackend: widget.socialBackend,
+              roomBackend: widget.roomBackend,
             );
           },
         );
