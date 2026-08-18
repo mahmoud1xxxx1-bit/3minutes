@@ -22,6 +22,8 @@ class RankEmblem extends StatelessWidget {
         RankTier.platinum => GameColors.rankPlatinum,
         RankTier.diamond => GameColors.rankDiamond,
         RankTier.master => GameColors.rankMaster,
+        RankTier.grandmaster => GameColors.rankGrandmaster,
+        RankTier.legend => GameColors.rankLegend,
       };
 
   @override
@@ -39,10 +41,7 @@ class RankEmblem extends StatelessWidget {
 }
 
 class _RankEmblemPainter extends CustomPainter {
-  const _RankEmblemPainter({
-    required this.tier,
-    required this.color,
-  });
+  const _RankEmblemPainter({required this.tier, required this.color});
 
   final RankTier tier;
   final Color color;
@@ -97,8 +96,7 @@ class _RankEmblemPainter extends CustomPainter {
         final hex = _polygon(center, size.width * 0.34, 6, 0);
         canvas.drawPath(hex, fill);
         canvas.drawPath(hex, stroke);
-        final inner = _polygon(center, size.width * 0.18, 6, math.pi / 6);
-        canvas.drawPath(inner, dark);
+        canvas.drawPath(_polygon(center, size.width * 0.18, 6, math.pi / 6), dark);
         break;
       case RankTier.diamond:
         final diamond = Path()
@@ -109,22 +107,33 @@ class _RankEmblemPainter extends CustomPainter {
           ..close();
         canvas.drawPath(diamond, fill);
         canvas.drawPath(diamond, stroke);
-        canvas.drawLine(
-          Offset(size.width * 0.18, size.height * 0.46),
-          Offset(size.width * 0.82, size.height * 0.46),
-          stroke,
-        );
-        canvas.drawLine(
-          Offset(size.width * 0.50, size.height * 0.14),
-          Offset(size.width * 0.50, size.height * 0.86),
-          stroke,
-        );
+        canvas.drawLine(Offset(size.width * 0.18, size.height * 0.46), Offset(size.width * 0.82, size.height * 0.46), stroke);
+        canvas.drawLine(Offset(size.width * 0.50, size.height * 0.14), Offset(size.width * 0.50, size.height * 0.86), stroke);
         break;
       case RankTier.master:
         final star = _star(center, size.width * 0.36, size.width * 0.16, 5);
         canvas.drawPath(star, fill);
         canvas.drawPath(star, stroke);
         canvas.drawCircle(center, size.width * 0.09, dark);
+        break;
+      case RankTier.grandmaster:
+        final outerStar = _star(center, size.width * 0.38, size.width * 0.19, 6);
+        canvas.drawPath(outerStar, fill);
+        canvas.drawPath(outerStar, stroke);
+        canvas.drawCircle(center, size.width * 0.13, dark);
+        canvas.drawCircle(center, size.width * 0.065, fill);
+        break;
+      case RankTier.legend:
+        final halo = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.2, size.width * 0.04)
+          ..color = color.withValues(alpha: 0.9);
+        canvas.drawCircle(center, size.width * 0.37, halo);
+        final star = _star(center, size.width * 0.33, size.width * 0.14, 8);
+        canvas.drawPath(star, fill);
+        canvas.drawPath(star, stroke);
+        canvas.drawCircle(center, size.width * 0.09, dark);
+        canvas.drawCircle(center, size.width * 0.045, fill);
         break;
     }
   }
@@ -133,10 +142,7 @@ class _RankEmblemPainter extends CustomPainter {
     final path = Path();
     for (var i = 0; i < sides; i++) {
       final angle = rotation + (math.pi * 2 * i / sides);
-      final point = Offset(
-        center.dx + math.cos(angle) * radius,
-        center.dy + math.sin(angle) * radius,
-      );
+      final point = Offset(center.dx + math.cos(angle) * radius, center.dy + math.sin(angle) * radius);
       if (i == 0) {
         path.moveTo(point.dx, point.dy);
       } else {
@@ -146,20 +152,12 @@ class _RankEmblemPainter extends CustomPainter {
     return path..close();
   }
 
-  Path _star(
-    Offset center,
-    double outerRadius,
-    double innerRadius,
-    int points,
-  ) {
+  Path _star(Offset center, double outerRadius, double innerRadius, int points) {
     final path = Path();
     for (var i = 0; i < points * 2; i++) {
       final radius = i.isEven ? outerRadius : innerRadius;
       final angle = -math.pi / 2 + math.pi * i / points;
-      final point = Offset(
-        center.dx + math.cos(angle) * radius,
-        center.dy + math.sin(angle) * radius,
-      );
+      final point = Offset(center.dx + math.cos(angle) * radius, center.dy + math.sin(angle) * radius);
       if (i == 0) {
         path.moveTo(point.dx, point.dy);
       } else {
