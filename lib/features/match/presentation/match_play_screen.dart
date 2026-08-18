@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../minigames/data/game_registry.dart';
@@ -119,224 +120,282 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
     return PopScope(
       canPop: canExit,
       child: Scaffold(
-        body: SafeArea(
-          child: StreamBuilder<MatchSession?>(
-            stream: widget.matchBackend.watchMatch(widget.matchId),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(GameSpacing.lg),
-                    child: Text(
-                      l10n.connectionLostRoom,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: GameColors.muted, height: 1.5),
-                    ),
-                  ),
-                );
-              }
+        backgroundColor: GameColors.background,
+        body: CosmicBackground(
+          showOrbs: false,
+          child: SafeArea(
+            child: StreamBuilder<MatchSession?>(
+              stream: widget.matchBackend.watchMatch(widget.matchId),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return _CenteredMessage(
+                    text: l10n.connectionLostRoom,
+                    color: GameColors.muted,
+                  );
+                }
 
-              final match = snapshot.data;
-              if (match == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
+                final match = snapshot.data;
+                if (match == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              if (match.registryVersion != GameRegistry.version) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(GameSpacing.lg),
-                    child: Text(
-                      l10n.legacyMatchTitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: GameColors.warning),
-                    ),
-                  ),
-                );
-              }
+                if (match.registryVersion != GameRegistry.version) {
+                  return _CenteredMessage(
+                    text: l10n.legacyMatchTitle,
+                    color: GameColors.warning,
+                  );
+                }
 
-              final activeRuntime = _ensureRuntime(match);
-              if (activeRuntime == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
+                final activeRuntime = _ensureRuntime(match);
+                if (activeRuntime == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              final now = DateTime.now();
-              final remaining = activeRuntime.remaining(now);
-              final expired = activeRuntime.isExpired(now);
-              final localComplete = activeRuntime.allGamesCompleted;
+                final now = DateTime.now();
+                final remaining = activeRuntime.remaining(now);
+                final expired = activeRuntime.isExpired(now);
+                final localComplete = activeRuntime.allGamesCompleted;
 
-              if (expired || localComplete) {
-                return _MatchResultView(
-                  uid: widget.uid,
-                  match: match,
-                  matchBackend: widget.matchBackend,
-                  localCompletedGames: activeRuntime.progress.completedGames,
-                );
-              }
+                if (expired || localComplete) {
+                  return _MatchResultView(
+                    uid: widget.uid,
+                    match: match,
+                    matchBackend: widget.matchBackend,
+                    localCompletedGames: activeRuntime.progress.completedGames,
+                  );
+                }
 
-              final game = activeRuntime.currentGame!;
-              final gameIndex = activeRuntime.progress.completedGames;
-              final gameSeed = activeRuntime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
-              final opponentProgress =
-                  match.opponentProgress(widget.uid).completedGames;
+                final game = activeRuntime.currentGame!;
+                final gameIndex = activeRuntime.progress.completedGames;
+                final gameSeed =
+                    activeRuntime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
+                final opponentProgress =
+                    match.opponentProgress(widget.uid).completedGames;
 
-              return Padding(
-                padding: const EdgeInsets.all(GameSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(GameSpacing.md),
-                      decoration: BoxDecoration(
-                        color: GameColors.surface,
-                        borderRadius: BorderRadius.circular(GameRadii.card),
-                        border: Border.all(color: GameColors.surfaceStrong),
+                return Padding(
+                  padding: const EdgeInsets.all(GameSpacing.sm),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _RankedHud(
+                        gameIndex: gameIndex,
+                        gameCount: match.gameCount,
+                        gameTitle: game.title,
+                        remaining: remaining,
+                        clock: _clock(remaining),
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: GameColors.accentSoft,
-                              borderRadius: BorderRadius.circular(GameRadii.pill),
-                            ),
-                            child: Text(
-                              '${gameIndex + 1}/${match.gameCount}',
-                              style: const TextStyle(
-                                color: GameColors.accent,
-                                fontWeight: FontWeight.w900,
-                              ),
+                      const SizedBox(height: GameSpacing.xs),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(GameRadii.pill),
+                        child: LinearProgressIndicator(
+                          value: gameIndex / match.gameCount,
+                          minHeight: 5,
+                        ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: GameSpacing.xs),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: GameColors.danger),
+                        ),
+                      ],
+                      const SizedBox(height: GameSpacing.xs),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: GameColors.surface,
+                            borderRadius: BorderRadius.circular(GameRadii.panel),
+                            border: Border.all(
+                              color: GameColors.surfaceStrong,
+                              width: .8,
                             ),
                           ),
-                          const SizedBox(width: GameSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              game.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w900),
+                          clipBehavior: Clip.antiAlias,
+                          child: AbsorbPointer(
+                            absorbing: _submitting,
+                            child: Stack(
+                              children: [
+                                Positioned.fill(
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.all(GameSpacing.md),
+                                    child: MiniGameHost(
+                                      key: ValueKey('$gameIndex-${game.id}'),
+                                      game: game,
+                                      config: MiniGameConfig(
+                                        seed: gameSeed,
+                                        difficulty: 1,
+                                      ),
+                                      onComplete: (result) =>
+                                          _completeGame(match, result),
+                                    ),
+                                  ),
+                                ),
+                                if (_submitting)
+                                  const Positioned.fill(
+                                    child: ColoredBox(
+                                      color: Color(0x77080D14),
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: GameSpacing.sm),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 11,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: remaining.inSeconds <= 20
-                                  ? GameColors.danger.withValues(alpha: 0.10)
-                                  : GameColors.surfaceRaised,
-                              borderRadius: BorderRadius.circular(GameRadii.pill),
-                            ),
-                            child: Text(
-                              _clock(remaining),
-                              style: TextStyle(
-                                color: remaining.inSeconds <= 20
-                                    ? GameColors.danger
-                                    : GameColors.textStrong,
-                                fontWeight: FontWeight.w900,
-                                fontFeatures: const [FontFeature.tabularFigures()],
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: GameSpacing.sm),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(GameRadii.pill),
-                      child: LinearProgressIndicator(
-                        value: gameIndex / match.gameCount,
-                        minHeight: 6,
-                      ),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: GameSpacing.sm),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: GameColors.danger),
+                      const SizedBox(height: GameSpacing.xs),
+                      _OpponentStrip(
+                        label: l10n.opponent,
+                        progress: opponentProgress,
+                        gameCount: match.gameCount,
                       ),
                     ],
-                    const SizedBox(height: GameSpacing.sm),
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: GameColors.surface,
-                          borderRadius: BorderRadius.circular(GameRadii.panel),
-                          border: Border.all(color: GameColors.surfaceStrong),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: AbsorbPointer(
-                          absorbing: _submitting,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(GameSpacing.md),
-                                  child: MiniGameHost(
-                                    key: ValueKey('$gameIndex-${game.id}'),
-                                    game: game,
-                                    config: MiniGameConfig(
-                                      seed: gameSeed,
-                                      difficulty: 1,
-                                    ),
-                                    onComplete: (result) =>
-                                        _completeGame(match, result),
-                                  ),
-                                ),
-                              ),
-                              if (_submitting)
-                                const Positioned.fill(
-                                  child: ColoredBox(
-                                    color: Color(0x77080D14),
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: GameSpacing.sm),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: GameSpacing.md,
-                        vertical: GameSpacing.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        color: GameColors.surface,
-                        borderRadius: BorderRadius.circular(GameRadii.card),
-                        border: Border.all(color: GameColors.surfaceStrong),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.sports_esports_rounded,
-                            size: 18,
-                            color: GameColors.warning,
-                          ),
-                          const SizedBox(width: GameSpacing.xs),
-                          Text(
-                            '${l10n.opponent}: $opponentProgress/${match.gameCount}',
-                            style: const TextStyle(
-                              color: GameColors.muted,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RankedHud extends StatelessWidget {
+  const _RankedHud({
+    required this.gameIndex,
+    required this.gameCount,
+    required this.gameTitle,
+    required this.remaining,
+    required this.clock,
+  });
+
+  final int gameIndex;
+  final int gameCount;
+  final String gameTitle;
+  final Duration remaining;
+  final String clock;
+
+  @override
+  Widget build(BuildContext context) {
+    final danger = remaining.inSeconds <= 20;
+    return CosmicPanel(
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameSpacing.sm,
+        vertical: GameSpacing.xs,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+            decoration: BoxDecoration(
+              color: GameColors.accentSoft,
+              borderRadius: BorderRadius.circular(GameRadii.pill),
+            ),
+            child: Text(
+              '${gameIndex + 1}/$gameCount',
+              style: const TextStyle(
+                color: GameColors.accentBright,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          Expanded(
+            child: Text(
+              gameTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: danger
+                  ? GameColors.danger.withValues(alpha: .10)
+                  : GameColors.surfaceRaised,
+              borderRadius: BorderRadius.circular(GameRadii.pill),
+              border: danger
+                  ? Border.all(
+                      color: GameColors.danger.withValues(alpha: .25),
+                    )
+                  : null,
+            ),
+            child: Text(
+              clock,
+              style: TextStyle(
+                color: danger ? GameColors.danger : GameColors.textStrong,
+                fontWeight: FontWeight.w900,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OpponentStrip extends StatelessWidget {
+  const _OpponentStrip({
+    required this.label,
+    required this.progress,
+    required this.gameCount,
+  });
+
+  final String label;
+  final int progress;
+  final int gameCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return CosmicPanel(
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameSpacing.md,
+        vertical: GameSpacing.xs,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.sports_esports_rounded,
+            size: 17,
+            color: GameColors.warning,
+          ),
+          const SizedBox(width: GameSpacing.xs),
+          Text(
+            '$label: $progress/$gameCount',
+            style: const TextStyle(
+              color: GameColors.muted,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CenteredMessage extends StatelessWidget {
+  const _CenteredMessage({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(GameSpacing.lg),
+        child: CosmicPanel(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: color, height: 1.5),
           ),
         ),
       ),
@@ -411,7 +470,9 @@ class _MatchResultViewState extends State<_MatchResultView> {
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       _switchingMatch = false;
-      if (mounted) setState(() => _error = AppLocalizations.of(context).tryAgain);
+      if (mounted) {
+        setState(() => _error = AppLocalizations.of(context).tryAgain);
+      }
     }
   }
 
@@ -452,16 +513,7 @@ class _MatchResultViewState extends State<_MatchResultView> {
             remoteLocal.completedAt == null);
 
     if (waitingForFinalWrite) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: GameSpacing.md),
-            Text(l10n.saving),
-          ],
-        ),
-      );
+      return _ResultWaiting(text: l10n.saving);
     }
 
     final settled = MatchSettlement.isSettled(
@@ -476,29 +528,33 @@ class _MatchResultViewState extends State<_MatchResultView> {
       final opponent = match.opponentProgress(widget.uid);
       return Padding(
         padding: const EdgeInsets.all(GameSpacing.lg),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: GameSpacing.lg),
-            Text(
-              l10n.waitingForOpponent,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w900,
+        child: Center(
+          child: CosmicPanel(
+            glow: true,
+            padding: const EdgeInsets.all(GameSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: GameSpacing.lg),
+                Text(
+                  l10n.waitingForOpponent,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: GameSpacing.sm),
+                Text(
+                  l10n.historyOpponentResult(
+                    opponent.completedGames,
+                    match.gameCount,
+                    opponent.totalScore,
                   ),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: GameColors.muted),
+                ),
+              ],
             ),
-            const SizedBox(height: GameSpacing.sm),
-            Text(
-              l10n.historyOpponentResult(
-                opponent.completedGames,
-                match.gameCount,
-                opponent.totalScore,
-              ),
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: GameColors.muted),
-            ),
-          ],
+          ),
         ),
       );
     }
@@ -517,16 +573,7 @@ class _MatchResultViewState extends State<_MatchResultView> {
     }
 
     if (_switchingMatch) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: GameSpacing.md),
-            Text(l10n.gettingReady),
-          ],
-        ),
-      );
+      return _ResultWaiting(text: l10n.gettingReady);
     }
 
     final outcome = MatchOutcomeResolver.compare(
@@ -557,104 +604,133 @@ class _MatchResultViewState extends State<_MatchResultView> {
     final opponentRequested =
         match.playerAId == widget.uid ? match.rematchB : match.rematchA;
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(GameSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Spacer(),
-          Center(
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: resultColor.withValues(alpha: 0.10),
-                border: Border.all(
-                  color: resultColor.withValues(alpha: 0.4),
-                  width: 2,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight: MediaQuery.sizeOf(context).height - 80,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 112,
+                height: 112,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: resultColor.withValues(alpha: .10),
+                  border: Border.all(
+                    color: resultColor.withValues(alpha: .42),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: resultColor.withValues(alpha: .16),
+                      blurRadius: 36,
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: resultColor.withValues(alpha: 0.14),
-                    blurRadius: 32,
+                child: Icon(resultIcon, size: 56, color: resultColor),
+              ),
+            ),
+            const SizedBox(height: GameSpacing.md),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: resultColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: GameSpacing.lg),
+            CosmicPanel(
+              glow: won,
+              child: Column(
+                children: [
+                  _ResultLine(
+                    label: l10n.you,
+                    games: mine.completedGames,
+                    totalGames: match.gameCount,
+                    score: mine.totalScore,
+                    highlight: true,
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: GameSpacing.sm),
+                    child: Divider(height: 1),
+                  ),
+                  _ResultLine(
+                    label: l10n.opponent,
+                    games: opponent.completedGames,
+                    totalGames: match.gameCount,
+                    score: opponent.totalScore,
                   ),
                 ],
               ),
-              child: Icon(resultIcon, size: 54, color: resultColor),
             ),
-          ),
-          const SizedBox(height: GameSpacing.md),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                  color: resultColor,
-                  fontWeight: FontWeight.w900,
+            const SizedBox(height: GameSpacing.md),
+            if (requested || opponentRequested)
+              Text(
+                requested ? l10n.waitingForOpponent : l10n.opponentFound,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: GameColors.muted,
+                  fontWeight: FontWeight.w700,
                 ),
-          ),
-          const SizedBox(height: GameSpacing.lg),
-          Container(
-            padding: const EdgeInsets.all(GameSpacing.md),
-            decoration: BoxDecoration(
-              color: GameColors.surface,
-              borderRadius: BorderRadius.circular(GameRadii.panel),
-              border: Border.all(color: GameColors.surfaceStrong),
-            ),
-            child: Column(
-              children: [
-                _ResultLine(
-                  label: l10n.you,
-                  games: mine.completedGames,
-                  totalGames: match.gameCount,
-                  score: mine.totalScore,
-                  highlight: true,
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: GameSpacing.sm),
-                  child: Divider(height: 1),
-                ),
-                _ResultLine(
-                  label: l10n.opponent,
-                  games: opponent.completedGames,
-                  totalGames: match.gameCount,
-                  score: opponent.totalScore,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: GameSpacing.md),
-          if (requested || opponentRequested)
-            Text(
-              requested ? l10n.waitingForOpponent : l10n.opponentFound,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: GameColors.muted,
-                fontWeight: FontWeight.w700,
+              ),
+            if (_error != null) ...[
+              const SizedBox(height: GameSpacing.sm),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: GameColors.danger),
+              ),
+            ],
+            const SizedBox(height: GameSpacing.xl),
+            CosmicPrimaryButton(
+              onPressed: requested || _rematchBusy || _leaving
+                  ? null
+                  : _requestRematch,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.replay_rounded),
+                  const SizedBox(width: GameSpacing.sm),
+                  Text(_rematchBusy ? l10n.gettingReady : l10n.rematch),
+                ],
               ),
             ),
-          if (_error != null) ...[
             const SizedBox(height: GameSpacing.sm),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: GameColors.danger),
+            OutlinedButton.icon(
+              onPressed: _leaving || _rematchBusy ? null : _backHome,
+              icon: const Icon(Icons.home_rounded),
+              label: Text(_leaving ? l10n.leaving : l10n.backToHome),
             ),
           ],
-          const Spacer(),
-          FilledButton.icon(
-            onPressed:
-                requested || _rematchBusy || _leaving ? null : _requestRematch,
-            icon: const Icon(Icons.replay_rounded),
-            label: Text(_rematchBusy ? l10n.gettingReady : l10n.rematch),
-          ),
-          const SizedBox(height: GameSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: _leaving || _rematchBusy ? null : _backHome,
-            icon: const Icon(Icons.home_rounded),
-            label: Text(_leaving ? l10n.leaving : l10n.backToHome),
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResultWaiting extends StatelessWidget {
+  const _ResultWaiting({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: CosmicPanel(
+        glow: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: GameSpacing.md),
+            Text(text),
+          ],
+        ),
       ),
     );
   }
@@ -683,7 +759,7 @@ class _ResultLine extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: highlight ? GameColors.accent : GameColors.textStrong,
+              color: highlight ? GameColors.accentBright : GameColors.textStrong,
               fontWeight: FontWeight.w900,
             ),
           ),
