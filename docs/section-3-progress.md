@@ -34,6 +34,24 @@ Implemented:
 - Shop screen is connected from Home and shows cosmetic prices.
 - Shop purchasing remains visibly locked until secure server-side economy authority exists.
 
+## Milestone 3.3 — Ranked authority contracts
+
+Implemented:
+
+- Central `RankedRewardPolicy` for win/loss/tie RP, XP, and coin rewards.
+- RP application clamps at zero so losing can never create negative rank points.
+- Persistent season-star reward policy based on the player's peak seasonal tier.
+- Stars accumulate permanently and never affect gameplay.
+- XP application supports crossing multiple levels in one authoritative reward.
+- Auditable `CoinTransaction` model with explicit transaction reasons.
+- Coin balance policy rejects overspending and negative balances.
+- `RankedMatchSettlement` response model for server-authoritative match settlement.
+- Dedicated `RankedAuthorityBackend` boundary separated from read-only competition data.
+- Match integrity policy for impossible progress/game-count/accuracy/time values.
+- Blaze/Cloud Functions contracts documented for ranked settlement, cosmetic purchase/equip, and 30-day season rollover.
+- Recommended immutable settlement and coin-ledger data shapes documented.
+- Automated tests cover reward policy, permanent season stars, multi-level XP, and safe coin balances.
+
 ## Product rules locked
 
 - Match length remains exactly 3 minutes.
@@ -72,8 +90,8 @@ These operations will sit behind Cloud Functions while Flutter continues using t
 
 ## Next
 
-1. Prepare Cloud Functions request/response contracts and Firestore data shapes for ranked settlement.
-2. Define season rollover and persistent-star award rules behind server authority.
-3. Define secure coin reward/spending transactions and inventory grants.
-4. Continue expanding representative mini-games and visual identity.
-5. Run final analyze/tests/build after this development block when device access is convenient.
+1. Add anti-cheat/integrity policy tests and settlement idempotency contract.
+2. Prepare read-only Firestore shapes for season/leaderboard/inventory UI while keeping writes server-only.
+3. Expand representative mini-game content beyond the first 10 games.
+4. Begin visual-identity/graphics pass without disturbing multiplayer architecture.
+5. Run analyze/tests/build after this development block when convenient.
