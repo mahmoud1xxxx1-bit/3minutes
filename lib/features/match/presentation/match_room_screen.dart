@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../minigames/data/game_registry.dart';
 import '../data/match_backend.dart';
 import '../domain/match_session.dart';
@@ -57,7 +59,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
       );
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not mark you ready. Try again.');
+      setState(() => _error = AppLocalizations.of(context).couldNotReady);
     } finally {
       if (mounted) setState(() => _readyBusy = false);
     }
@@ -65,19 +67,20 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
 
   Future<void> _cancelMatch() async {
     if (_cancelBusy || _readyBusy) return;
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Leave match?'),
-        content: const Text('The match will be cancelled before it starts.'),
+        title: Text(l10n.leaveMatchQuestion),
+        content: Text(l10n.leaveMatchDescription),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('STAY'),
+            child: Text(l10n.stay),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('LEAVE'),
+            child: Text(l10n.leave),
           ),
         ],
       ),
@@ -97,7 +100,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not leave this match. Try again.');
+      setState(() => _error = AppLocalizations.of(context).couldNotLeaveMatch);
     } finally {
       if (mounted) setState(() => _cancelBusy = false);
     }
@@ -114,7 +117,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not remove the old match. Try again.');
+      setState(() => _error = AppLocalizations.of(context).couldNotRemoveOldMatch);
     } finally {
       if (mounted) setState(() => _cancelBusy = false);
     }
@@ -153,6 +156,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return PopScope(
       canPop: false,
       child: StreamBuilder<MatchSession?>(
@@ -162,13 +166,13 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
 
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Match room'),
+              title: Text(l10n.matchRoom),
               leading: match?.status == MatchStatus.waitingReady &&
                       match?.registryVersion == GameRegistry.version
                   ? IconButton(
-                      tooltip: 'Leave match',
+                      tooltip: l10n.leaveMatch,
                       onPressed: _cancelBusy ? null : _cancelMatch,
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                     )
                   : null,
             ),
@@ -186,13 +190,15 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     AsyncSnapshot<MatchSession?> snapshot,
     MatchSession? match,
   ) {
+    final l10n = AppLocalizations.of(context);
     if (snapshot.hasError) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(GameSpacing.lg),
           child: Text(
-            'Connection lost. Keep this screen open; the match will resume when the connection returns.',
+            l10n.connectionLostRoom,
             textAlign: TextAlign.center,
+            style: const TextStyle(color: GameColors.muted, height: 1.5),
           ),
         ),
       );
@@ -204,36 +210,45 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     if (match.registryVersion != GameRegistry.version) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.system_update_alt, size: 52),
-              const SizedBox(height: 16),
-              Text(
-                'This saved match uses an older game set.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Remove the old match ticket to return home and start a new match with the current game version.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 18),
-              FilledButton(
-                onPressed: _cancelBusy ? null : _clearLegacyMatch,
-                child: Text(_cancelBusy ? 'REMOVING...' : 'REMOVE OLD MATCH'),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 10),
+          padding: const EdgeInsets.all(GameSpacing.lg),
+          child: Container(
+            padding: const EdgeInsets.all(GameSpacing.lg),
+            decoration: BoxDecoration(
+              color: GameColors.surface,
+              borderRadius: BorderRadius.circular(GameRadii.panel),
+              border: Border.all(color: GameColors.surfaceStrong),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.system_update_alt_rounded,
+                    size: 52, color: GameColors.warning),
+                const SizedBox(height: GameSpacing.md),
                 Text(
-                  _error!,
+                  l10n.legacyMatchTitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                 ),
+                const SizedBox(height: GameSpacing.sm),
+                Text(
+                  l10n.legacyMatchDescription,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: GameColors.muted),
+                ),
+                const SizedBox(height: GameSpacing.lg),
+                FilledButton(
+                  onPressed: _cancelBusy ? null : _clearLegacyMatch,
+                  child: Text(_cancelBusy ? l10n.removing : l10n.removeOldMatch),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: GameSpacing.sm),
+                  Text(_error!, textAlign: TextAlign.center,
+                      style: const TextStyle(color: GameColors.danger)),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       );
@@ -243,21 +258,24 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
       final opponentLeft = match.cancelledBy != widget.uid;
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(GameSpacing.lg),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.person_off_outlined, size: 52),
-              const SizedBox(height: 16),
+              const Icon(Icons.person_off_rounded,
+                  size: 58, color: GameColors.danger),
+              const SizedBox(height: GameSpacing.md),
               Text(
-                opponentLeft ? 'Opponent left the match.' : 'Match cancelled.',
+                opponentLeft ? l10n.opponentLeft : l10n.matchCancelled,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: GameSpacing.lg),
               FilledButton(
                 onPressed: _leaveCancelledMatch,
-                child: const Text('BACK TO HOME'),
+                child: Text(l10n.backToHome),
               ),
             ],
           ),
@@ -268,58 +286,95 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     final countdown = _countdown(match);
     if (countdown == 0) _openPlay();
 
+    final myName = match.playerAId == widget.uid
+        ? match.playerAName
+        : match.playerBName;
+    final opponentReady =
+        match.playerAId == widget.uid ? match.readyB : match.readyA;
+
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(GameSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _PlayerRow(
-            label: 'You',
-            name: match.playerAId == widget.uid
-                ? match.playerAName
-                : match.playerBName,
+          _PlayerPanel(
+            label: l10n.you,
+            name: myName,
             ready: match.isReady(widget.uid),
+            accent: GameColors.accent,
           ),
-          const SizedBox(height: 10),
-          _PlayerRow(
-            label: 'Opponent',
+          const SizedBox(height: GameSpacing.sm),
+          _PlayerPanel(
+            label: l10n.opponent,
             name: match.opponentName(widget.uid),
-            ready: match.playerAId == widget.uid ? match.readyB : match.readyA,
+            ready: opponentReady,
+            accent: GameColors.warning,
           ),
           const Spacer(),
-          if (countdown != null) ...[
-            Text(
-              countdown == 0 ? 'GO!' : '$countdown',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
+          AnimatedSwitcher(
+            duration: GameDurations.normal,
+            child: countdown != null
+                ? Column(
+                    key: ValueKey(countdown),
+                    children: [
+                      Container(
+                        width: 126,
+                        height: 126,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: GameColors.accentSoft,
+                          border: Border.all(
+                            color: GameColors.accent.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: GameColors.accent.withValues(alpha: 0.16),
+                              blurRadius: 32,
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          countdown == 0 ? l10n.go : '$countdown',
+                          style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                color: GameColors.accent,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(height: GameSpacing.md),
+                      Text(l10n.bothPlayersReady,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ],
+                  )
+                : Text(
+                    l10n.readyInstructions,
+                    key: const ValueKey('instructions'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: GameColors.muted, height: 1.5),
                   ),
-            ),
-            const SizedBox(height: 12),
-            const Text('Both players are ready', textAlign: TextAlign.center),
-          ] else ...[
-            const Text(
-              'Both players must be ready before the synchronized 3-2-1 starts.',
-              textAlign: TextAlign.center,
-            ),
-          ],
+          ),
           const Spacer(),
           if (countdown == null && !match.isReady(widget.uid))
-            FilledButton(
+            FilledButton.icon(
               onPressed: _readyBusy || _cancelBusy ? null : _markReady,
-              child: Text(_readyBusy ? 'Getting ready...' : 'READY'),
+              icon: const Icon(Icons.flash_on_rounded),
+              label: Text(_readyBusy ? l10n.gettingReady : l10n.ready),
             )
           else if (countdown == null)
-            const FilledButton(
+            FilledButton.icon(
               onPressed: null,
-              child: Text('Waiting for opponent...'),
+              icon: const Icon(Icons.hourglass_top_rounded),
+              label: Text(l10n.waitingForOpponent),
             ),
           if (_error != null) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: GameSpacing.sm),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              style: const TextStyle(color: GameColors.danger),
             ),
           ],
         ],
@@ -328,25 +383,78 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
   }
 }
 
-class _PlayerRow extends StatelessWidget {
-  const _PlayerRow({
+class _PlayerPanel extends StatelessWidget {
+  const _PlayerPanel({
     required this.label,
     required this.name,
     required this.ready,
+    required this.accent,
   });
 
   final String label;
   final String name;
   final bool ready;
+  final Color accent;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(child: Icon(ready ? Icons.check : Icons.person)),
-        title: Text(name),
-        subtitle: Text(label),
-        trailing: Text(ready ? 'READY' : 'WAITING'),
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.md),
+      decoration: BoxDecoration(
+        color: GameColors.surface,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        border: Border.all(
+          color: ready
+              ? GameColors.success.withValues(alpha: 0.45)
+              : GameColors.surfaceStrong,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accent.withValues(alpha: 0.12),
+            ),
+            child: Icon(
+              ready ? Icons.check_rounded : Icons.person_rounded,
+              color: ready ? GameColors.success : accent,
+            ),
+          ),
+          const SizedBox(width: GameSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 3),
+                Text(label, style: const TextStyle(color: GameColors.muted)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: (ready ? GameColors.success : GameColors.surfaceRaised)
+                  .withValues(alpha: ready ? 0.12 : 1),
+              borderRadius: BorderRadius.circular(GameRadii.pill),
+            ),
+            child: Text(
+              ready ? l10n.ready : l10n.waiting,
+              style: TextStyle(
+                color: ready ? GameColors.success : GameColors.muted,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
