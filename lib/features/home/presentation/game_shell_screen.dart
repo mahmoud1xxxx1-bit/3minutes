@@ -13,6 +13,8 @@ import '../../match/data/social_match_backend.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_screen.dart';
+import '../../progression/data/progression_backend.dart';
+import '../../progression/presentation/progression_screen.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
 import '../../social/presentation/friends_screen.dart';
@@ -29,6 +31,7 @@ class GameShellScreen extends StatefulWidget {
     required this.socialMatchBackend,
     required this.competitionBackend,
     required this.economyBackend,
+    required this.progressionBackend,
     required this.socialBackend,
     required this.roomBackend,
   });
@@ -40,6 +43,7 @@ class GameShellScreen extends StatefulWidget {
   final SocialMatchBackend socialMatchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
+  final ProgressionBackend progressionBackend;
   final SocialBackend socialBackend;
   final RoomBackend roomBackend;
 
@@ -49,6 +53,17 @@ class GameShellScreen extends StatefulWidget {
 
 class _GameShellScreenState extends State<GameShellScreen> {
   int _index = 0;
+
+  void _openProgression(PlayerProfile profile) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProgressionScreen(
+          uid: profile.uid,
+          backend: widget.progressionBackend,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +92,10 @@ class _GameShellScreenState extends State<GameShellScreen> {
             socialBackend: widget.socialBackend,
             roomBackend: widget.roomBackend,
           ),
-          SeasonScreen(competitionBackend: widget.competitionBackend),
+          SeasonScreen(
+            competitionBackend: widget.competitionBackend,
+            onOpenProgression: () => _openProgression(profile),
+          ),
           FriendsScreen(profile: profile, socialBackend: widget.socialBackend),
           ShopScreen(uid: profile.uid, economyBackend: widget.economyBackend),
           ProfileScreen(profile: profile, profileRepository: widget.profileRepository),
