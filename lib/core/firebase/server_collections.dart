@@ -17,6 +17,7 @@ class ServerCollections {
   static const friendCodes = 'friendCodes';
   static const recentPlayers = 'recentPlayers';
   static const privateRooms = 'privateRooms';
+  static const roomCodes = 'roomCodes';
   static const parties = 'parties';
 
   static const achievements = 'achievements';
