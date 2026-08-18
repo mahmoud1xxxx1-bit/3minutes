@@ -14,6 +14,7 @@ export { settleRankedMatch } from "./settlement.js";
 export { settleSocialMatch } from "./social.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";
 export { unlockPrestigeCosmetic } from "./prestige.js";
+export { verifyPremiumPurchase } from "./premium.js";
 export {
   onRankedSettlementProgression,
   claimMissionReward,
