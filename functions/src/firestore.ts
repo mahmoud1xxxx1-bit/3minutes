@@ -13,6 +13,7 @@ export const COLLECTIONS = {
   inventories: "inventories",
   rankedSettlements: "rankedSettlements",
   rankedEvidence: "rankedEvidence",
+  socialEvidence: "socialEvidence",
   socialSettlements: "socialSettlements",
   socialPairUsage: "socialPairUsage",
   progressionEvents: "progressionEvents",
