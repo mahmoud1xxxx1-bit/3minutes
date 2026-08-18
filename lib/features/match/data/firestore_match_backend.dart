@@ -68,9 +68,7 @@ class FirestoreMatchBackend implements MatchBackend {
   Future<void> joinQueue(PlayerProfile profile) async {
     final ownRef = _queue.doc(profile.uid);
     final existing = await ownRef.get();
-    if (existing.exists) {
-      await ownRef.delete();
-    }
+    if (existing.exists) await ownRef.delete();
 
     await ownRef.set({
       'uid': profile.uid,
@@ -89,7 +87,6 @@ class FirestoreMatchBackend implements MatchBackend {
 
     for (final candidate in candidates.docs) {
       if (candidate.id == profile.uid) continue;
-
       final matchRef = _matches.doc();
 
       try {
@@ -124,7 +121,6 @@ class FirestoreMatchBackend implements MatchBackend {
               playerBAvatarId: profile.avatarId,
             ),
           );
-
           transaction.update(ownRef, {
             'status': MatchTicketStatus.matched.name,
             'matchId': matchRef.id,
@@ -279,10 +275,7 @@ class FirestoreMatchBackend implements MatchBackend {
       if (uid != playerAId && uid != playerBId) {
         throw StateError('Player is not part of this match.');
       }
-      final status = MatchStatus.fromWire(
-        data['status'] as String? ?? MatchStatus.waitingReady.name,
-      );
-      if (status != MatchStatus.waitingReady) return;
+      if (data['status'] != MatchStatus.waitingReady.name) return;
 
       var readyA = data['readyA'] as bool? ?? false;
       var readyB = data['readyB'] as bool? ?? false;
@@ -364,8 +357,10 @@ class FirestoreMatchBackend implements MatchBackend {
       if (uid != playerAId && uid != playerBId) {
         throw StateError('Player is not part of this match.');
       }
-      if (data['status'] == MatchStatus.cancelled.name) return;
-      if (data['rematchMatchId'] is String) return;
+      if (data['status'] == MatchStatus.cancelled.name ||
+          data['rematchMatchId'] is String) {
+        return;
+      }
 
       var rematchA = data['rematchA'] as bool? ?? false;
       var rematchB = data['rematchB'] as bool? ?? false;
@@ -398,6 +393,29 @@ class FirestoreMatchBackend implements MatchBackend {
         updates['rematchMatchId'] = newMatchRef.id;
       }
       transaction.update(ref, updates);
+    });
+  }
+
+  @override
+  Future<void> cancelRematchRequest({
+    required String matchId,
+    required String uid,
+  }) async {
+    final ref = _matches.doc(matchId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(ref);
+      final data = snapshot.data();
+      if (data == null || data['rematchMatchId'] is String) return;
+      final playerAId = data['playerAId'] as String?;
+      final playerBId = data['playerBId'] as String?;
+      if (uid != playerAId && uid != playerBId) {
+        throw StateError('Player is not part of this match.');
+      }
+      transaction.update(ref, {
+        if (uid == playerAId) 'rematchA': false,
+        if (uid == playerBId) 'rematchB': false,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
