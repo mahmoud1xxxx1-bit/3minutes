@@ -44,9 +44,8 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Spark-era queue. Public only to authenticated players so a second device
-    // can discover and atomically claim a waiting ticket. Blaze will move this
-    // operation to Cloud Functions.
+    // Spark-era queue. Blaze will move opponent claim and match creation to
+    // Cloud Functions while keeping the same MatchBackend contract in Flutter.
     match /matchmaking/{uid} {
       allow read: if signedIn();
 
@@ -88,6 +87,46 @@ service cloud.firestore {
             || request.auth.uid == resource.data.playerBId);
       }
 
+      function validProgress(progress) {
+        return progress.keys().hasOnly([
+          'completedGames',
+          'totalScore',
+          'accuracyTotal',
+          'mistakes',
+          'elapsedMs',
+          'completedAt'
+        ])
+        && progress.completedGames is int
+        && progress.completedGames >= 0
+        && progress.completedGames <= 8
+        && progress.totalScore is int
+        && progress.totalScore >= 0
+        && progress.accuracyTotal is number
+        && progress.accuracyTotal >= 0
+        && progress.accuracyTotal <= 8
+        && progress.mistakes is int
+        && progress.mistakes >= 0
+        && progress.elapsedMs is int
+        && progress.elapsedMs >= 0
+        && (progress.completedAt == null || progress.completedAt is timestamp);
+      }
+
+      function progressMovesForward(before, after) {
+        return validProgress(after)
+          && after.completedGames >= before.completedGames
+          && after.completedGames <= before.completedGames + 1
+          && after.totalScore >= before.totalScore
+          && after.accuracyTotal >= before.accuracyTotal
+          && after.mistakes >= before.mistakes
+          && after.elapsedMs >= before.elapsedMs
+          && (
+            (before.completedAt != null && after.completedAt == before.completedAt)
+            || (before.completedAt == null
+              && ((after.completedGames < 8 && after.completedAt == null)
+                || (after.completedGames == 8 && after.completedAt is timestamp)))
+          );
+      }
+
       allow read: if participant();
 
       allow create: if signedIn()
@@ -104,6 +143,8 @@ service cloud.firestore {
           'status',
           'readyA',
           'readyB',
+          'progressA',
+          'progressB',
           'countdownStartedAt',
           'createdAt',
           'updatedAt'
@@ -115,19 +156,15 @@ service cloud.firestore {
         && request.resource.data.readyA == false
         && request.resource.data.readyB == false
         && request.resource.data.countdownStartedAt == null
-        && request.resource.data.gameCount == 8;
+        && request.resource.data.gameCount == 8
+        && validProgress(request.resource.data.progressA)
+        && validProgress(request.resource.data.progressB)
+        && request.resource.data.progressA.completedGames == 0
+        && request.resource.data.progressB.completedGames == 0;
 
+      // READY updates: each player may change only their own ready flag. The
+      // second READY may atomically start the shared countdown.
       allow update: if participant()
-        && request.resource.data.playerAId == resource.data.playerAId
-        && request.resource.data.playerAName == resource.data.playerAName
-        && request.resource.data.playerAAvatarId == resource.data.playerAAvatarId
-        && request.resource.data.playerBId == resource.data.playerBId
-        && request.resource.data.playerBName == resource.data.playerBName
-        && request.resource.data.playerBAvatarId == resource.data.playerBAvatarId
-        && request.resource.data.seed == resource.data.seed
-        && request.resource.data.gameCount == resource.data.gameCount
-        && request.resource.data.registryVersion == resource.data.registryVersion
-        && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'readyA',
           'readyB',
@@ -135,6 +172,8 @@ service cloud.firestore {
           'countdownStartedAt',
           'updatedAt'
         ])
+        && request.resource.data.progressA == resource.data.progressA
+        && request.resource.data.progressB == resource.data.progressB
         && (
           (request.auth.uid == resource.data.playerAId
             && request.resource.data.readyB == resource.data.readyB
@@ -152,6 +191,27 @@ service cloud.firestore {
             && request.resource.data.readyA == true
             && request.resource.data.readyB == true
           )
+        );
+
+      // Progress updates happen only after a mini-game ends, not for every tap.
+      allow update: if participant()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'progressA',
+          'progressB',
+          'updatedAt'
+        ])
+        && request.resource.data.readyA == resource.data.readyA
+        && request.resource.data.readyB == resource.data.readyB
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.countdownStartedAt == resource.data.countdownStartedAt
+        && (
+          (request.auth.uid == resource.data.playerAId
+            && request.resource.data.progressB == resource.data.progressB
+            && progressMovesForward(resource.data.progressA, request.resource.data.progressA))
+          ||
+          (request.auth.uid == resource.data.playerBId
+            && request.resource.data.progressA == resource.data.progressA
+            && progressMovesForward(resource.data.progressB, request.resource.data.progressB))
         );
 
       allow delete: if false;
