@@ -18,6 +18,7 @@ export {
 } from "./ranked_client.js";
 
 export { settleRankedMatch } from "./settlement.js";
+export { submitSocialGameResult } from "./social_submit.js";
 export { settleSocialMatch } from "./social.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";
 export { unlockPrestigeCosmetic } from "./prestige.js";
