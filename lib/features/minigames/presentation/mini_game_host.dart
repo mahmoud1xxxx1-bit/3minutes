@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../domain/mini_game_contract.dart';
 
+int _atLeast(int minimum, int value) => value < minimum ? minimum : value;
+
 class MiniGameHost extends StatelessWidget {
   const MiniGameHost({
     super.key,
@@ -111,7 +113,7 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
         final a = 2 + random.nextInt(8);
         final b = 2 + random.nextInt(8);
         final answer = a + b;
-        final options = <int>{answer, answer + 1, max(0, answer - 1), answer + 2}.toList();
+        final options = <int>{answer, answer + 1, answer - 1, answer + 2}.toList();
         options.shuffle(random);
         return _ChoiceSpec(
           prompt: '$a + $b = ?',
@@ -134,7 +136,9 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
           ['★', '☆', '★', '★'],
         ];
         final options = List<String>.of(sets[random.nextInt(sets.length)]);
-        final odd = options.firstWhere((value) => options.where((x) => x == value).length == 1);
+        final odd = options.firstWhere(
+          (value) => options.where((item) => item == value).length == 1,
+        );
         return _ChoiceSpec(
           prompt: 'Find the odd one',
           options: options,
@@ -142,7 +146,7 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
         );
       case 'shape_count':
         final count = 2 + random.nextInt(5);
-        final options = <int>{count, max(1, count - 1), count + 1, count + 2}.toList();
+        final options = <int>{count, count - 1, count + 1, count + 2}.toList();
         options.shuffle(random);
         return _ChoiceSpec(
           prompt: '${List.filled(count, '●').join('  ')}\nHow many?',
@@ -179,7 +183,7 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
     widget.onComplete(
       MiniGameResult(
         completed: true,
-        score: max(10, 100 - (_mistakes * 15)),
+        score: _atLeast(10, 100 - (_mistakes * 15)),
         accuracy: 1 / (_mistakes + 1),
         mistakes: _mistakes,
         duration: _watch.elapsed,
@@ -264,7 +268,7 @@ class _TapTargetChallengeState extends State<_TapTargetChallenge> {
     widget.onComplete(
       MiniGameResult(
         completed: true,
-        score: max(20, 150 - (ms ~/ 20)),
+        score: _atLeast(20, 150 - (ms ~/ 20)),
         accuracy: 1,
         mistakes: 0,
         duration: _watch.elapsed,
@@ -344,7 +348,7 @@ class _SequenceChallengeState extends State<_SequenceChallenge> {
       widget.onComplete(
         MiniGameResult(
           completed: true,
-          score: max(20, 140 - (_mistakes * 15)),
+          score: _atLeast(20, 140 - (_mistakes * 15)),
           accuracy: 5 / (5 + _mistakes),
           mistakes: _mistakes,
           duration: _watch.elapsed,
@@ -403,7 +407,7 @@ class _SwipeChallenge extends StatefulWidget {
 
 class _SwipeChallengeState extends State<_SwipeChallenge> {
   late final Stopwatch _watch = Stopwatch()..start();
-  late final int _direction = Random(widget.seed).nextInt(4);
+  late final int _direction;
   Offset _delta = Offset.zero;
   int _mistakes = 0;
   bool _done = false;
@@ -414,6 +418,12 @@ class _SwipeChallengeState extends State<_SwipeChallenge> {
     Icons.arrow_downward,
     Icons.arrow_back,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _direction = Random(widget.seed).nextInt(4);
+  }
 
   void _end() {
     if (_done) return;
@@ -435,7 +445,7 @@ class _SwipeChallengeState extends State<_SwipeChallenge> {
     widget.onComplete(
       MiniGameResult(
         completed: true,
-        score: max(20, 120 - (_mistakes * 20)),
+        score: _atLeast(20, 120 - (_mistakes * 20)),
         accuracy: 1 / (_mistakes + 1),
         mistakes: _mistakes,
         duration: _watch.elapsed,
@@ -516,7 +526,10 @@ class _ReactionChallengeState extends State<_ReactionChallenge> {
     widget.onComplete(
       MiniGameResult(
         completed: true,
-        score: max(20, 180 - (elapsed.inMilliseconds ~/ 5) - (_mistakes * 25)),
+        score: _atLeast(
+          20,
+          180 - (elapsed.inMilliseconds ~/ 5) - (_mistakes * 25),
+        ),
         accuracy: 1 / (_mistakes + 1),
         mistakes: _mistakes,
         duration: elapsed,
