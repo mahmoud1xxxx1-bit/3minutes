@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../minigames/data/game_registry.dart';
@@ -163,9 +164,10 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
         stream: widget.matchBackend.watchMatch(widget.matchId),
         builder: (context, snapshot) {
           final match = snapshot.data;
-
           return Scaffold(
+            backgroundColor: Colors.transparent,
             appBar: AppBar(
+              backgroundColor: Colors.transparent,
               title: Text(l10n.matchRoom),
               leading: match?.status == MatchStatus.waitingReady &&
                       match?.registryVersion == GameRegistry.version
@@ -176,8 +178,11 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
                     )
                   : null,
             ),
-            body: SafeArea(
-              child: _buildBody(context, snapshot, match),
+            body: CosmicBackground(
+              child: SafeArea(
+                top: false,
+                child: _buildBody(context, snapshot, match),
+              ),
             ),
           );
         },
@@ -192,14 +197,11 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
   ) {
     final l10n = AppLocalizations.of(context);
     if (snapshot.hasError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(GameSpacing.lg),
-          child: Text(
-            l10n.connectionLostRoom,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: GameColors.muted, height: 1.5),
-          ),
+      return _CenterPanel(
+        child: Text(
+          l10n.connectionLostRoom,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: GameColors.muted, height: 1.5),
         ),
       );
     }
@@ -208,77 +210,68 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     }
 
     if (match.registryVersion != GameRegistry.version) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(GameSpacing.lg),
-          child: Container(
-            padding: const EdgeInsets.all(GameSpacing.lg),
-            decoration: BoxDecoration(
-              color: GameColors.surface,
-              borderRadius: BorderRadius.circular(GameRadii.panel),
-              border: Border.all(color: GameColors.surfaceStrong),
+      return _CenterPanel(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.system_update_alt_rounded,
+              size: 52,
+              color: GameColors.warning,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.system_update_alt_rounded,
-                    size: 52, color: GameColors.warning),
-                const SizedBox(height: GameSpacing.md),
-                Text(
-                  l10n.legacyMatchTitle,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-                const SizedBox(height: GameSpacing.sm),
-                Text(
-                  l10n.legacyMatchDescription,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: GameColors.muted),
-                ),
-                const SizedBox(height: GameSpacing.lg),
-                FilledButton(
-                  onPressed: _cancelBusy ? null : _clearLegacyMatch,
-                  child: Text(_cancelBusy ? l10n.removing : l10n.removeOldMatch),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: GameSpacing.sm),
-                  Text(_error!, textAlign: TextAlign.center,
-                      style: const TextStyle(color: GameColors.danger)),
-                ],
-              ],
+            const SizedBox(height: GameSpacing.md),
+            Text(
+              l10n.legacyMatchTitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
             ),
-          ),
+            const SizedBox(height: GameSpacing.sm),
+            Text(
+              l10n.legacyMatchDescription,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: GameColors.muted),
+            ),
+            const SizedBox(height: GameSpacing.lg),
+            FilledButton(
+              onPressed: _cancelBusy ? null : _clearLegacyMatch,
+              child: Text(_cancelBusy ? l10n.removing : l10n.removeOldMatch),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: GameSpacing.sm),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: GameColors.danger),
+              ),
+            ],
+          ],
         ),
       );
     }
 
     if (match.status == MatchStatus.cancelled) {
       final opponentLeft = match.cancelledBy != widget.uid;
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(GameSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.person_off_rounded,
-                  size: 58, color: GameColors.danger),
-              const SizedBox(height: GameSpacing.md),
-              Text(
-                opponentLeft ? l10n.opponentLeft : l10n.matchCancelled,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: GameSpacing.lg),
-              FilledButton(
-                onPressed: _leaveCancelledMatch,
-                child: Text(l10n.backToHome),
-              ),
-            ],
-          ),
+      return _CenterPanel(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.person_off_rounded,
+              size: 58,
+              color: GameColors.danger,
+            ),
+            const SizedBox(height: GameSpacing.md),
+            Text(
+              opponentLeft ? l10n.opponentLeft : l10n.matchCancelled,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: GameSpacing.lg),
+            FilledButton(
+              onPressed: _leaveCancelledMatch,
+              child: Text(l10n.backToHome),
+            ),
+          ],
         ),
       );
     }
@@ -293,7 +286,12 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
         match.playerAId == widget.uid ? match.readyB : match.readyA;
 
     return Padding(
-      padding: const EdgeInsets.all(GameSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        GameSpacing.md,
+        GameSpacing.sm,
+        GameSpacing.md,
+        GameSpacing.lg,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -301,7 +299,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
             label: l10n.you,
             name: myName,
             ready: match.isReady(widget.uid),
-            accent: GameColors.accent,
+            accent: GameColors.accentBright,
           ),
           const SizedBox(height: GameSpacing.sm),
           _PlayerPanel(
@@ -318,50 +316,54 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
                     key: ValueKey(countdown),
                     children: [
                       Container(
-                        width: 126,
-                        height: 126,
+                        width: 130,
+                        height: 130,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: GameColors.accentSoft,
-                          border: Border.all(
-                            color: GameColors.accent.withValues(alpha: 0.5),
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: GameColors.accent.withValues(alpha: 0.16),
-                              blurRadius: 32,
-                            ),
-                          ],
+                          gradient: GameColors.cosmicGradient,
+                          boxShadow: GameShadows.primaryGlow,
                         ),
                         child: Text(
                           countdown == 0 ? l10n.go : '$countdown',
                           style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                                color: GameColors.accent,
+                                color: Colors.white,
                                 fontWeight: FontWeight.w900,
                               ),
                         ),
                       ),
                       const SizedBox(height: GameSpacing.md),
-                      Text(l10n.bothPlayersReady,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                      Text(
+                        l10n.bothPlayersReady,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ],
                   )
-                : Text(
-                    l10n.readyInstructions,
+                : CosmicPanel(
                     key: const ValueKey('instructions'),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: GameColors.muted, height: 1.5),
+                    child: Text(
+                      l10n.readyInstructions,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        height: 1.5,
+                      ),
+                    ),
                   ),
           ),
           const Spacer(),
           if (countdown == null && !match.isReady(widget.uid))
-            FilledButton.icon(
+            CosmicPrimaryButton(
               onPressed: _readyBusy || _cancelBusy ? null : _markReady,
-              icon: const Icon(Icons.flash_on_rounded),
-              label: Text(_readyBusy ? l10n.gettingReady : l10n.ready),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.flash_on_rounded),
+                  const SizedBox(width: GameSpacing.sm),
+                  Text(_readyBusy ? l10n.gettingReady : l10n.ready),
+                ],
+              ),
             )
           else if (countdown == null)
             FilledButton.icon(
@@ -383,6 +385,25 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
   }
 }
 
+class _CenterPanel extends StatelessWidget {
+  const _CenterPanel({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(GameSpacing.lg),
+        child: CosmicPanel(
+          glow: true,
+          padding: const EdgeInsets.all(GameSpacing.lg),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _PlayerPanel extends StatelessWidget {
   const _PlayerPanel({
     required this.label,
@@ -399,17 +420,8 @@ class _PlayerPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(GameSpacing.md),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(
-          color: ready
-              ? GameColors.success.withValues(alpha: 0.45)
-              : GameColors.surfaceStrong,
-        ),
-      ),
+    return CosmicPanel(
+      glow: ready,
       child: Row(
         children: [
           Container(
@@ -417,11 +429,12 @@ class _PlayerPanel extends StatelessWidget {
             height: 48,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: accent.withValues(alpha: 0.12),
+              gradient: ready ? GameColors.cosmicGradient : null,
+              color: ready ? null : accent.withValues(alpha: .12),
             ),
             child: Icon(
               ready ? Icons.check_rounded : Icons.person_rounded,
-              color: ready ? GameColors.success : accent,
+              color: ready ? Colors.white : accent,
             ),
           ),
           const SizedBox(width: GameSpacing.md),
@@ -429,10 +442,12 @@ class _PlayerPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 3),
                 Text(label, style: const TextStyle(color: GameColors.muted)),
               ],
@@ -442,7 +457,7 @@ class _PlayerPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: (ready ? GameColors.success : GameColors.surfaceRaised)
-                  .withValues(alpha: ready ? 0.12 : 1),
+                  .withValues(alpha: ready ? .12 : 1),
               borderRadius: BorderRadius.circular(GameRadii.pill),
             ),
             child: Text(
