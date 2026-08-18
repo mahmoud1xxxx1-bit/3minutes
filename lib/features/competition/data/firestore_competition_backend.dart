@@ -85,6 +85,8 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
     DocumentSnapshot<Map<String, dynamic>> snapshot,
   ) {
     final data = snapshot.data() ?? const <String, dynamic>{};
+    final rawLegendarySeasons =
+        (data['legendarySeasons'] as num?)?.toInt() ?? 0;
     return LeaderboardEntry(
       uid: snapshot.id,
       gameName: data['gameName'] as String? ?? 'Player',
@@ -93,6 +95,8 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
       stars: (data['stars'] as num?)?.toInt() ?? 0,
       wins: (data['wins'] as num?)?.toInt() ?? 0,
       losses: (data['losses'] as num?)?.toInt() ?? 0,
+      legendarySeasons:
+          rawLegendarySeasons < 0 ? 0 : rawLegendarySeasons,
     );
   }
 }
