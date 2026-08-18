@@ -1,11 +1,10 @@
-import 'dart:math';
-
+import '../../../core/random/deterministic_rng.dart';
 import '../domain/mini_game_contract.dart';
 
 class GameRegistry {
   const GameRegistry._();
 
-  static const int version = 2;
+  static const int version = 3;
 
   // Display copy is intentionally owned by MiniGameCopy so the registry stays
   // deterministic and language-neutral. Titles remain empty internal metadata.
@@ -70,10 +69,11 @@ class GameRegistry {
       throw ArgumentError.value(count, 'count', 'Must fit the registry size.');
     }
 
-    final random = Random(seed);
+    final random = DeterministicRng(seed);
 
     if (count < MiniGameCategory.values.length) {
-      final shuffled = List<MiniGameDescriptor>.of(games)..shuffle(random);
+      final shuffled = List<MiniGameDescriptor>.of(games);
+      random.shuffle(shuffled);
       return List<MiniGameDescriptor>.unmodifiable(shuffled.take(count));
     }
 
@@ -83,8 +83,8 @@ class GameRegistry {
     for (final category in MiniGameCategory.values) {
       final categoryGames = remaining
           .where((game) => game.category == category)
-          .toList(growable: false)
-        ..shuffle(random);
+          .toList(growable: false);
+      random.shuffle(categoryGames);
 
       if (categoryGames.isEmpty) {
         throw StateError('Registry is missing the ${category.name} category.');
@@ -95,9 +95,9 @@ class GameRegistry {
       remaining.removeWhere((game) => game.id == pick.id);
     }
 
-    remaining.shuffle(random);
+    random.shuffle(remaining);
     selected.addAll(remaining.take(count - selected.length));
-    selected.shuffle(random);
+    random.shuffle(selected);
 
     return List<MiniGameDescriptor>.unmodifiable(selected);
   }
