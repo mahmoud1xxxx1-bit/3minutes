@@ -37,18 +37,21 @@ class MatchRuntime {
     return gameSequence[_progress.completedGames];
   }
 
-  MatchProgress recordResult(MiniGameResult result) {
+  MatchProgress previewResult(MiniGameResult result) {
     if (allGamesCompleted) return _progress;
     _validateResult(result);
 
-    final completedGames = _progress.completedGames + 1;
-    _progress = MatchProgress(
-      completedGames: completedGames,
+    return MatchProgress(
+      completedGames: _progress.completedGames + 1,
       totalScore: _progress.totalScore + result.score,
       accuracyTotal: _progress.accuracyTotal + result.accuracy,
       mistakes: _progress.mistakes + result.mistakes,
       elapsedMs: _progress.elapsedMs + result.duration.inMilliseconds,
     );
+  }
+
+  MatchProgress recordResult(MiniGameResult result) {
+    _progress = previewResult(result);
     return _progress;
   }
 
