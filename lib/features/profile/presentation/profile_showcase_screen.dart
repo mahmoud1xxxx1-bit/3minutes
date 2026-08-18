@@ -15,6 +15,7 @@ import '../../progression/presentation/progression_copy.dart';
 import '../data/profile_repository.dart';
 import '../domain/player_profile.dart';
 import 'profile_screen.dart';
+import 'rank_showcase_screen.dart';
 
 class ProfileShowcaseScreen extends StatelessWidget {
   const ProfileShowcaseScreen({
@@ -33,6 +34,7 @@ class ProfileShowcaseScreen extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final pcopy = ProgressionCopy.of(context);
     final tier = RankPolicy.tierFor(profile.rankPoints);
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -43,6 +45,18 @@ class ProfileShowcaseScreen extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         actions: [
+          IconButton(
+            tooltip: ar ? 'شارات الرتب' : 'Rank emblems',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => RankShowcaseScreen(
+                  profile: profile,
+                  profileRepository: profileRepository,
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.shield_rounded),
+          ),
           IconButton(
             tooltip: l10n.editProfile,
             onPressed: () => Navigator.of(context).push(
@@ -86,14 +100,25 @@ class ProfileShowcaseScreen extends StatelessWidget {
                   const SizedBox(height: GameSpacing.lg),
                   _SectionTitle(
                     icon: Icons.auto_awesome_rounded,
-                    title: Localizations.localeOf(context).languageCode == 'ar'
-                        ? 'المظهر المجهز'
-                        : 'Equipped style',
+                    title: ar ? 'المظهر المجهز' : 'Equipped style',
                     color: GameColors.violet,
                   ),
                   const SizedBox(height: GameSpacing.sm),
                   _EquippedShowcase(inventory: inventory),
                   const SizedBox(height: GameSpacing.lg),
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => RankShowcaseScreen(
+                          profile: profile,
+                          profileRepository: profileRepository,
+                        ),
+                      ),
+                    ),
+                    icon: const Icon(Icons.shield_rounded),
+                    label: Text(ar ? 'شارات الرتب المكتسبة' : 'Earned rank emblems'),
+                  ),
+                  const SizedBox(height: GameSpacing.sm),
                   OutlinedButton.icon(
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -203,6 +228,30 @@ class _HeroIdentity extends StatelessWidget {
           if (profile.legendarySeasons > 0) ...[
             const SizedBox(height: GameSpacing.sm),
             _LegendaryHistoryLine(count: profile.legendarySeasons),
+          ],
+          if (profile.showcaseRankTier != null) ...[
+            const SizedBox(height: GameSpacing.sm),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.shield_outlined,
+                  size: 16,
+                  color: GameColors.violet,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  Localizations.localeOf(context).languageCode == 'ar'
+                      ? 'شارة العرض: ${profile.showcaseRankTier!.label}'
+                      : 'Showcase emblem: ${profile.showcaseRankTier!.label}',
+                  style: const TextStyle(
+                    color: GameColors.textSoft,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ],
           const SizedBox(height: GameSpacing.sm),
           Text(
