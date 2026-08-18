@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../minigames/domain/mini_game_contract.dart';
 import '../../minigames/presentation/mini_game_host.dart';
@@ -261,12 +262,6 @@ class _MatchResultViewState extends State<_MatchResultView> {
   bool _finalizeStarted = false;
   String? _error;
 
-  @override
-  void initState() {
-    super.initState();
-    _finalize();
-  }
-
   Future<void> _finalize() async {
     if (_finalizeStarted) return;
     _finalizeStarted = true;
@@ -276,8 +271,7 @@ class _MatchResultViewState extends State<_MatchResultView> {
         uid: widget.uid,
       );
     } catch (_) {
-      // Result rendering can continue from the saved progress even if this
-      // metadata write temporarily fails. A reconnect can finalize it later.
+      _finalizeStarted = false;
     }
   }
 
@@ -347,6 +341,62 @@ class _MatchResultViewState extends State<_MatchResultView> {
   @override
   Widget build(BuildContext context) {
     final match = widget.match;
+    final remoteLocal = match.progressFor(widget.uid);
+    final waitingForFinalWrite = widget.localCompletedGames >= match.gameCount &&
+        (remoteLocal.completedGames < match.gameCount || remoteLocal.completedAt == null);
+
+    if (waitingForFinalWrite) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Finalizing your progress...'),
+          ],
+        ),
+      );
+    }
+
+    final bothCompleted = match.progressA.completedGames >= match.gameCount &&
+        match.progressB.completedGames >= match.gameCount;
+    final start = match.countdownStartedAt?.add(const Duration(seconds: 3));
+    final deadline = start?.add(AppConfig.matchDuration);
+    final timerEnded = deadline != null && !DateTime.now().isBefore(deadline);
+    final settled = bothCompleted || timerEnded;
+
+    if (!settled) {
+      final opponent = match.opponentProgress(widget.uid);
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 20),
+            Text(
+              'WAITING FOR OPPONENT',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              '${opponent.completedGames}/${match.gameCount} games completed',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!_finalizeStarted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _finalize();
+      });
+    }
+
     final newMatchId = match.rematchMatchId;
     if (newMatchId != null && !_switchingMatch) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -354,18 +404,14 @@ class _MatchResultViewState extends State<_MatchResultView> {
       });
     }
 
-    final remoteLocal = match.progressFor(widget.uid);
-    final waitingForFinalWrite = widget.localCompletedGames >= match.gameCount &&
-        (remoteLocal.completedGames < match.gameCount || remoteLocal.completedAt == null);
-
-    if (waitingForFinalWrite || _switchingMatch) {
-      return Center(
+    if (_switchingMatch) {
+      return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(_switchingMatch ? 'Preparing rematch...' : 'Finalizing result...'),
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Preparing rematch...'),
           ],
         ),
       );
@@ -386,7 +432,8 @@ class _MatchResultViewState extends State<_MatchResultView> {
     final mine = match.progressFor(widget.uid);
     final opponent = match.opponentProgress(widget.uid);
     final requested = match.requestedRematch(widget.uid);
-    final opponentRequested = match.playerAId == widget.uid ? match.rematchB : match.rematchA;
+    final opponentRequested =
+        match.playerAId == widget.uid ? match.rematchB : match.rematchA;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -414,14 +461,13 @@ class _MatchResultViewState extends State<_MatchResultView> {
           const SizedBox(height: 20),
           if (requested)
             Text(
-              opponentRequested ? 'Both players accepted. Preparing match...' : 'Waiting for opponent to accept rematch...',
+              opponentRequested
+                  ? 'Both players accepted. Preparing match...'
+                  : 'Waiting for opponent to accept rematch...',
               textAlign: TextAlign.center,
             )
           else if (opponentRequested)
-            const Text(
-              'Opponent wants a rematch.',
-              textAlign: TextAlign.center,
-            ),
+            const Text('Opponent wants a rematch.', textAlign: TextAlign.center),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -433,7 +479,13 @@ class _MatchResultViewState extends State<_MatchResultView> {
           const Spacer(),
           FilledButton(
             onPressed: requested || _rematchBusy || _leaving ? null : _requestRematch,
-            child: Text(_rematchBusy ? 'REQUESTING...' : requested ? 'REMATCH REQUESTED' : 'REMATCH'),
+            child: Text(
+              _rematchBusy
+                  ? 'REQUESTING...'
+                  : requested
+                      ? 'REMATCH REQUESTED'
+                      : 'REMATCH',
+            ),
           ),
           const SizedBox(height: 10),
           OutlinedButton(
