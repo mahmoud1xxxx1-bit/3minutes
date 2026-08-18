@@ -36,7 +36,8 @@ class PrivateRoom {
   bool get isFull => participantUids.length == maxPlayers;
   bool get everyoneReady =>
       participantUids.isNotEmpty && participantUids.every(readyUids.contains);
-  bool get canStart => isFull && everyoneReady && status == PrivateRoomStatus.lobby;
+  bool get canStart =>
+      isFull && everyoneReady && status == PrivateRoomStatus.lobby;
 
   bool isReady(String uid) => readyUids.contains(uid);
 }
@@ -54,7 +55,9 @@ class PrivateRoomPolicy {
       throw ArgumentError('Private rooms support 2, 4, or 6 players only.');
     }
     if (!validCode(room.code)) {
-      throw ArgumentError('Private room code must be five alphanumeric characters.');
+      throw ArgumentError(
+        'Private room code must be five alphanumeric characters.',
+      );
     }
     if (room.participantUids.isEmpty ||
         room.participantUids.length > room.maxPlayers) {
@@ -94,9 +97,9 @@ class RoomInvitePolicy {
       throw ArgumentError('Invalid room code.');
     }
     return Uri(
-      scheme: 'https',
-      host: '3minutes.game',
-      pathSegments: ['join', normalized],
+      scheme: 'threeminutes',
+      host: 'join',
+      pathSegments: [normalized],
     );
   }
 }
