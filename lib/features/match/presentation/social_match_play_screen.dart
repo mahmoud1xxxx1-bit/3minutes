@@ -34,6 +34,7 @@ class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
   Timer? _ticker;
   MatchRuntime? _runtime;
   bool _submitting = false;
+  bool _settlementRequested = false;
   String? _error;
 
   @override
@@ -72,23 +73,23 @@ class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
   }
 
   MatchRuntime? _ensureRuntime(MultiplayerMatch match) {
-    final countdownStartedAt = match.countdownStartedAt;
+    final startedAt = match.countdownStartedAt;
     final me = _me(match);
-    if (countdownStartedAt == null || me == null) return null;
+    if (startedAt == null || me == null) return null;
 
-    final savedProgress = me.progress;
     final current = _runtime;
-    final serverIsAhead = current != null &&
-        (savedProgress.completedGames > current.progress.completedGames ||
-            savedProgress.totalScore > current.progress.totalScore ||
-            savedProgress.elapsedMs > current.progress.elapsedMs);
+    final saved = me.progress;
+    final serverAhead = current != null &&
+        (saved.completedGames > current.progress.completedGames ||
+            saved.totalScore > current.progress.totalScore ||
+            saved.elapsedMs > current.progress.elapsedMs);
 
-    if (current == null || serverIsAhead) {
+    if (current == null || serverAhead) {
       _runtime = MatchRuntime(
         seed: match.seed,
-        startedAt: countdownStartedAt.add(const Duration(seconds: 3)),
+        startedAt: startedAt.add(const Duration(seconds: 3)),
         gameCount: AppConfig.gamesPerMatch,
-        initialProgress: savedProgress,
+        initialProgress: saved,
       );
     }
     return _runtime;
@@ -120,6 +121,12 @@ class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  void _requestSettlement(MultiplayerMatch match) {
+    if (_settlementRequested) return;
+    _settlementRequested = true;
+    unawaited(widget.matchBackend.settleMatch(match.id));
   }
 
   String _clock(Duration remaining) {
@@ -163,6 +170,7 @@ class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
                   ),
                 );
               }
+
               final runtime = _ensureRuntime(match);
               if (runtime == null) {
                 return const Center(child: CircularProgressIndicator());
@@ -177,10 +185,8 @@ class _SocialMatchPlayScreenState extends State<SocialMatchPlayScreen> {
               );
 
               if (expired || everyoneFinished) {
-                return _SocialResultView(
-                  uid: widget.uid,
-                  match: match,
-                );
+                _requestSettlement(match);
+                return _SocialResultView(uid: widget.uid, match: match);
               }
 
               if (runtime.allGamesCompleted) {
@@ -357,10 +363,13 @@ class _MiniProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final value = participant.progress.completedGames / AppConfig.gamesPerMatch;
+    final initial = participant.displayName.trim().isEmpty
+        ? '?'
+        : participant.displayName.trim().characters.first;
     return Column(
       children: [
         Text(
-          isSelf ? '●' : participant.displayName.characters.firstOrNull ?? '?',
+          isSelf ? '●' : initial,
           maxLines: 1,
           style: TextStyle(
             color: isSelf ? GameColors.accent : GameColors.muted,
@@ -442,9 +451,9 @@ class _SocialResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final placements = MultiplayerResultPolicy.rank(match.participants);
-    final byUid = {for (final p in match.participants) p.uid: p};
+    final byUid = {for (final participant in match.participants) participant.uid: participant};
     final myPlacement = placements.firstWhere((item) => item.uid == uid);
-    final title = myPlacement.position == 1 ? l10n.victory : '#${myPlacement.position}';
+    final first = myPlacement.position == 1;
 
     return Padding(
       padding: const EdgeInsets.all(GameSpacing.lg),
@@ -452,17 +461,13 @@ class _SocialResultView extends StatelessWidget {
         children: [
           const Spacer(),
           Icon(
-            myPlacement.position == 1
-                ? Icons.emoji_events_rounded
-                : Icons.leaderboard_rounded,
+            first ? Icons.emoji_events_rounded : Icons.leaderboard_rounded,
             size: 72,
-            color: myPlacement.position == 1
-                ? GameColors.rewardGold
-                : GameColors.accent,
+            color: first ? GameColors.rewardGold : GameColors.accent,
           ),
           const SizedBox(height: GameSpacing.sm),
           Text(
-            title,
+            first ? l10n.victory : '#${myPlacement.position}',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w900,
                 ),
@@ -510,7 +515,7 @@ class _SocialResultView extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${participant.progress.completedGames}/8 • ${participant.progress.totalScore}',
+                        '${participant.progress.completedGames}/${AppConfig.gamesPerMatch} • ${participant.progress.totalScore}',
                         style: const TextStyle(
                           color: GameColors.muted,
                           fontWeight: FontWeight.w700,
