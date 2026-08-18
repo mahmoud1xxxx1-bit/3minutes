@@ -51,6 +51,7 @@ class FirestoreRoomBackend implements RoomBackend {
         'hostUid': hostUid,
         'maxPlayers': maxPlayers,
         'participantUids': [hostUid],
+        'readyUids': <String>[],
         'status': PrivateRoomStatus.lobby.name,
         'createdAt': FieldValue.serverTimestamp(),
         'expiresAt': Timestamp.fromDate(expiresAt),
@@ -67,6 +68,7 @@ class FirestoreRoomBackend implements RoomBackend {
       hostUid: hostUid,
       maxPlayers: maxPlayers,
       participantUids: [hostUid],
+      readyUids: const <String>{},
       status: PrivateRoomStatus.lobby,
       createdAt: now,
       expiresAt: expiresAt,
@@ -109,6 +111,56 @@ class FirestoreRoomBackend implements RoomBackend {
   }
 
   @override
+  Future<void> setReady({
+    required String roomId,
+    required String uid,
+    required bool ready,
+  }) async {
+    final ref = _rooms.doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final doc = await transaction.get(ref);
+      if (!doc.exists) throw StateError('Room not found.');
+      final room = _fromDoc(doc);
+      if (room.status != PrivateRoomStatus.lobby) {
+        throw StateError('Room is no longer in the lobby.');
+      }
+      if (!room.participantUids.contains(uid)) {
+        throw StateError('Only room participants can become ready.');
+      }
+      final nextReady = room.readyUids.toSet();
+      if (ready) {
+        nextReady.add(uid);
+      } else {
+        nextReady.remove(uid);
+      }
+      transaction.update(ref, {'readyUids': nextReady.toList(growable: false)});
+    });
+  }
+
+  @override
+  Future<void> startRoom({
+    required String roomId,
+    required String hostUid,
+  }) async {
+    final ref = _rooms.doc(roomId);
+    await _firestore.runTransaction((transaction) async {
+      final doc = await transaction.get(ref);
+      if (!doc.exists) throw StateError('Room not found.');
+      final room = _fromDoc(doc);
+      if (room.hostUid != hostUid) {
+        throw StateError('Only the host can start the room.');
+      }
+      if (!room.canStart) {
+        throw StateError('The room cannot start until it is full and everyone is ready.');
+      }
+      transaction.update(ref, {
+        'status': PrivateRoomStatus.countdown.name,
+        'countdownStartedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  @override
   Future<void> leaveRoom({
     required String roomId,
     required String uid,
@@ -125,6 +177,7 @@ class FirestoreRoomBackend implements RoomBackend {
       }
       transaction.update(ref, {
         'participantUids': room.participantUids.where((id) => id != uid).toList(),
+        'readyUids': room.readyUids.where((id) => id != uid).toList(),
       });
     });
   }
@@ -158,6 +211,10 @@ class FirestoreRoomBackend implements RoomBackend {
               ?.whereType<String>()
               .toList(growable: false) ??
           const <String>[],
+      readyUids: (data['readyUids'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toSet() ??
+          const <String>{},
       status: PrivateRoomStatus.values.firstWhere(
         (value) => value.name == statusName,
         orElse: () => PrivateRoomStatus.cancelled,
