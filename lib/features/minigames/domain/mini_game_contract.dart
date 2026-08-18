@@ -1,3 +1,10 @@
+enum MiniGameCategory {
+  reaction,
+  logic,
+  memory,
+  precision,
+}
+
 class MiniGameConfig {
   const MiniGameConfig({
     required this.seed,
@@ -28,8 +35,10 @@ class MiniGameDescriptor {
   const MiniGameDescriptor({
     required this.id,
     required this.title,
+    required this.category,
   });
 
   final String id;
   final String title;
+  final MiniGameCategory category;
 }
