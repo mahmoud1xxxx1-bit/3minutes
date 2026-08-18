@@ -19,7 +19,8 @@ class PlayerFriendCodePolicy {
         .replaceAll(RegExp(r'[^A-Z0-9]'), '')
         .trim();
     if (normalized.isEmpty) return 'PLAYER';
-    return normalized.substring(0, normalized.length.clamp(1, 12));
+    final end = normalized.length > 12 ? 12 : normalized.length;
+    return normalized.substring(0, end);
   }
 
   static String compose({
