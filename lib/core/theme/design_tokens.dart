@@ -26,6 +26,14 @@ class GameColors {
   static const rankPlatinum = Color(0xFF61D5D0);
   static const rankDiamond = Color(0xFF6AA8FF);
   static const rankMaster = Color(0xFFC37BFF);
+  static const rankGrandmaster = Color(0xFFFF667E);
+  static const rankLegend = Color(0xFFFFD86B);
+
+  static const rarityCommon = Color(0xFFB8C2D0);
+  static const rarityRare = Color(0xFF5EA8FF);
+  static const rarityEpic = Color(0xFFB46CFF);
+  static const rarityLegendary = Color(0xFFFFC857);
+  static const rarityMythic = Color(0xFFFF718F);
 }
 
 class GameSpacing {
@@ -54,4 +62,5 @@ class GameDurations {
   static const fast = Duration(milliseconds: 110);
   static const normal = Duration(milliseconds: 200);
   static const reveal = Duration(milliseconds: 700);
+  static const rankUp = Duration(milliseconds: 1100);
 }
