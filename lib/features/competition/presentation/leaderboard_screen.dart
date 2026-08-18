@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
@@ -117,15 +119,38 @@ class LeaderboardScreen extends StatelessWidget {
   }
 }
 
-class _SeasonStatus extends StatelessWidget {
+class _SeasonStatus extends StatefulWidget {
   const _SeasonStatus({required this.competitionBackend});
 
   final CompetitionBackend competitionBackend;
 
   @override
+  State<_SeasonStatus> createState() => _SeasonStatusState();
+}
+
+class _SeasonStatusState extends State<_SeasonStatus> {
+  Timer? _timer;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted) return;
+      setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<Season?>(
-      stream: competitionBackend.watchCurrentSeason(),
+      stream: widget.competitionBackend.watchCurrentSeason(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Card(
@@ -161,7 +186,7 @@ class _SeasonStatus extends StatelessWidget {
           );
         }
 
-        final clock = SeasonClockPolicy.at(season: season, now: DateTime.now());
+        final clock = SeasonClockPolicy.at(season: season, now: _now);
         final remaining = clock.remaining;
         final days = remaining.inDays;
         final hours = remaining.inHours.remainder(24);
