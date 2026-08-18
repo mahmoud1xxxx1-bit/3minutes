@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/data/auth_service.dart';
@@ -64,7 +65,9 @@ class _GameShellScreenState extends State<GameShellScreen> {
         final profile = snapshot.data;
         if (profile == null) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: CosmicBackground(
+              child: Center(child: CircularProgressIndicator()),
+            ),
           );
         }
 
@@ -95,39 +98,76 @@ class _GameShellScreenState extends State<GameShellScreen> {
         ];
 
         return Scaffold(
-          body: IndexedStack(index: _index, children: pages),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: (value) => setState(() => _index = value),
-            backgroundColor: GameColors.surface,
-            indicatorColor: GameColors.accentSoft,
-            destinations: [
-              NavigationDestination(
-                icon: const Icon(Icons.home_rounded),
-                selectedIcon: const Icon(Icons.home_rounded, color: GameColors.accent),
-                label: l10n.home,
+          extendBody: true,
+          body: CosmicBackground(
+            child: IndexedStack(index: _index, children: pages),
+          ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: GameColors.surfaceGlass,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: GameColors.surfaceStrong, width: 0.8),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 10),
+                  ),
+                ],
               ),
-              NavigationDestination(
-                icon: const Icon(Icons.auto_awesome_rounded),
-                selectedIcon: const Icon(Icons.auto_awesome_rounded, color: GameColors.accent),
-                label: l10n.season,
+              clipBehavior: Clip.antiAlias,
+              child: NavigationBar(
+                selectedIndex: _index,
+                onDestinationSelected: (value) => setState(() => _index = value),
+                backgroundColor: Colors.transparent,
+                indicatorColor: GameColors.accentSoft,
+                destinations: [
+                  NavigationDestination(
+                    icon: const Icon(Icons.home_rounded),
+                    selectedIcon: const Icon(
+                      Icons.home_rounded,
+                      color: GameColors.accentBright,
+                    ),
+                    label: l10n.home,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.auto_awesome_rounded),
+                    selectedIcon: const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: GameColors.accentBright,
+                    ),
+                    label: l10n.season,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.group_rounded),
+                    selectedIcon: const Icon(
+                      Icons.group_rounded,
+                      color: GameColors.accentBright,
+                    ),
+                    label: social.friends,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.storefront_rounded),
+                    selectedIcon: const Icon(
+                      Icons.storefront_rounded,
+                      color: GameColors.accentBright,
+                    ),
+                    label: l10n.shop,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.person_rounded),
+                    selectedIcon: const Icon(
+                      Icons.person_rounded,
+                      color: GameColors.accentBright,
+                    ),
+                    label: l10n.profile,
+                  ),
+                ],
               ),
-              NavigationDestination(
-                icon: const Icon(Icons.group_rounded),
-                selectedIcon: const Icon(Icons.group_rounded, color: GameColors.accent),
-                label: social.friends,
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.storefront_rounded),
-                selectedIcon: const Icon(Icons.storefront_rounded, color: GameColors.accent),
-                label: l10n.shop,
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.person_rounded),
-                selectedIcon: const Icon(Icons.person_rounded, color: GameColors.accent),
-                label: l10n.profile,
-              ),
-            ],
+            ),
           ),
         );
       },
