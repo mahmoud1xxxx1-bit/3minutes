@@ -5,6 +5,7 @@ import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/leaderboard_screen.dart';
+import '../../competition/presentation/rank_badge.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/domain/match_ticket.dart';
@@ -223,13 +224,24 @@ class _PlayerCard extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Level ${player?.level ?? 1} • ${player?.rankPoints ?? 0} RP • ${tier.label}',
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      RankBadge(tier: tier, compact: true),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Level ${player?.level ?? 1} • ${player?.rankPoints ?? 0} RP',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
