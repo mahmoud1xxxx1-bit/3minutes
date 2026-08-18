@@ -34,14 +34,15 @@ class ProfileRepository {
   }) async {
     final cleanedName = PlayerNameRules.validate(gameName);
 
+    // Keep this payload aligned with the Spark Firestore create rule. Lifetime
+    // rank/prestige fields are server-owned and are added by ranked/season
+    // authority after the player actually earns them.
     await _users.doc(uid).set({
       'gameName': cleanedName,
       'avatarId': avatarId,
       'level': 1,
       'xp': 0,
       'rankPoints': 0,
-      'peakRankTier': RankTier.bronze.name,
-      'legendarySeasons': 0,
       'stars': 0,
       'wins': 0,
       'losses': 0,
