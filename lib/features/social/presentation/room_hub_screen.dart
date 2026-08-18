@@ -21,12 +21,14 @@ class RoomHubScreen extends StatefulWidget {
     required this.roomBackend,
     required this.socialBackend,
     required this.socialMatchBackend,
+    this.initialRoomCode,
   });
 
   final PlayerProfile profile;
   final RoomBackend roomBackend;
   final SocialBackend socialBackend;
   final SocialMatchBackend socialMatchBackend;
+  final String? initialRoomCode;
 
   @override
   State<RoomHubScreen> createState() => _RoomHubScreenState();
@@ -41,6 +43,18 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
   static const _alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
   @override
+  void initState() {
+    super.initState();
+    final code = widget.initialRoomCode?.trim().toUpperCase();
+    if (code != null && PrivateRoomPolicy.validCode(code)) {
+      _roomCodeController.text = code;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _join();
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _roomCodeController.dispose();
     super.dispose();
@@ -48,7 +62,10 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
 
   String _newCode() {
     final random = Random.secure();
-    return List.generate(5, (_) => _alphabet[random.nextInt(_alphabet.length)]).join();
+    return List.generate(
+      5,
+      (_) => _alphabet[random.nextInt(_alphabet.length)],
+    ).join();
   }
 
   Future<void> _create(int maxPlayers) async {
@@ -97,7 +114,10 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
         if (mounted) setState(() => _error = copy.roomNotFound);
         return;
       }
-      await widget.roomBackend.joinRoom(roomId: room.id, uid: widget.profile.uid);
+      await widget.roomBackend.joinRoom(
+        roomId: room.id,
+        uid: widget.profile.uid,
+      );
       if (!mounted) return;
       await _openRoom(room);
     } catch (_) {
@@ -176,9 +196,15 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(copy.privateRoom, style: Theme.of(context).textTheme.titleLarge),
+                              Text(
+                                copy.privateRoom,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
                               const SizedBox(height: 3),
-                              Text(copy.roomRule, style: Theme.of(context).textTheme.bodySmall),
+                              Text(
+                                copy.roomRule,
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
                             ],
                           ),
                         ),
@@ -204,29 +230,50 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
                   decoration: BoxDecoration(
                     color: GameColors.surfaceGlass,
                     borderRadius: BorderRadius.circular(GameRadii.card),
-                    border: Border.all(color: GameColors.violet.withValues(alpha: 0.4)),
+                    border: Border.all(
+                      color: GameColors.violet.withValues(alpha: .4),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.groups_3_rounded, color: GameColors.violet, size: 32),
+                      const Icon(
+                        Icons.groups_3_rounded,
+                        color: GameColors.violet,
+                        size: 32,
+                      ),
                       const SizedBox(width: GameSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(copy.party, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                            Text(
+                              copy.party,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                              ),
+                            ),
                             const SizedBox(height: 3),
-                            Text(copy.partySubtitle, style: Theme.of(context).textTheme.bodySmall),
+                            Text(
+                              copy.partySubtitle,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: GameColors.muted),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: GameColors.muted,
+                      ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: GameSpacing.lg),
-              Text(copy.createRoom, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                copy.createRoom,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: GameSpacing.sm),
               CosmicPanel(
                 child: Column(
@@ -238,21 +285,27 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
                           count: 2,
                           label: copy.players2,
                           selected: _selectedPlayers == 2,
-                          onTap: _busy ? null : () => setState(() => _selectedPlayers = 2),
+                          onTap: _busy
+                              ? null
+                              : () => setState(() => _selectedPlayers = 2),
                         ),
                         const SizedBox(width: GameSpacing.sm),
                         _PlayerCountChoice(
                           count: 4,
                           label: copy.players4,
                           selected: _selectedPlayers == 4,
-                          onTap: _busy ? null : () => setState(() => _selectedPlayers = 4),
+                          onTap: _busy
+                              ? null
+                              : () => setState(() => _selectedPlayers = 4),
                         ),
                         const SizedBox(width: GameSpacing.sm),
                         _PlayerCountChoice(
                           count: 6,
                           label: copy.players6,
                           selected: _selectedPlayers == 6,
-                          onTap: _busy ? null : () => setState(() => _selectedPlayers = 6),
+                          onTap: _busy
+                              ? null
+                              : () => setState(() => _selectedPlayers = 6),
                         ),
                       ],
                     ),
@@ -278,7 +331,10 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
                 ),
               ),
               const SizedBox(height: GameSpacing.lg),
-              Text(copy.joinRoom, style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                copy.joinRoom,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: GameSpacing.sm),
               CosmicPanel(
                 child: Column(
@@ -311,7 +367,10 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
                 CosmicPanel(
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline_rounded, color: GameColors.danger),
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: GameColors.danger,
+                      ),
                       const SizedBox(width: GameSpacing.sm),
                       Expanded(
                         child: Text(
@@ -358,8 +417,10 @@ class _PlayerCountChoice extends StatelessWidget {
             color: selected ? GameColors.accentSoft : GameColors.surfaceRaised,
             borderRadius: BorderRadius.circular(GameRadii.card),
             border: Border.all(
-              color: selected ? GameColors.accentBright : GameColors.surfaceStrong,
-              width: selected ? 1.4 : 0.8,
+              color: selected
+                  ? GameColors.accentBright
+                  : GameColors.surfaceStrong,
+              width: selected ? 1.4 : .8,
             ),
           ),
           child: Column(
