@@ -3,6 +3,7 @@ import 'package:game/core/config/app_config.dart';
 import 'package:game/features/match/domain/match_outcome.dart';
 import 'package:game/features/match/domain/match_progress.dart';
 import 'package:game/features/match/domain/match_runtime.dart';
+import 'package:game/features/match/domain/match_settlement.dart';
 import 'package:game/features/minigames/data/game_registry.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
 import 'package:game/features/profile/domain/player_name_rules.dart';
@@ -118,6 +119,67 @@ void main() {
     expect(runtime.progress.totalScore, 280);
     expect(runtime.progress.elapsedMs, 34000);
     expect(runtime.currentGame?.id, sequence[3].id);
+  });
+
+  test('settlement waits for opponent before three minute deadline', () {
+    final countdown = DateTime.utc(2026, 1, 1, 12);
+    const finished = MatchProgress(
+      completedGames: 8,
+      totalScore: 800,
+      accuracyTotal: 8,
+      mistakes: 0,
+      elapsedMs: 60000,
+    );
+    const stillPlaying = MatchProgress(
+      completedGames: 5,
+      totalScore: 500,
+      accuracyTotal: 5,
+      mistakes: 0,
+      elapsedMs: 50000,
+    );
+
+    expect(
+      MatchSettlement.isSettled(
+        playerA: finished,
+        playerB: stillPlaying,
+        gameCount: 8,
+        countdownStartedAt: countdown,
+        now: countdown.add(const Duration(seconds: 120)),
+      ),
+      isFalse,
+    );
+    expect(
+      MatchSettlement.isSettled(
+        playerA: finished,
+        playerB: stillPlaying,
+        gameCount: 8,
+        countdownStartedAt: countdown,
+        now: countdown.add(const Duration(seconds: 183)),
+      ),
+      isTrue,
+    );
+  });
+
+  test('settlement finishes immediately when both players complete', () {
+    final countdown = DateTime.utc(2026, 1, 1, 12);
+    const complete = MatchProgress(
+      completedGames: 8,
+      totalScore: 700,
+      accuracyTotal: 7.5,
+      mistakes: 1,
+      elapsedMs: 70000,
+    );
+
+    expect(
+      MatchSettlement.isSettled(
+        playerA: complete,
+        playerB: complete,
+        gameCount: 8,
+        countdownStartedAt: countdown,
+        now: countdown.add(const Duration(seconds: 40)),
+      ),
+      isTrue,
+    );
   });
 
   test('outcome prioritizes progress before score', () {
