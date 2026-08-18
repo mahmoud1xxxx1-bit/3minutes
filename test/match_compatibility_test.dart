@@ -5,15 +5,15 @@ void main() {
   test('match registry must exactly match the app registry', () {
     expect(
       MatchCompatibility.supportsRegistry(
-        matchRegistryVersion: 2,
-        appRegistryVersion: 2,
+        matchRegistryVersion: 3,
+        appRegistryVersion: 3,
       ),
       isTrue,
     );
     expect(
       MatchCompatibility.supportsRegistry(
-        matchRegistryVersion: 1,
-        appRegistryVersion: 2,
+        matchRegistryVersion: 2,
+        appRegistryVersion: 3,
       ),
       isFalse,
     );
