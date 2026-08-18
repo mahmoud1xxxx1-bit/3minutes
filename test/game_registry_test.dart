@@ -11,10 +11,14 @@ void main() {
     expect(categories, containsAll(MiniGameCategory.values));
   });
 
-  test('same seed still produces the same eight-game sequence', () {
+  test('same seed produces the same balanced eight-game sequence', () {
     final first = GameRegistry.sequence(seed: 20260818, count: 8);
     final second = GameRegistry.sequence(seed: 20260818, count: 8);
+    final categories = first.map((game) => game.category).toSet();
 
     expect(first.map((game) => game.id), second.map((game) => game.id));
+    expect(first.length, 8);
+    expect(first.map((game) => game.id).toSet().length, 8);
+    expect(categories, containsAll(MiniGameCategory.values));
   });
 }
