@@ -9,6 +9,13 @@ export {
   cancelRankedMatch,
   submitRankedProgress,
 } from "./match.js";
+export {
+  submitRankedGameResult,
+  requestRankedRematch,
+  cancelRankedRematch,
+  syncRankedTicket,
+  clearRankedTicket,
+} from "./ranked_client.js";
 
 export { settleRankedMatch } from "./settlement.js";
 export { settleSocialMatch } from "./social.js";
