@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../competition/domain/rank_tier.dart';
+import '../../progression/domain/player_progression.dart';
 import '../data/profile_repository.dart';
 import '../domain/player_name_rules.dart';
 import '../domain/player_profile.dart';
@@ -87,6 +89,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final profile = widget.profile;
+    final tier = RankPolicy.tierFor(profile.rankPoints);
+    final xpTarget = ProgressionPolicy.xpRequiredForLevel(profile.level);
+    final xpProgress = xpTarget <= 0 ? 0.0 : (profile.xp / xpTarget).clamp(0.0, 1.0);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
       body: SafeArea(
@@ -95,27 +102,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Row(
               children: [
-                Expanded(child: _Stat(label: 'Level', value: '${widget.profile.level}')),
+                Expanded(child: _Stat(label: 'Level', value: '${profile.level}')),
                 const SizedBox(width: 10),
-                Expanded(child: _Stat(label: 'RP', value: '${widget.profile.rankPoints}')),
+                Expanded(child: _Stat(label: 'Rank', value: tier.label)),
                 const SizedBox(width: 10),
-                Expanded(child: _Stat(label: 'Stars', value: '${widget.profile.stars}')),
+                Expanded(child: _Stat(label: 'Stars', value: '${profile.stars}')),
               ],
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: _Stat(label: 'Wins', value: '${widget.profile.wins}')),
+                Expanded(child: _Stat(label: 'RP', value: '${profile.rankPoints}')),
                 const SizedBox(width: 10),
-                Expanded(child: _Stat(label: 'Losses', value: '${widget.profile.losses}')),
+                Expanded(child: _Stat(label: 'Wins', value: '${profile.wins}')),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: _Stat(
-                    label: 'Played',
-                    value: '${widget.profile.gamesPlayed}',
-                  ),
-                ),
+                Expanded(child: _Stat(label: 'Losses', value: '${profile.losses}')),
               ],
+            ),
+            const SizedBox(height: 18),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Level progress',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Text('${profile.xp}/$xpTarget XP'),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    LinearProgressIndicator(value: xpProgress),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 28),
             TextField(
@@ -206,7 +232,9 @@ class _Stat extends StatelessWidget {
           children: [
             Text(
               value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
