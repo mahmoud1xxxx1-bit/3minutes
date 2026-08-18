@@ -12,4 +12,5 @@ export {
 
 export { settleRankedMatch } from "./settlement.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";
+export { unlockPrestigeCosmetic } from "./prestige.js";
 export { rolloverRankedSeason } from "./season.js";
