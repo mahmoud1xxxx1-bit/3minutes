@@ -85,7 +85,9 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
       runtime.recordResult(result);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not save this game result. Check your connection and try again.');
+      setState(() {
+        _error = 'Could not save this game result. Check your connection and try again.';
+      });
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -112,7 +114,15 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
             stream: widget.matchBackend.watchMatch(widget.matchId),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const Center(child: Text('Connection to the match was lost.'));
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'Connection to the match was lost. Reopen the match when your connection returns; your saved progress will be restored.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
               }
 
               final match = snapshot.data;
@@ -177,9 +187,7 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: gameIndex / match.gameCount,
-                    ),
+                    LinearProgressIndicator(value: gameIndex / match.gameCount),
                     if (_error != null) ...[
                       const SizedBox(height: 8),
                       Text(
@@ -198,10 +206,7 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                               child: MiniGameHost(
                                 key: ValueKey('$gameIndex-${game.id}'),
                                 game: game,
-                                config: MiniGameConfig(
-                                  seed: gameSeed,
-                                  difficulty: 1,
-                                ),
+                                config: MiniGameConfig(seed: gameSeed, difficulty: 1),
                                 onComplete: (result) => _completeGame(match, result),
                               ),
                             ),
@@ -251,32 +256,116 @@ class _MatchResultView extends StatefulWidget {
 
 class _MatchResultViewState extends State<_MatchResultView> {
   bool _leaving = false;
+  bool _rematchBusy = false;
+  bool _switchingMatch = false;
+  bool _finalizeStarted = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _finalize();
+  }
+
+  Future<void> _finalize() async {
+    if (_finalizeStarted) return;
+    _finalizeStarted = true;
+    try {
+      await widget.matchBackend.finalizeMatch(
+        matchId: widget.match.id,
+        uid: widget.uid,
+      );
+    } catch (_) {
+      // Result rendering can continue from the saved progress even if this
+      // metadata write temporarily fails. A reconnect can finalize it later.
+    }
+  }
+
+  Future<void> _requestRematch() async {
+    if (_rematchBusy || _leaving) return;
+    setState(() {
+      _rematchBusy = true;
+      _error = null;
+    });
+    try {
+      await widget.matchBackend.requestRematch(
+        matchId: widget.match.id,
+        uid: widget.uid,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Could not request a rematch. Try again.');
+    } finally {
+      if (mounted) setState(() => _rematchBusy = false);
+    }
+  }
+
+  Future<void> _switchToRematch(String newMatchId) async {
+    if (_switchingMatch) return;
+    _switchingMatch = true;
+    try {
+      await widget.matchBackend.moveTicketToMatch(
+        uid: widget.uid,
+        matchId: newMatchId,
+      );
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      _switchingMatch = false;
+      if (mounted) {
+        setState(() => _error = 'Rematch is ready, but reconnecting failed. Try again.');
+      }
+    }
+  }
 
   Future<void> _backHome() async {
-    if (_leaving) return;
-    setState(() => _leaving = true);
+    if (_leaving || _switchingMatch) return;
+    setState(() {
+      _leaving = true;
+      _error = null;
+    });
     try {
+      if (widget.match.requestedRematch(widget.uid) &&
+          widget.match.rematchMatchId == null) {
+        await widget.matchBackend.cancelRematchRequest(
+          matchId: widget.match.id,
+          uid: widget.uid,
+        );
+      }
       await widget.matchBackend.clearTicket(widget.uid);
-    } finally {
-      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _leaving = false;
+          _error = 'Could not leave the result screen. Try again.';
+        });
+      }
+      return;
     }
+    if (mounted) Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final match = widget.match;
+    final newMatchId = match.rematchMatchId;
+    if (newMatchId != null && !_switchingMatch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _switchToRematch(newMatchId);
+      });
+    }
+
     final remoteLocal = match.progressFor(widget.uid);
     final waitingForFinalWrite = widget.localCompletedGames >= match.gameCount &&
         (remoteLocal.completedGames < match.gameCount || remoteLocal.completedAt == null);
 
-    if (waitingForFinalWrite) {
-      return const Center(
+    if (waitingForFinalWrite || _switchingMatch) {
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Finalizing result...'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(_switchingMatch ? 'Preparing rematch...' : 'Finalizing result...'),
           ],
         ),
       );
@@ -296,6 +385,8 @@ class _MatchResultViewState extends State<_MatchResultView> {
     final title = won ? 'YOU WIN' : (lost ? 'YOU LOSE' : 'TIE');
     final mine = match.progressFor(widget.uid);
     final opponent = match.opponentProgress(widget.uid);
+    final requested = match.requestedRematch(widget.uid);
+    final opponentRequested = match.playerAId == widget.uid ? match.rematchB : match.rematchA;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -320,9 +411,33 @@ class _MatchResultViewState extends State<_MatchResultView> {
             'Opponent: ${opponent.completedGames}/${match.gameCount}  •  ${opponent.totalScore} pts',
             textAlign: TextAlign.center,
           ),
+          const SizedBox(height: 20),
+          if (requested)
+            Text(
+              opponentRequested ? 'Both players accepted. Preparing match...' : 'Waiting for opponent to accept rematch...',
+              textAlign: TextAlign.center,
+            )
+          else if (opponentRequested)
+            const Text(
+              'Opponent wants a rematch.',
+              textAlign: TextAlign.center,
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
           const Spacer(),
           FilledButton(
-            onPressed: _leaving ? null : _backHome,
+            onPressed: requested || _rematchBusy || _leaving ? null : _requestRematch,
+            child: Text(_rematchBusy ? 'REQUESTING...' : requested ? 'REMATCH REQUESTED' : 'REMATCH'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: _leaving || _rematchBusy ? null : _backHome,
             child: Text(_leaving ? 'LEAVING...' : 'BACK TO HOME'),
           ),
         ],
