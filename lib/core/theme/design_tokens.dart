@@ -3,13 +3,27 @@ import 'package:flutter/material.dart';
 class GameColors {
   const GameColors._();
 
-  static const background = Color(0xFF101214);
-  static const surface = Color(0xFF1A1D20);
-  static const surfaceRaised = Color(0xFF23272B);
-  static const accent = Color(0xFFF0C75E);
-  static const success = Color(0xFF6BD89A);
-  static const danger = Color(0xFFFF6B6B);
-  static const muted = Color(0xFF9AA3AB);
+  // Core competitive palette. Dark navy-charcoal keeps the game calm while
+  // cyan, gold, and rank colors carry the visual energy.
+  static const background = Color(0xFF090E17);
+  static const surface = Color(0xFF111927);
+  static const surfaceRaised = Color(0xFF1A2535);
+  static const surfaceStrong = Color(0xFF233147);
+  static const accent = Color(0xFF44D7F3);
+  static const accentSoft = Color(0xFF14394A);
+  static const success = Color(0xFF50D890);
+  static const danger = Color(0xFFFF6D78);
+  static const warning = Color(0xFFFFB84D);
+  static const rewardGold = Color(0xFFFFD166);
+  static const muted = Color(0xFF91A0B4);
+  static const textStrong = Color(0xFFF5F8FC);
+
+  static const rankBronze = Color(0xFFC38354);
+  static const rankSilver = Color(0xFFBCC8D6);
+  static const rankGold = Color(0xFFFFCC5C);
+  static const rankPlatinum = Color(0xFF61D5D0);
+  static const rankDiamond = Color(0xFF6AA8FF);
+  static const rankMaster = Color(0xFFC37BFF);
 }
 
 class GameSpacing {
@@ -20,19 +34,22 @@ class GameSpacing {
   static const double md = 16;
   static const double lg = 24;
   static const double xl = 32;
+  static const double xxl = 44;
 }
 
 class GameRadii {
   const GameRadii._();
 
-  static const double button = 12;
-  static const double card = 14;
-  static const double panel = 18;
+  static const double button = 14;
+  static const double card = 16;
+  static const double panel = 22;
+  static const double pill = 999;
 }
 
 class GameDurations {
   const GameDurations._();
 
-  static const fast = Duration(milliseconds: 120);
-  static const normal = Duration(milliseconds: 220);
+  static const fast = Duration(milliseconds: 110);
+  static const normal = Duration(milliseconds: 200);
+  static const reveal = Duration(milliseconds: 700);
 }
