@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../minigames/domain/mini_game_contract.dart';
 import '../../minigames/presentation/mini_game_host.dart';
@@ -10,6 +9,7 @@ import '../data/match_backend.dart';
 import '../domain/match_outcome.dart';
 import '../domain/match_runtime.dart';
 import '../domain/match_session.dart';
+import '../domain/match_settlement.dart';
 
 class MatchPlayScreen extends StatefulWidget {
   const MatchPlayScreen({
@@ -366,12 +366,13 @@ class _MatchResultViewState extends State<_MatchResultView> {
       );
     }
 
-    final bothCompleted = match.progressA.completedGames >= match.gameCount &&
-        match.progressB.completedGames >= match.gameCount;
-    final start = match.countdownStartedAt?.add(const Duration(seconds: 3));
-    final deadline = start?.add(AppConfig.matchDuration);
-    final timerEnded = deadline != null && !DateTime.now().isBefore(deadline);
-    final settled = bothCompleted || timerEnded;
+    final settled = MatchSettlement.isSettled(
+      playerA: match.progressA,
+      playerB: match.progressB,
+      gameCount: match.gameCount,
+      countdownStartedAt: match.countdownStartedAt,
+      now: DateTime.now(),
+    );
 
     if (!settled) {
       final opponent = match.opponentProgress(widget.uid);
