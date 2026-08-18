@@ -35,8 +35,8 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Compile Firestore rules
-        run: npx --yes firebase-tools@15.25.1 emulators:exec --only firestore --project demo-3minutes "echo Firestore rules compiled"
+      - name: Validate Firestore rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --only firestore --project demo-3minutes "npm run --prefix functions test:rules"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
