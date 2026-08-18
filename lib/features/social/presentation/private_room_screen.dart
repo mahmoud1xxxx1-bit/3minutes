@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../match/data/social_match_backend.dart';
+import '../../match/domain/match_progress.dart';
+import '../../match/domain/multiplayer_match.dart';
+import '../../match/presentation/social_match_play_screen.dart';
 import '../../profile/domain/player_profile.dart';
 import '../data/room_backend.dart';
 import '../data/social_backend.dart';
@@ -16,12 +20,14 @@ class PrivateRoomScreen extends StatefulWidget {
     required this.profile,
     required this.roomBackend,
     required this.socialBackend,
+    required this.socialMatchBackend,
   });
 
   final PrivateRoom initialRoom;
   final PlayerProfile profile;
   final RoomBackend roomBackend;
   final SocialBackend socialBackend;
+  final SocialMatchBackend socialMatchBackend;
 
   @override
   State<PrivateRoomScreen> createState() => _PrivateRoomScreenState();
@@ -29,6 +35,7 @@ class PrivateRoomScreen extends StatefulWidget {
 
 class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
   bool _busy = false;
+  bool _openedMatch = false;
   String? _error;
 
   Future<void> _copyInvite(PrivateRoom room) async {
@@ -60,12 +67,34 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
   }
 
   Future<void> _start(PrivateRoom room) async {
-    if (_busy || !room.canStart) return;
+    if (_busy || !room.canStart || room.hostUid != widget.profile.uid) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
+      final participants = <MatchParticipant>[];
+      for (final uid in room.participantUids) {
+        final summary = await widget.socialBackend.loadPlayerSummary(uid);
+        participants.add(
+          MatchParticipant(
+            uid: uid,
+            displayName: summary?.displayName ??
+                (uid == widget.profile.uid ? widget.profile.gameName : 'Player'),
+            avatarId: summary?.avatarId,
+            isReady: true,
+            progress: const MatchProgress.empty(),
+          ),
+        );
+      }
+
+      await widget.socialMatchBackend.createMatch(
+        roomId: room.id,
+        roomCode: room.code,
+        hostUid: room.hostUid,
+        maxPlayers: room.maxPlayers,
+        participants: participants,
+      );
       await widget.roomBackend.startRoom(
         roomId: room.id,
         hostUid: widget.profile.uid,
@@ -75,6 +104,20 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _openMatch(String matchId) async {
+    if (_openedMatch || !mounted) return;
+    _openedMatch = true;
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => SocialMatchPlayScreen(
+          matchId: matchId,
+          uid: widget.profile.uid,
+          matchBackend: widget.socialMatchBackend,
+        ),
+      ),
+    );
   }
 
   Future<void> _leave(PrivateRoom room) async {
@@ -113,6 +156,14 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
             appBar: AppBar(title: Text(copy.privateRoom)),
             body: Center(child: Text(copy.roomNotFound)),
           );
+        }
+
+        if ((room.status == PrivateRoomStatus.countdown ||
+                room.status == PrivateRoomStatus.playing) &&
+            !_openedMatch) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _openMatch(room.id);
+          });
         }
 
         if (room.status == PrivateRoomStatus.cancelled) {
@@ -250,8 +301,7 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                       ),
                     ],
                   ],
-                ] else if (room.status == PrivateRoomStatus.countdown ||
-                    room.status == PrivateRoomStatus.playing) ...[
+                ] else ...[
                   Container(
                     padding: const EdgeInsets.all(GameSpacing.lg),
                     decoration: BoxDecoration(
@@ -274,11 +324,12 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                   ),
                 ],
                 const SizedBox(height: GameSpacing.sm),
-                TextButton.icon(
-                  onPressed: _busy ? null : () => _leave(room),
-                  icon: const Icon(Icons.logout_rounded),
-                  label: Text(isHost ? copy.cancelRoom : copy.leaveRoom),
-                ),
+                if (room.status == PrivateRoomStatus.lobby)
+                  TextButton.icon(
+                    onPressed: _busy ? null : () => _leave(room),
+                    icon: const Icon(Icons.logout_rounded),
+                    label: Text(isHost ? copy.cancelRoom : copy.leaveRoom),
+                  ),
               ],
             ),
           ),
