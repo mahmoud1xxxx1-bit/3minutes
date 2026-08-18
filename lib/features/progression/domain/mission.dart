@@ -52,7 +52,10 @@ class MissionPolicy {
     required int delta,
   }) {
     if (delta <= 0 || current.completed) return current;
-    final nextProgress = (current.progress + delta).clamp(0, definition.target);
+    final rawProgress = current.progress + delta;
+    final nextProgress = rawProgress > definition.target
+        ? definition.target
+        : rawProgress;
     return PlayerMissionState(
       missionId: current.missionId,
       windowId: current.windowId,
