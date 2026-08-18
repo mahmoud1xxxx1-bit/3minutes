@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../competition/data/competition_backend.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../home/presentation/home_screen.dart';
@@ -40,12 +42,14 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return StreamBuilder<User?>(
       stream: widget.authService.authStateChanges(),
       initialData: widget.authService.currentUser,
       builder: (context, authSnapshot) {
         if (authSnapshot.connectionState == ConnectionState.waiting) {
-          return const _LoadingScreen(message: 'Signing you in...');
+          return _LoadingScreen(message: l10n.signingYouIn);
         }
 
         final user = authSnapshot.data;
@@ -65,7 +69,7 @@ class _AuthGateState extends State<AuthGate> {
             }
 
             if (profileSnapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingScreen(message: 'Loading your profile...');
+              return _LoadingScreen(message: l10n.loadingProfile);
             }
 
             final profile = profileSnapshot.data;
@@ -101,13 +105,26 @@ class _LoadingScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(message),
-            ],
+          child: Container(
+            margin: const EdgeInsets.all(GameSpacing.lg),
+            padding: const EdgeInsets.all(GameSpacing.lg),
+            decoration: BoxDecoration(
+              color: GameColors.surface,
+              borderRadius: BorderRadius.circular(GameRadii.panel),
+              border: Border.all(color: GameColors.surfaceStrong),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: GameSpacing.md),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -126,38 +143,55 @@ class _ProfileErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.cloud_off, size: 44),
-                const SizedBox(height: 12),
-                const Text(
-                  'We could not load your player profile.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Check your internet connection and try again.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 18),
-                FilledButton.icon(
-                  onPressed: onRetry,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Try again'),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: onSignOut,
-                  child: const Text('Sign out'),
-                ),
-              ],
+            padding: const EdgeInsets.all(GameSpacing.lg),
+            child: Container(
+              padding: const EdgeInsets.all(GameSpacing.lg),
+              decoration: BoxDecoration(
+                color: GameColors.surface,
+                borderRadius: BorderRadius.circular(GameRadii.panel),
+                border: Border.all(color: GameColors.surfaceStrong),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.cloud_off_rounded,
+                    size: 50,
+                    color: GameColors.warning,
+                  ),
+                  const SizedBox(height: GameSpacing.md),
+                  Text(
+                    l10n.profileLoadFailed,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: GameSpacing.xs),
+                  Text(
+                    l10n.checkConnection,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: GameColors.muted),
+                  ),
+                  const SizedBox(height: GameSpacing.lg),
+                  FilledButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(l10n.tryAgain),
+                  ),
+                  const SizedBox(height: GameSpacing.sm),
+                  TextButton(
+                    onPressed: onSignOut,
+                    child: Text(l10n.signOut),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
