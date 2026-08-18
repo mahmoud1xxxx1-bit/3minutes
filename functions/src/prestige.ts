@@ -5,7 +5,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { cosmeticById } from "./catalog.js";
 import { COLLECTIONS, intValue } from "./firestore.js";
-import type { RankTier } from "./policy.js";
+import { tierFor, type RankTier } from "./policy.js";
 
 const CALLABLE_OPTIONS = {
   region: "me-central2",
@@ -43,15 +43,16 @@ function requireRankTier(value: unknown): RankTier {
   return value as RankTier;
 }
 
-function storedPeakTier(value: unknown): RankTier {
+function storedPeakTier(value: unknown, rankPoints: number): RankTier {
   return typeof value === "string" && RANK_TIERS.includes(value as RankTier)
     ? (value as RankTier)
-    : "bronze";
+    : tierFor(Math.max(0, rankPoints));
 }
 
 // Historical rank emblems are earned through Ranked play, never purchased.
 // The server verifies the requested showcase tier is no higher than the
-// lifetime peak tier written by ranked settlement authority.
+// lifetime peak tier written by ranked settlement authority. Existing players
+// created before peakRankTier existed fall back to their current server RP.
 export const selectRankShowcase = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const requestedTier = requireRankTier(request.data?.rankTier);
@@ -63,7 +64,7 @@ export const selectRankShowcase = onCall(CALLABLE_OPTIONS, async (request) => {
     throw new HttpsError("failed-precondition", "Player profile does not exist.");
   }
 
-  const peakTier = storedPeakTier(user.peakRankTier);
+  const peakTier = storedPeakTier(user.peakRankTier, intValue(user.rankPoints));
   if (RANK_TIERS.indexOf(requestedTier) > RANK_TIERS.indexOf(peakTier)) {
     throw new HttpsError(
       "failed-precondition",
@@ -72,6 +73,7 @@ export const selectRankShowcase = onCall(CALLABLE_OPTIONS, async (request) => {
   }
 
   await userRef.update({
+    peakRankTier: peakTier,
     showcaseRankTier: requestedTier,
     updatedAt: FieldValue.serverTimestamp(),
   });
