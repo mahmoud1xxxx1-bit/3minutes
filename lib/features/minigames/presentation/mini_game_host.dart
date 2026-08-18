@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../domain/mini_game_contract.dart';
+import 'mini_game_copy.dart';
 
 int _atLeast(int minimum, int value) => value < minimum ? minimum : value;
 
@@ -60,7 +61,7 @@ class MiniGameHost extends StatelessWidget {
           onComplete: onComplete,
         );
       default:
-        return Center(child: Text('Unknown mini-game: ${game.id}'));
+        return Center(child: Text(MiniGameCopy.fromContext(context).title(game.id)));
     }
   }
 }
@@ -95,7 +96,8 @@ class _ChoiceChallenge extends StatefulWidget {
 
 class _ChoiceChallengeState extends State<_ChoiceChallenge> {
   late final Stopwatch _watch;
-  late final _ChoiceSpec _spec;
+  _ChoiceSpec? _spec;
+  String? _languageCode;
   int _mistakes = 0;
   bool _done = false;
 
@@ -103,10 +105,23 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
   void initState() {
     super.initState();
     _watch = Stopwatch()..start();
-    _spec = _buildSpec(widget.gameId, widget.seed);
   }
 
-  _ChoiceSpec _buildSpec(String id, int seed) {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languageCode = Localizations.localeOf(context).languageCode;
+    if (_spec == null || _languageCode != languageCode) {
+      _languageCode = languageCode;
+      _spec = _buildSpec(
+        widget.gameId,
+        widget.seed,
+        MiniGameCopy.fromContext(context),
+      );
+    }
+  }
+
+  _ChoiceSpec _buildSpec(String id, int seed, MiniGameCopy copy) {
     final random = Random(seed);
     switch (id) {
       case 'quick_math':
@@ -121,11 +136,11 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
           correctIndex: options.indexOf(answer),
         );
       case 'color_match':
-        const colors = ['RED', 'BLUE', 'GREEN', 'YELLOW'];
+        final colors = copy.colors;
         final answer = colors[random.nextInt(colors.length)];
         final options = List<String>.of(colors)..shuffle(random);
         return _ChoiceSpec(
-          prompt: 'Tap $answer',
+          prompt: copy.tapColor(answer),
           options: options,
           correctIndex: options.indexOf(answer),
         );
@@ -140,7 +155,7 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
           (value) => options.where((item) => item == value).length == 1,
         );
         return _ChoiceSpec(
-          prompt: 'Find the odd one',
+          prompt: copy.findOdd,
           options: options,
           correctIndex: options.indexOf(odd),
         );
@@ -149,7 +164,7 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
         final options = <int>{count, count - 1, count + 1, count + 2}.toList();
         options.shuffle(random);
         return _ChoiceSpec(
-          prompt: '${List.filled(count, '●').join('  ')}\nHow many?',
+          prompt: '${List.filled(count, '●').join('  ')}\n${copy.howMany}',
           options: options.map((value) => '$value').toList(),
           correctIndex: options.indexOf(count),
         );
@@ -164,7 +179,7 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
         final target = row.first;
         final options = row.sublist(1);
         return _ChoiceSpec(
-          prompt: 'Match $target',
+          prompt: copy.matchSymbol(target),
           options: options,
           correctIndex: options.indexOf(target),
         );
@@ -172,8 +187,9 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
   }
 
   void _pick(int index) {
-    if (_done) return;
-    if (index != _spec.correctIndex) {
+    final spec = _spec;
+    if (_done || spec == null) return;
+    if (index != spec.correctIndex) {
       setState(() => _mistakes++);
       return;
     }
@@ -193,15 +209,18 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
 
   @override
   Widget build(BuildContext context) {
+    final spec = _spec;
+    if (spec == null) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Spacer(),
         Text(
-          _spec.prompt,
+          spec.prompt,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
+                fontWeight: FontWeight.w900,
               ),
         ),
         const SizedBox(height: 28),
@@ -214,12 +233,12 @@ class _ChoiceChallengeState extends State<_ChoiceChallenge> {
             crossAxisSpacing: 12,
             childAspectRatio: 2.2,
           ),
-          itemCount: _spec.options.length,
+          itemCount: spec.options.length,
           itemBuilder: (context, index) {
             return FilledButton(
               onPressed: () => _pick(index),
               child: Text(
-                _spec.options[index],
+                spec.options[index],
                 style: const TextStyle(fontSize: 22),
               ),
             );
@@ -278,12 +297,13 @@ class _TapTargetChallengeState extends State<_TapTargetChallenge> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = MiniGameCopy.fromContext(context);
     return Stack(
       children: [
-        const Center(
+        Center(
           child: Text(
-            'Tap the target',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            copy.tapTarget,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
           ),
         ),
         Align(
@@ -362,13 +382,17 @@ class _SequenceChallengeState extends State<_SequenceChallenge> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = MiniGameCopy.fromContext(context);
     final memory = widget.gameId == 'memory_flash';
     return Column(
       children: [
         const Spacer(),
         Text(
-          memory ? 'Remember and tap 1 → 5' : 'Tap 1 → 5',
-          style: Theme.of(context).textTheme.headlineSmall,
+          memory ? copy.memoryInstruction : copy.orderInstruction,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
         ),
         const SizedBox(height: 28),
         Wrap(
@@ -455,6 +479,7 @@ class _SwipeChallengeState extends State<_SwipeChallenge> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = MiniGameCopy.fromContext(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onPanUpdate: (details) => _delta += details.delta,
@@ -463,7 +488,7 @@ class _SwipeChallengeState extends State<_SwipeChallenge> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Swipe in this direction'),
+            Text(copy.swipeDirection),
             const SizedBox(height: 20),
             Icon(_icons[_direction], size: 100),
           ],
@@ -539,12 +564,13 @@ class _ReactionChallengeState extends State<_ReactionChallenge> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = MiniGameCopy.fromContext(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _tap,
       child: Center(
         child: Text(
-          _go ? 'TAP!' : 'Wait...',
+          _go ? copy.tapNow : copy.wait,
           style: Theme.of(context).textTheme.displayMedium?.copyWith(
                 fontWeight: FontWeight.w900,
               ),
