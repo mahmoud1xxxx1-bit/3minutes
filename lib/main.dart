@@ -3,11 +3,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/competition/data/competition_backend.dart';
 import 'features/competition/data/firestore_competition_backend.dart';
+import 'features/economy/data/cloud_functions_economy_backend.dart';
 import 'features/economy/data/economy_backend.dart';
 import 'features/economy/data/firestore_economy_backend.dart';
 import 'features/match/data/firestore_match_backend.dart';
@@ -33,6 +35,10 @@ Future<void> main() async {
 
   final authService = AuthService();
   await authService.initialize();
+  final EconomyBackend economyBackend =
+      AppConfig.backendPhase == BackendPhase.blaze
+          ? CloudFunctionsEconomyBackend()
+          : FirestoreEconomyBackend();
 
   runApp(
     ThreeMinutesApp(
@@ -41,7 +47,7 @@ Future<void> main() async {
       matchBackend: FirestoreMatchBackend(),
       socialMatchBackend: FirestoreSocialMatchBackend(),
       competitionBackend: FirestoreCompetitionBackend(),
-      economyBackend: FirestoreEconomyBackend(),
+      economyBackend: economyBackend,
       progressionBackend: FirestoreProgressionBackend(),
       socialBackend: FirestoreSocialBackend(),
       roomBackend: FirestoreRoomBackend(),
