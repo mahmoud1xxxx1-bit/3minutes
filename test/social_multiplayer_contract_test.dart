@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:three_minutes/features/match/domain/match_progress.dart';
-import 'package:three_minutes/features/match/domain/multiplayer_match.dart';
-import 'package:three_minutes/features/match/domain/multiplayer_result.dart';
-import 'package:three_minutes/features/social/domain/party.dart';
-import 'package:three_minutes/features/social/domain/private_room.dart';
+import 'package:game/features/match/domain/match_progress.dart';
+import 'package:game/features/match/domain/multiplayer_match.dart';
+import 'package:game/features/match/domain/multiplayer_result.dart';
+import 'package:game/features/social/domain/party.dart';
+import 'package:game/features/social/domain/private_room.dart';
 
 void main() {
   MatchParticipant player(
