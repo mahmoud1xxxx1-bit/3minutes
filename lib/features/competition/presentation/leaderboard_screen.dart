@@ -405,7 +405,11 @@ class _LeaderboardRow extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 4),
-                RankBadge(tier: entry.tier, compact: true),
+                RankBadge(
+                  tier: entry.tier,
+                  compact: true,
+                  legendarySeasons: entry.legendarySeasons,
+                ),
               ],
             ),
           ),
