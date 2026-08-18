@@ -1,3 +1,9 @@
+enum PlayerNameIssue {
+  invalidLength,
+  missingLetterOrNumber,
+  unsupportedCharacters,
+}
+
 class PlayerNameRules {
   const PlayerNameRules._();
 
@@ -8,23 +14,39 @@ class PlayerNameRules {
     return value.trim().replaceAll(RegExp(r'\s+'), ' ');
   }
 
-  static String validate(String value) {
+  static PlayerNameIssue? issueFor(String value) {
     final normalized = normalize(value);
 
     if (normalized.length < minLength || normalized.length > maxLength) {
-      throw ArgumentError(
-        'Player name must be between $minLength and $maxLength characters.',
-      );
+      return PlayerNameIssue.invalidLength;
     }
 
     if (!RegExp(r'[A-Za-z0-9\u0600-\u06FF]').hasMatch(normalized)) {
-      throw ArgumentError('Player name must include at least one letter or number.');
+      return PlayerNameIssue.missingLetterOrNumber;
     }
 
     if (RegExp(r'[\u0000-\u001F\u007F]').hasMatch(normalized)) {
-      throw ArgumentError('Player name contains unsupported characters.');
+      return PlayerNameIssue.unsupportedCharacters;
     }
 
-    return normalized;
+    return null;
+  }
+
+  static String validate(String value) {
+    final normalized = normalize(value);
+    final issue = issueFor(normalized);
+
+    switch (issue) {
+      case PlayerNameIssue.invalidLength:
+        throw ArgumentError(
+          'Player name must be between $minLength and $maxLength characters.',
+        );
+      case PlayerNameIssue.missingLetterOrNumber:
+        throw ArgumentError('Player name must include at least one letter or number.');
+      case PlayerNameIssue.unsupportedCharacters:
+        throw ArgumentError('Player name contains unsupported characters.');
+      case null:
+        return normalized;
+    }
   }
 }
