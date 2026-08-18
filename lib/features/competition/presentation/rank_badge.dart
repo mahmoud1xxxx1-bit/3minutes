@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../domain/rank_tier.dart';
+import 'rank_emblem.dart';
 
 class RankBadge extends StatelessWidget {
   const RankBadge({
@@ -13,15 +14,6 @@ class RankBadge extends StatelessWidget {
 
   final RankTier tier;
   final bool compact;
-
-  IconData get _icon => switch (tier) {
-        RankTier.bronze => Icons.shield_outlined,
-        RankTier.silver => Icons.shield,
-        RankTier.gold => Icons.workspace_premium_outlined,
-        RankTier.platinum => Icons.hexagon_outlined,
-        RankTier.diamond => Icons.diamond_outlined,
-        RankTier.master => Icons.military_tech_outlined,
-      };
 
   Color get _color => switch (tier) {
         RankTier.bronze => GameColors.rankBronze,
@@ -47,17 +39,19 @@ class RankBadge extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 9 : 12,
-        vertical: compact ? 5 : 7,
+      padding: EdgeInsetsDirectional.fromSTEB(
+        compact ? 7 : 9,
+        compact ? 4 : 5,
+        compact ? 10 : 12,
+        compact ? 4 : 5,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.13),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(GameRadii.pill),
-        border: Border.all(color: color.withValues(alpha: 0.55)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.08),
+            color: color.withValues(alpha: 0.07),
             blurRadius: 12,
           ),
         ],
@@ -65,7 +59,7 @@ class RankBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_icon, size: compact ? 14 : 18, color: color),
+          RankEmblem(tier: tier, size: compact ? 22 : 28),
           const SizedBox(width: GameSpacing.xs),
           Text(
             _label(l10n),
