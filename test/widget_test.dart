@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/core/config/app_config.dart';
 import 'package:game/features/competition/domain/rank_tier.dart';
+import 'package:game/features/competition/domain/ranked_reward_policy.dart';
 import 'package:game/features/competition/domain/season.dart';
+import 'package:game/features/competition/domain/season_reward_policy.dart';
+import 'package:game/features/economy/domain/coin_transaction.dart';
 import 'package:game/features/match/domain/match_outcome.dart';
 import 'package:game/features/match/domain/match_progress.dart';
 import 'package:game/features/match/domain/match_runtime.dart';
@@ -230,5 +233,48 @@ void main() {
     expect(ProgressionPolicy.xpRequiredForLevel(2), 150);
     expect(ProgressionPolicy.xpRequiredForLevel(10), 550);
     expect(ProgressionPolicy.xpRequiredForLevel(0), 100);
+  });
+
+  test('ranked rewards are centralized and rp never becomes negative', () {
+    final win = RankedRewardPolicy.rewardFor(RankedResult.win);
+    final loss = RankedRewardPolicy.rewardFor(RankedResult.loss);
+    final tie = RankedRewardPolicy.rewardFor(RankedResult.tie);
+
+    expect(win.rpDelta, greaterThan(0));
+    expect(win.xp, greaterThan(loss.xp));
+    expect(win.coins, greaterThan(loss.coins));
+    expect(tie.rpDelta, greaterThanOrEqualTo(0));
+    expect(RankedRewardPolicy.applyRp(currentRp: 5, delta: loss.rpDelta), 0);
+  });
+
+  test('season stars are persistent cumulative identity rewards', () {
+    expect(SeasonRewardPolicy.starsForPeakTier(RankTier.bronze), 0);
+    expect(SeasonRewardPolicy.starsForPeakTier(RankTier.master), 8);
+    expect(
+      SeasonRewardPolicy.nextPersistentStars(
+        currentStars: 12,
+        peakTier: RankTier.diamond,
+      ),
+      17,
+    );
+  });
+
+  test('xp application can cross multiple levels safely', () {
+    final next = ProgressionPolicy.applyXp(
+      current: const PlayerProgression(level: 1, xp: 90),
+      earnedXp: 220,
+    );
+
+    expect(next.level, 3);
+    expect(next.xp, 60);
+    expect(ProgressionPolicy.progressFraction(next), closeTo(0.3, 0.0001));
+  });
+
+  test('coin balance rejects overspending', () {
+    expect(CoinBalancePolicy.apply(balance: 100, delta: -40), 60);
+    expect(
+      () => CoinBalancePolicy.apply(balance: 20, delta: -25),
+      throwsStateError,
+    );
   });
 }
