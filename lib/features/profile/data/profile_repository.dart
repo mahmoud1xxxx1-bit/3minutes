@@ -41,6 +41,20 @@ class ProfileRepository {
     });
   }
 
+  Future<void> updatePublicProfile({
+    required String uid,
+    required String gameName,
+    required String avatarId,
+  }) async {
+    final cleanedName = _validateGameName(gameName);
+
+    await _users.doc(uid).update({
+      'gameName': cleanedName,
+      'avatarId': avatarId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   String _validateGameName(String value) {
     final cleaned = value.trim();
     if (cleaned.length < 3 || cleaned.length > 20) {
