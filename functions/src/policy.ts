@@ -4,7 +4,9 @@ export type RankTier =
   | "gold"
   | "platinum"
   | "diamond"
-  | "master";
+  | "master"
+  | "grandmaster"
+  | "legend";
 
 export type RankedResult = "win" | "loss" | "tie";
 
@@ -34,10 +36,12 @@ export const RANK_BANDS: ReadonlyArray<{
 }> = [
   { tier: "bronze", minimumRp: 0 },
   { tier: "silver", minimumRp: 500 },
-  { tier: "gold", minimumRp: 1000 },
-  { tier: "platinum", minimumRp: 1600 },
-  { tier: "diamond", minimumRp: 2300 },
-  { tier: "master", minimumRp: 3200 },
+  { tier: "gold", minimumRp: 1200 },
+  { tier: "platinum", minimumRp: 2200 },
+  { tier: "diamond", minimumRp: 3500 },
+  { tier: "master", minimumRp: 5000 },
+  { tier: "grandmaster", minimumRp: 7000 },
+  { tier: "legend", minimumRp: 10000 },
 ];
 
 const REWARDS: Record<RankedResult, RankedReward> = {
@@ -47,21 +51,25 @@ const REWARDS: Record<RankedResult, RankedReward> = {
 };
 
 const SEASON_STARS: Record<RankTier, number> = {
-  bronze: 0,
-  silver: 1,
-  gold: 2,
-  platinum: 3,
-  diamond: 5,
-  master: 8,
+  bronze: 1,
+  silver: 2,
+  gold: 4,
+  platinum: 7,
+  diamond: 11,
+  master: 16,
+  grandmaster: 24,
+  legend: 35,
 };
 
 const SEASON_RESET_RP: Record<RankTier, number> = {
   bronze: 0,
   silver: 250,
   gold: 500,
-  platinum: 800,
-  diamond: 1100,
-  master: 1400,
+  platinum: 900,
+  diamond: 1400,
+  master: 2200,
+  grandmaster: 3500,
+  legend: 5000,
 };
 
 export function rewardFor(result: RankedResult): RankedReward {
@@ -144,14 +152,14 @@ export function compareMatch(
       : "playerB";
   }
 
+  if (playerA.totalScore !== playerB.totalScore) {
+    return playerA.totalScore > playerB.totalScore ? "playerA" : "playerB";
+  }
+
   const aAccuracy = averageAccuracy(playerA);
   const bAccuracy = averageAccuracy(playerB);
   if (aAccuracy !== bAccuracy) {
     return aAccuracy > bAccuracy ? "playerA" : "playerB";
-  }
-
-  if (playerA.totalScore !== playerB.totalScore) {
-    return playerA.totalScore > playerB.totalScore ? "playerA" : "playerB";
   }
 
   if (playerA.mistakes !== playerB.mistakes) {
