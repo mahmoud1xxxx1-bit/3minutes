@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/minigames/data/game_registry.dart';
 import 'package:game/features/minigames/presentation/mini_game_copy.dart';
@@ -13,6 +14,11 @@ void main() {
       MaterialApp(
         locale: locale,
         supportedLocales: const [Locale('en'), Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: Builder(
           builder: (context) {
             final copy = MiniGameCopy.fromContext(context);
