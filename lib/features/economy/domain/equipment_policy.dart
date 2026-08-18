@@ -20,7 +20,11 @@ class EquipmentPolicy {
 
     return PlayerInventory(
       coins: inventory.coins,
+      prestigeStars: inventory.prestigeStars,
+      premiumBalance: inventory.premiumBalance,
       ownedCosmeticIds: inventory.ownedCosmeticIds,
+      equippedAvatarId:
+          item.slot == CosmeticSlot.avatar ? item.id : inventory.equippedAvatarId,
       equippedAvatarFrameId: item.slot == CosmeticSlot.avatarFrame
           ? item.id
           : inventory.equippedAvatarFrameId,
@@ -32,6 +36,20 @@ class EquipmentPolicy {
       equippedNameStyleId: item.slot == CosmeticSlot.nameStyle
           ? item.id
           : inventory.equippedNameStyleId,
+      equippedMatchIntroId: item.slot == CosmeticSlot.matchIntro
+          ? item.id
+          : inventory.equippedMatchIntroId,
+      equippedVictoryEffectId: item.slot == CosmeticSlot.victoryEffect
+          ? item.id
+          : inventory.equippedVictoryEffectId,
+      equippedRankAuraId: item.slot == CosmeticSlot.rankAura
+          ? item.id
+          : inventory.equippedRankAuraId,
+      equippedEmoteId:
+          item.slot == CosmeticSlot.emote ? item.id : inventory.equippedEmoteId,
+      equippedRoomThemeId: item.slot == CosmeticSlot.roomTheme
+          ? item.id
+          : inventory.equippedRoomThemeId,
     );
   }
 }
