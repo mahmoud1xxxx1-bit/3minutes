@@ -48,16 +48,24 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
   }
 
   MatchRuntime? _ensureRuntime(MatchSession match) {
-    if (_runtime != null) return _runtime;
     final countdownStartedAt = match.countdownStartedAt;
     if (countdownStartedAt == null) return null;
 
-    _runtime = MatchRuntime(
-      seed: match.seed,
-      startedAt: countdownStartedAt.add(const Duration(seconds: 3)),
-      gameCount: match.gameCount,
-      initialProgress: match.progressFor(widget.uid),
-    );
+    final savedProgress = match.progressFor(widget.uid);
+    final current = _runtime;
+    final serverIsAhead = current != null &&
+        (savedProgress.completedGames > current.progress.completedGames ||
+            savedProgress.totalScore > current.progress.totalScore ||
+            savedProgress.elapsedMs > current.progress.elapsedMs);
+
+    if (current == null || serverIsAhead) {
+      _runtime = MatchRuntime(
+        seed: match.seed,
+        startedAt: countdownStartedAt.add(const Duration(seconds: 3)),
+        gameCount: match.gameCount,
+        initialProgress: savedProgress,
+      );
+    }
     return _runtime;
   }
 
