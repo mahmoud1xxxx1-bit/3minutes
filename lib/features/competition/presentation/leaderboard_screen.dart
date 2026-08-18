@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../domain/rank_tier.dart';
 import '../domain/season.dart';
@@ -10,6 +11,8 @@ class LeaderboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final liveEnabled = AppConfig.liveLeaderboardEnabled;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Leaderboard')),
       body: SafeArea(
@@ -24,7 +27,11 @@ class LeaderboardScreen extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calendar_month_outlined),
+                        Icon(
+                          liveEnabled
+                              ? Icons.leaderboard_outlined
+                              : Icons.calendar_month_outlined,
+                        ),
                         const SizedBox(width: GameSpacing.sm),
                         Expanded(
                           child: Text(
@@ -43,9 +50,11 @@ class LeaderboardScreen extends StatelessWidget {
                       'Your highest tier in the season awards permanent stars. Stars stay on your identity and never affect gameplay.',
                     ),
                     const SizedBox(height: GameSpacing.sm),
-                    const Text(
-                      'Live player standings activate with the secure competition backend so RP cannot be forged by a modified client.',
-                      style: TextStyle(color: GameColors.muted),
+                    Text(
+                      liveEnabled
+                          ? 'Live standings are protected by the secure competition backend.'
+                          : 'Live player standings activate with the secure competition backend so RP cannot be forged by a modified client.',
+                      style: const TextStyle(color: GameColors.muted),
                     ),
                   ],
                 ),
