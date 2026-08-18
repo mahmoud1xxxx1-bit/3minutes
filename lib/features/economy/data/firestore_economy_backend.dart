@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/firebase/server_collections.dart';
 import '../domain/cosmetic_item.dart';
 import '../domain/purchase_receipt.dart';
 import 'cosmetic_catalog.dart';
@@ -13,7 +14,11 @@ class FirestoreEconomyBackend implements EconomyBackend {
 
   @override
   Stream<PlayerInventory?> watchInventory(String uid) {
-    return _firestore.collection('inventories').doc(uid).snapshots().map((snapshot) {
+    return _firestore
+        .collection(ServerCollections.inventories)
+        .doc(uid)
+        .snapshots()
+        .map((snapshot) {
       final data = snapshot.data();
       if (!snapshot.exists || data == null) return null;
 
