@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../minigames/data/game_registry.dart';
 import '../data/match_backend.dart';
 import '../domain/match_session.dart';
 import 'match_play_screen.dart';
@@ -102,6 +103,23 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     }
   }
 
+  Future<void> _clearLegacyMatch() async {
+    if (_cancelBusy) return;
+    setState(() {
+      _cancelBusy = true;
+      _error = null;
+    });
+    try {
+      await widget.matchBackend.clearTicket(widget.uid);
+      if (mounted) Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _error = 'Could not remove the old match. Try again.');
+    } finally {
+      if (mounted) setState(() => _cancelBusy = false);
+    }
+  }
+
   int? _countdown(MatchSession match) {
     final startedAt = match.countdownStartedAt;
     if (startedAt == null) return null;
@@ -145,7 +163,8 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
           return Scaffold(
             appBar: AppBar(
               title: const Text('Match room'),
-              leading: match?.status == MatchStatus.waitingReady
+              leading: match?.status == MatchStatus.waitingReady &&
+                      match?.registryVersion == GameRegistry.version
                   ? IconButton(
                       tooltip: 'Leave match',
                       onPressed: _cancelBusy ? null : _cancelMatch,
@@ -180,6 +199,44 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     }
     if (match == null) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (match.registryVersion != GameRegistry.version) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.system_update_alt, size: 52),
+              const SizedBox(height: 16),
+              Text(
+                'This saved match uses an older game set.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Remove the old match ticket to return home and start a new match with the current game version.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: _cancelBusy ? null : _clearLegacyMatch,
+                child: Text(_cancelBusy ? 'REMOVING...' : 'REMOVE OLD MATCH'),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
     }
 
     if (match.status == MatchStatus.cancelled) {
