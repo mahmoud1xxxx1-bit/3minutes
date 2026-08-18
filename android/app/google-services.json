@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "492486855771-m1t49nbmrsq0f0ac97jic73q7p3i4v9g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.threeminutes.game",
+            "certificate_hash": "9d0cae8acee49746eec81f16e6b1f17a3365b9ea"
+          }
+        },
+        {
           "client_id": "492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com",
           "client_type": 3
         }
