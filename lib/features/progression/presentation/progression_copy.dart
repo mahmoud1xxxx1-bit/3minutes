@@ -23,6 +23,15 @@ class ProgressionCopy {
   String get reward => isArabic ? 'المكافأة' : 'Reward';
   String get coins => isArabic ? 'كوينز' : 'Coins';
   String get seasonXp => isArabic ? 'خبرة الموسم' : 'Season XP';
+  String get claim => isArabic ? 'استلام' : 'Claim';
+  String get claimed => isArabic ? 'تم الاستلام' : 'Claimed';
+  String get rewardClaimed => isArabic ? 'تم استلام المكافأة' : 'Reward claimed';
+  String get rewardUnavailable => isArabic
+      ? 'ستتاح المطالبة بعد تفعيل خادم المكافآت.'
+      : 'Reward claiming becomes available when the reward server is enabled.';
+  String get premiumPassLocked => isArabic
+      ? 'المسار المميز غير مفعل لهذا الموسم.'
+      : 'Premium track is not unlocked for this season.';
   String get serverProtected => isArabic
       ? 'التقدم والمكافآت محمية من الخادم ولا يمكن للهاتف منحها لنفسه.'
       : 'Progress and rewards are server protected and cannot be self-awarded by the client.';
