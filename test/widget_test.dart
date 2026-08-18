@@ -98,6 +98,28 @@ void main() {
     );
   });
 
+  test('reconnect restores saved progress and resumes next game', () {
+    const saved = MatchProgress(
+      completedGames: 3,
+      totalScore: 280,
+      accuracyTotal: 2.5,
+      mistakes: 2,
+      elapsedMs: 34000,
+    );
+    final runtime = MatchRuntime(
+      seed: 12345,
+      startedAt: DateTime.utc(2026, 1, 1),
+      gameCount: 8,
+      initialProgress: saved,
+    );
+    final sequence = GameRegistry.sequence(seed: 12345, count: 8);
+
+    expect(runtime.progress.completedGames, 3);
+    expect(runtime.progress.totalScore, 280);
+    expect(runtime.progress.elapsedMs, 34000);
+    expect(runtime.currentGame?.id, sequence[3].id);
+  });
+
   test('outcome prioritizes progress before score', () {
     const playerA = MatchProgress(
       completedGames: 5,
