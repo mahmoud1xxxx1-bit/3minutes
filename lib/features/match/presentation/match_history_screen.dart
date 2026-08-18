@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/match_backend.dart';
 import '../domain/match_outcome.dart';
 import '../domain/match_session.dart';
@@ -33,14 +35,15 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Match history'),
+        title: Text(l10n.matchHistory),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
             onPressed: _reload,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
           ),
         ],
       ),
@@ -54,15 +57,19 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(GameSpacing.lg),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Could not load match history.'),
-                      const SizedBox(height: 12),
+                      const Icon(Icons.cloud_off_rounded,
+                          size: 48, color: GameColors.muted),
+                      const SizedBox(height: GameSpacing.md),
+                      Text(l10n.couldNotLoadHistory,
+                          textAlign: TextAlign.center),
+                      const SizedBox(height: GameSpacing.md),
                       FilledButton(
                         onPressed: _reload,
-                        child: const Text('TRY AGAIN'),
+                        child: Text(l10n.tryAgain),
                       ),
                     ],
                   ),
@@ -78,13 +85,24 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                 )
                 .toList(growable: false);
             if (items.isEmpty) {
-              return const Center(child: Text('No finished matches yet.'));
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.history_rounded,
+                        size: 52, color: GameColors.muted),
+                    const SizedBox(height: GameSpacing.md),
+                    Text(l10n.noFinishedMatches,
+                        style: const TextStyle(color: GameColors.muted)),
+                  ],
+                ),
+              );
             }
 
             return ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(GameSpacing.md),
               itemCount: items.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: GameSpacing.sm),
               itemBuilder: (context, index) {
                 final match = items[index];
                 final mine = match.progressFor(widget.uid);
@@ -100,37 +118,92 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                     (outcome == MatchOutcome.playerB && !iAmA);
                 final lost = (outcome == MatchOutcome.playerA && !iAmA) ||
                     (outcome == MatchOutcome.playerB && iAmA);
-                final result = cancelled
-                    ? 'CANCELLED'
-                    : won
-                        ? 'WIN'
-                        : lost
-                            ? 'LOSS'
-                            : 'TIE';
 
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Icon(
-                        cancelled
-                            ? Icons.close
-                            : won
-                                ? Icons.emoji_events_outlined
-                                : lost
-                                    ? Icons.remove
-                                    : Icons.balance,
+                final label = cancelled
+                    ? l10n.cancelled
+                    : won
+                        ? l10n.win
+                        : lost
+                            ? l10n.loss
+                            : l10n.tie;
+                final color = cancelled
+                    ? GameColors.muted
+                    : won
+                        ? GameColors.success
+                        : lost
+                            ? GameColors.danger
+                            : GameColors.warning;
+                final icon = cancelled
+                    ? Icons.close_rounded
+                    : won
+                        ? Icons.emoji_events_rounded
+                        : lost
+                            ? Icons.trending_down_rounded
+                            : Icons.balance_rounded;
+
+                return Container(
+                  padding: const EdgeInsets.all(GameSpacing.md),
+                  decoration: BoxDecoration(
+                    color: GameColors.surface,
+                    borderRadius: BorderRadius.circular(GameRadii.card),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: color.withValues(alpha: 0.12),
+                        ),
+                        child: Icon(icon, color: color),
                       ),
-                    ),
-                    title: Text(match.opponentName(widget.uid)),
-                    subtitle: Text(
-                      '${mine.completedGames}/${match.gameCount} games • ${mine.totalScore} pts\n'
-                      'Opponent ${opponent.completedGames}/${match.gameCount} • ${opponent.totalScore} pts',
-                    ),
-                    isThreeLine: true,
-                    trailing: Text(
-                      result,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                      const SizedBox(width: GameSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              match.opponentName(widget.uid),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w900),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.historyMyResult(
+                                mine.completedGames,
+                                match.gameCount,
+                                mine.totalScore,
+                              ),
+                              style: const TextStyle(color: GameColors.muted),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              l10n.historyOpponentResult(
+                                opponent.completedGames,
+                                match.gameCount,
+                                opponent.totalScore,
+                              ),
+                              style: const TextStyle(
+                                color: GameColors.muted,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: GameSpacing.sm),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
