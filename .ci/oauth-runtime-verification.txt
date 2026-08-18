@@ -1,0 +1,1 @@
+Temporary CI trigger for runtime Google OAuth resource and APK certificate verification.
