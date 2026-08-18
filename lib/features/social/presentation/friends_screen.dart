@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/rank_badge.dart';
@@ -133,84 +134,100 @@ class _FriendsScreenState extends State<FriendsScreen> {
     final copy = SocialCopy.of(context);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(copy.friends, style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.transparent,
+        title: Text(
+          copy.friends,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
-      body: SafeArea(
-        child: StreamBuilder<List<Friendship>>(
-          stream: widget.socialBackend.watchFriendships(widget.profile.uid),
-          builder: (context, snapshot) {
-            final friendships = snapshot.data ?? const <Friendship>[];
-            final incoming = friendships
-                .where((item) =>
-                    item.status == FriendshipStatus.pending &&
-                    item.recipientUid == widget.profile.uid)
-                .toList(growable: false);
-            final accepted = friendships
-                .where((item) => item.status == FriendshipStatus.accepted)
-                .toList(growable: false);
+      body: CosmicBackground(
+        child: SafeArea(
+          top: false,
+          child: StreamBuilder<List<Friendship>>(
+            stream: widget.socialBackend.watchFriendships(widget.profile.uid),
+            builder: (context, snapshot) {
+              final friendships = snapshot.data ?? const <Friendship>[];
+              final incoming = friendships
+                  .where((item) =>
+                      item.status == FriendshipStatus.pending &&
+                      item.recipientUid == widget.profile.uid)
+                  .toList(growable: false);
+              final accepted = friendships
+                  .where((item) => item.status == FriendshipStatus.accepted)
+                  .toList(growable: false);
 
-            return ListView(
-              padding: const EdgeInsets.all(GameSpacing.md),
-              children: [
-                _HeroCard(
-                  code: _friendCode,
-                  copy: copy,
-                  onCopy: _copyFriendCode,
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  GameSpacing.md,
+                  GameSpacing.sm,
+                  GameSpacing.md,
+                  110,
                 ),
-                const SizedBox(height: GameSpacing.md),
-                _SearchCard(
-                  controller: _searchController,
-                  searching: _searching,
-                  result: _searchResult,
-                  error: _error,
-                  copy: copy,
-                  onSearch: _search,
-                  onSend: _sendRequest,
-                  sending: _sending,
-                ),
-                const SizedBox(height: GameSpacing.lg),
-                _SectionTitle(title: copy.requests, count: incoming.length),
-                const SizedBox(height: GameSpacing.sm),
-                if (incoming.isEmpty)
-                  _EmptyState(label: copy.noRequests)
-                else
-                  for (final friendship in incoming) ...[
-                    _FriendshipTile(
-                      friendship: friendship,
-                      otherUid: friendship.requesterUid,
-                      actingUid: widget.profile.uid,
-                      socialBackend: widget.socialBackend,
-                      incoming: true,
-                    ),
-                    const SizedBox(height: GameSpacing.sm),
-                  ],
-                const SizedBox(height: GameSpacing.lg),
-                _SectionTitle(title: copy.acceptedFriends, count: accepted.length),
-                const SizedBox(height: GameSpacing.sm),
-                if (accepted.isEmpty)
-                  _EmptyState(label: copy.noFriendsYet)
-                else
-                  for (final friendship in accepted) ...[
-                    _FriendshipTile(
-                      friendship: friendship,
-                      otherUid: friendship.requesterUid == widget.profile.uid
-                          ? friendship.recipientUid
-                          : friendship.requesterUid,
-                      actingUid: widget.profile.uid,
-                      socialBackend: widget.socialBackend,
-                      incoming: false,
-                    ),
-                    const SizedBox(height: GameSpacing.sm),
-                  ],
-                const SizedBox(height: GameSpacing.lg),
-                _RecentPlayers(
-                  uid: widget.profile.uid,
-                  socialBackend: widget.socialBackend,
-                ),
-              ],
-            );
-          },
+                children: [
+                  _HeroCard(
+                    code: _friendCode,
+                    copy: copy,
+                    onCopy: _copyFriendCode,
+                  ),
+                  const SizedBox(height: GameSpacing.md),
+                  _SearchCard(
+                    controller: _searchController,
+                    searching: _searching,
+                    result: _searchResult,
+                    error: _error,
+                    copy: copy,
+                    onSearch: _search,
+                    onSend: _sendRequest,
+                    sending: _sending,
+                  ),
+                  const SizedBox(height: GameSpacing.lg),
+                  _SectionTitle(title: copy.requests, count: incoming.length),
+                  const SizedBox(height: GameSpacing.sm),
+                  if (incoming.isEmpty)
+                    _EmptyState(label: copy.noRequests)
+                  else
+                    for (final friendship in incoming) ...[
+                      _FriendshipTile(
+                        friendship: friendship,
+                        otherUid: friendship.requesterUid,
+                        actingUid: widget.profile.uid,
+                        socialBackend: widget.socialBackend,
+                        incoming: true,
+                      ),
+                      const SizedBox(height: GameSpacing.sm),
+                    ],
+                  const SizedBox(height: GameSpacing.lg),
+                  _SectionTitle(
+                    title: copy.acceptedFriends,
+                    count: accepted.length,
+                  ),
+                  const SizedBox(height: GameSpacing.sm),
+                  if (accepted.isEmpty)
+                    _EmptyState(label: copy.noFriendsYet)
+                  else
+                    for (final friendship in accepted) ...[
+                      _FriendshipTile(
+                        friendship: friendship,
+                        otherUid: friendship.requesterUid == widget.profile.uid
+                            ? friendship.recipientUid
+                            : friendship.requesterUid,
+                        actingUid: widget.profile.uid,
+                        socialBackend: widget.socialBackend,
+                        incoming: false,
+                      ),
+                      const SizedBox(height: GameSpacing.sm),
+                    ],
+                  const SizedBox(height: GameSpacing.lg),
+                  _RecentPlayers(
+                    uid: widget.profile.uid,
+                    socialBackend: widget.socialBackend,
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -218,7 +235,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
 }
 
 class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.code, required this.copy, required this.onCopy});
+  const _HeroCard({
+    required this.code,
+    required this.copy,
+    required this.onCopy,
+  });
 
   final String code;
   final SocialCopy copy;
@@ -226,46 +247,54 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CosmicPanel(
+      glow: true,
       padding: const EdgeInsets.all(GameSpacing.lg),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(GameRadii.panel),
-        gradient: const LinearGradient(
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.bottomEnd,
-          colors: [GameColors.surfaceRaised, GameColors.surface],
-        ),
-        border: Border.all(color: GameColors.accent.withValues(alpha: 0.28)),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                width: 50,
+                height: 50,
                 decoration: BoxDecoration(
-                  color: GameColors.accentSoft,
-                  borderRadius: BorderRadius.circular(15),
+                  gradient: GameColors.cosmicGradient,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: GameShadows.primaryGlow,
                 ),
-                child: const Icon(Icons.group_rounded, color: GameColors.accent),
+                child: const Icon(
+                  Icons.group_rounded,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(width: GameSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(copy.friends, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+                    Text(
+                      copy.friends,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 3),
-                    Text(copy.friendsSubtitle, style: const TextStyle(color: GameColors.muted)),
+                    Text(
+                      copy.friendsSubtitle,
+                      style: const TextStyle(color: GameColors.muted),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: GameSpacing.lg),
-          Text(copy.yourFriendCode, style: const TextStyle(color: GameColors.muted, fontWeight: FontWeight.w700)),
+          Text(
+            copy.yourFriendCode,
+            style: const TextStyle(
+              color: GameColors.muted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: GameSpacing.xs),
           Row(
             children: [
@@ -316,17 +345,14 @@ class _SearchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(GameSpacing.md),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
-      ),
+    return CosmicPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(copy.findFriend, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          Text(
+            copy.findFriend,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
           const SizedBox(height: GameSpacing.sm),
           TextField(
             controller: controller,
@@ -337,9 +363,15 @@ class _SearchCard extends StatelessWidget {
               suffixIcon: searching
                   ? const Padding(
                       padding: EdgeInsets.all(14),
-                      child: SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
-                  : IconButton(onPressed: onSearch, icon: const Icon(Icons.search_rounded)),
+                  : IconButton(
+                      onPressed: onSearch,
+                      icon: const Icon(Icons.search_rounded),
+                    ),
             ),
             onSubmitted: (_) => onSearch(),
           ),
@@ -354,7 +386,10 @@ class _SearchCard extends StatelessWidget {
               trailing: FilledButton(
                 onPressed: sending ? null : () => onSend(result!),
                 child: sending
-                    ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : Text(copy.sendRequest),
               ),
             ),
@@ -387,9 +422,7 @@ class _FriendshipTile extends StatelessWidget {
       future: socialBackend.loadPlayerSummary(otherUid),
       builder: (context, snapshot) {
         final player = snapshot.data;
-        if (player == null) {
-          return const _LoadingPlayerCard();
-        }
+        if (player == null) return const _LoadingPlayerCard();
         return _PlayerSummaryCard(
           player: player,
           trailing: incoming
@@ -434,34 +467,52 @@ class _PlayerSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tier = RankPolicy.tierFor(player.rankPoints);
-    return Container(
+    return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.sm),
-      decoration: BoxDecoration(
-        color: GameColors.surfaceRaised.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
-      ),
       child: Row(
         children: [
-          const CircleAvatar(
-            radius: 23,
-            backgroundColor: GameColors.accentSoft,
-            child: Icon(Icons.person_rounded, color: GameColors.accent),
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: GameColors.cosmicGradient,
+            ),
+            child: const Icon(Icons.person_rounded, color: Colors.white),
           ),
           const SizedBox(width: GameSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(player.displayName, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
+                Text(
+                  player.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
                 const SizedBox(height: 5),
                 Wrap(
                   spacing: GameSpacing.xs,
                   runSpacing: 4,
                   children: [
                     RankBadge(tier: tier, compact: true),
-                    Text('Lv ${player.level}', style: const TextStyle(color: GameColors.muted, fontSize: 12, fontWeight: FontWeight.w700)),
-                    Text('★ ${player.stars}', style: const TextStyle(color: GameColors.rewardGold, fontSize: 12, fontWeight: FontWeight.w800)),
+                    Text(
+                      'Lv ${player.level}',
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '★ ${player.stars}',
+                      style: const TextStyle(
+                        color: GameColors.rewardGold,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -499,23 +550,29 @@ class _RecentPlayers extends StatelessWidget {
               _EmptyState(label: copy.noRecentPlayers)
             else
               for (final player in players) ...[
-                Container(
+                CosmicPanel(
                   padding: const EdgeInsets.all(GameSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: GameColors.surface,
-                    borderRadius: BorderRadius.circular(GameRadii.card),
-                    border: Border.all(color: GameColors.surfaceStrong),
-                  ),
                   child: Row(
                     children: [
                       const CircleAvatar(
                         backgroundColor: GameColors.accentSoft,
-                        child: Icon(Icons.person_rounded, color: GameColors.accent),
+                        child: Icon(
+                          Icons.person_rounded,
+                          color: GameColors.accentBright,
+                        ),
                       ),
                       const SizedBox(width: GameSpacing.sm),
-                      Expanded(child: Text(player.displayName, style: const TextStyle(fontWeight: FontWeight.w800))),
+                      Expanded(
+                        child: Text(
+                          player.displayName,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
                       TextButton.icon(
-                        onPressed: () => socialBackend.sendFriendRequest(requesterUid: uid, recipientUid: player.uid),
+                        onPressed: () => socialBackend.sendFriendRequest(
+                          requesterUid: uid,
+                          recipientUid: player.uid,
+                        ),
                         icon: const Icon(Icons.person_add_alt_1_rounded),
                         label: Text(copy.addFriend),
                       ),
@@ -541,11 +598,27 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900))),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(color: GameColors.surfaceRaised, borderRadius: BorderRadius.circular(GameRadii.pill)),
-          child: Text('$count', style: const TextStyle(color: GameColors.muted, fontWeight: FontWeight.w800)),
+          decoration: BoxDecoration(
+            color: GameColors.accentSoft,
+            borderRadius: BorderRadius.circular(GameRadii.pill),
+          ),
+          child: Text(
+            '$count',
+            style: const TextStyle(
+              color: GameColors.accentBright,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
       ],
     );
@@ -559,15 +632,15 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.lg),
-      decoration: BoxDecoration(
-        color: GameColors.surface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
+      child: Center(
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: GameColors.muted),
+        ),
       ),
-      alignment: Alignment.center,
-      child: Text(label, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted)),
     );
   }
 }
@@ -577,15 +650,16 @@ class _LoadingPlayerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 72,
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.surfaceStrong),
+    return const CosmicPanel(
+      child: SizedBox(
+        height: 44,
+        child: Center(
+          child: SizedBox.square(
+            dimension: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
       ),
-      alignment: Alignment.center,
-      child: const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2)),
     );
   }
 }
