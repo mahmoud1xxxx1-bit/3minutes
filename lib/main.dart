@@ -12,6 +12,7 @@ import 'features/competition/data/firestore_competition_backend.dart';
 import 'features/economy/data/cloud_functions_economy_backend.dart';
 import 'features/economy/data/economy_backend.dart';
 import 'features/economy/data/firestore_economy_backend.dart';
+import 'features/match/data/cloud_functions_match_backend.dart';
 import 'features/match/data/firestore_match_backend.dart';
 import 'features/match/data/firestore_social_match_backend.dart';
 import 'features/match/data/match_backend.dart';
@@ -36,16 +37,17 @@ Future<void> main() async {
 
   final authService = AuthService();
   await authService.initialize();
+  final blaze = AppConfig.backendPhase == BackendPhase.blaze;
   final EconomyBackend economyBackend =
-      AppConfig.backendPhase == BackendPhase.blaze
-          ? CloudFunctionsEconomyBackend()
-          : FirestoreEconomyBackend();
+      blaze ? CloudFunctionsEconomyBackend() : FirestoreEconomyBackend();
+  final MatchBackend matchBackend =
+      blaze ? CloudFunctionsMatchBackend() : FirestoreMatchBackend();
 
   runApp(
     ThreeMinutesApp(
       authService: authService,
       profileRepository: ProfileRepository(),
-      matchBackend: FirestoreMatchBackend(),
+      matchBackend: matchBackend,
       socialMatchBackend: FirestoreSocialMatchBackend(),
       competitionBackend: FirestoreCompetitionBackend(),
       economyBackend: economyBackend,
