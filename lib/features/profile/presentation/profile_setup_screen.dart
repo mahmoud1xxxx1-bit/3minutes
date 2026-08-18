@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/profile_repository.dart';
 import '../domain/player_name_rules.dart';
 
@@ -36,15 +38,22 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     super.dispose();
   }
 
+  String _localizedNameIssue(AppLocalizations l10n, PlayerNameIssue issue) {
+    return switch (issue) {
+      PlayerNameIssue.invalidLength => l10n.playerNameLengthError,
+      PlayerNameIssue.missingLetterOrNumber => l10n.playerNameLetterNumberError,
+      PlayerNameIssue.unsupportedCharacters => l10n.playerNameUnsupportedError,
+    };
+  }
+
   Future<void> _save() async {
     if (_saving) return;
 
     FocusScope.of(context).unfocus();
-
-    try {
-      PlayerNameRules.validate(_nameController.text);
-    } on ArgumentError catch (error) {
-      setState(() => _error = error.message?.toString());
+    final l10n = AppLocalizations.of(context);
+    final issue = PlayerNameRules.issueFor(_nameController.text);
+    if (issue != null) {
+      setState(() => _error = _localizedNameIssue(l10n, issue));
       return;
     }
 
@@ -56,106 +65,164 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       await widget.profileRepository.createProfile(
         uid: widget.uid,
-        gameName: _nameController.text,
+        gameName: PlayerNameRules.normalize(_nameController.text),
         avatarId: _avatarId,
       );
-    } on ArgumentError catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error.message?.toString());
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Could not create your profile. Check your connection and try again.';
-      });
+      setState(() => _error = AppLocalizations.of(context).couldNotCreateProfile);
     } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create profile')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Choose your player name',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _nameController,
-                enabled: !_saving,
-                maxLength: PlayerNameRules.maxLength,
-                textInputAction: TextInputAction.done,
-                autocorrect: false,
-                decoration: const InputDecoration(
-                  hintText: '3–20 characters',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) => _save(),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'Choose an avatar',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: _avatars.map((avatarId) {
-                  final selected = avatarId == _avatarId;
-                  final number = _avatars.indexOf(avatarId) + 1;
+    final l10n = AppLocalizations.of(context);
 
-                  return InkWell(
-                    onTap: _saving
-                        ? null
-                        : () => setState(() => _avatarId = avatarId),
-                    borderRadius: BorderRadius.circular(40),
-                    child: CircleAvatar(
-                      radius: 30,
-                      backgroundColor: selected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child: Text(
-                        '$number',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: selected
-                              ? Theme.of(context).colorScheme.onPrimary
-                              : null,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          l10n.createProfile,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(GameSpacing.lg),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(GameSpacing.lg),
+              decoration: BoxDecoration(
+                color: GameColors.surface,
+                borderRadius: BorderRadius.circular(GameRadii.panel),
+                border: Border.all(color: GameColors.surfaceStrong),
               ),
-              const Spacer(),
-              if (_error != null) ...[
-                Text(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.choosePlayerName,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: GameSpacing.md),
+                  TextField(
+                    controller: _nameController,
+                    enabled: !_saving,
+                    maxLength: PlayerNameRules.maxLength,
+                    textInputAction: TextInputAction.done,
+                    autocorrect: false,
+                    decoration: InputDecoration(
+                      hintText: l10n.playerNameHelp,
+                    ),
+                    onSubmitted: (_) => _save(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: GameSpacing.md),
+            Container(
+              padding: const EdgeInsets.all(GameSpacing.lg),
+              decoration: BoxDecoration(
+                color: GameColors.surface,
+                borderRadius: BorderRadius.circular(GameRadii.panel),
+                border: Border.all(color: GameColors.surfaceStrong),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.chooseAvatar,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: GameSpacing.md),
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: GameSpacing.md,
+                    runSpacing: GameSpacing.md,
+                    children: _avatars.map((avatarId) {
+                      final selected = avatarId == _avatarId;
+                      final number = _avatars.indexOf(avatarId) + 1;
+                      return InkWell(
+                        onTap: _saving
+                            ? null
+                            : () => setState(() => _avatarId = avatarId),
+                        borderRadius: BorderRadius.circular(42),
+                        child: AnimatedContainer(
+                          duration: GameDurations.fast,
+                          width: 66,
+                          height: 66,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected
+                                ? GameColors.accentSoft
+                                : GameColors.surfaceRaised,
+                            border: Border.all(
+                              color: selected
+                                  ? GameColors.accent
+                                  : GameColors.surfaceStrong,
+                              width: selected ? 2.5 : 1,
+                            ),
+                            boxShadow: selected
+                                ? [
+                                    BoxShadow(
+                                      color: GameColors.accent.withValues(alpha: 0.12),
+                                      blurRadius: 16,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Text(
+                            '$number',
+                            style: TextStyle(
+                              color: selected
+                                  ? GameColors.accent
+                                  : GameColors.textStrong,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: GameSpacing.xl),
+            if (_error != null) ...[
+              Container(
+                padding: const EdgeInsets.all(GameSpacing.md),
+                decoration: BoxDecoration(
+                  color: GameColors.danger.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(GameRadii.card),
+                  border: Border.all(
+                    color: GameColors.danger.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
                   _error!,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: const TextStyle(color: GameColors.danger),
                 ),
-                const SizedBox(height: 12),
-              ],
-              FilledButton(
-                onPressed: _saving ? null : _save,
-                child: _saving
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Continue'),
               ),
+              const SizedBox(height: GameSpacing.md),
             ],
-          ),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.continueAction),
+            ),
+          ],
         ),
       ),
     );
