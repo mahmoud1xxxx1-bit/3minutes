@@ -6,12 +6,14 @@ class Party {
     required this.createdAt,
     required this.updatedAt,
     this.pendingInviteUids = const <String>[],
+    this.activeRoomId,
   });
 
   final String id;
   final String leaderUid;
   final List<String> memberUids;
   final List<String> pendingInviteUids;
+  final String? activeRoomId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
