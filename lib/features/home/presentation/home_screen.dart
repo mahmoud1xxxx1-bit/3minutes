@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/data/competition_backend.dart';
 import '../../competition/domain/rank_tier.dart';
@@ -38,6 +40,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return StreamBuilder<PlayerProfile?>(
       stream: profileRepository.watchProfile(user.uid),
       builder: (context, snapshot) {
@@ -45,10 +49,13 @@ class HomeScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text(AppConfig.appName),
+            title: Text(
+              l10n.appName,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
             actions: [
               IconButton(
-                tooltip: 'Match history',
+                tooltip: l10n.matchHistory,
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
@@ -59,88 +66,108 @@ class HomeScreen extends StatelessWidget {
                     ),
                   );
                 },
-                icon: const Icon(Icons.history),
+                icon: const Icon(Icons.history_rounded),
               ),
               IconButton(
-                tooltip: 'Sign out',
+                tooltip: l10n.signOut,
                 onPressed: authService.signOut,
-                icon: const Icon(Icons.logout),
+                icon: const Icon(Icons.logout_rounded),
               ),
             ],
           ),
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _PlayerCard(profile: profile),
-                  const Spacer(),
-                  _PlayButton(profile: profile, matchBackend: matchBackend),
-                  const SizedBox(height: 12),
-                  Text(
-                    '3:00 • ${AppConfig.gamesPerMatch} mini-games',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _MenuTile(
-                          icon: Icons.leaderboard,
-                          label: 'Leaderboard',
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => LeaderboardScreen(
-                                  competitionBackend: competitionBackend,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(GameSpacing.md),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - (GameSpacing.md * 2),
+                    ),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _PlayerCard(profile: profile),
+                          const Spacer(),
+                          const SizedBox(height: GameSpacing.xl),
+                          _PlayButton(
+                            profile: profile,
+                            matchBackend: matchBackend,
+                          ),
+                          const SizedBox(height: GameSpacing.sm),
+                          Text(
+                            l10n.miniGamesSummary(AppConfig.gamesPerMatch),
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: GameColors.muted,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _MenuTile(
-                          icon: Icons.person,
-                          label: 'Profile',
-                          onTap: profile == null
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => ProfileScreen(
-                                        profile: profile,
-                                        profileRepository: profileRepository,
+                          ),
+                          const Spacer(),
+                          const SizedBox(height: GameSpacing.xl),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _MenuTile(
+                                  icon: Icons.leaderboard_rounded,
+                                  label: l10n.leaderboard,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => LeaderboardScreen(
+                                          competitionBackend: competitionBackend,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _MenuTile(
-                          icon: Icons.storefront,
-                          label: 'Shop',
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => ShopScreen(
-                                  uid: user.uid,
-                                  economyBackend: economyBackend,
+                                    );
+                                  },
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                              const SizedBox(width: GameSpacing.sm),
+                              Expanded(
+                                child: _MenuTile(
+                                  icon: Icons.person_rounded,
+                                  label: l10n.profile,
+                                  onTap: profile == null
+                                      ? null
+                                      : () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) => ProfileScreen(
+                                                profile: profile,
+                                                profileRepository:
+                                                    profileRepository,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                ),
+                              ),
+                              const SizedBox(width: GameSpacing.sm),
+                              Expanded(
+                                child: _MenuTile(
+                                  icon: Icons.storefront_rounded,
+                                  label: l10n.shop,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => ShopScreen(
+                                          uid: user.uid,
+                                          economyBackend: economyBackend,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         );
@@ -155,11 +182,44 @@ class _PlayButton extends StatelessWidget {
   final PlayerProfile? profile;
   final MatchBackend matchBackend;
 
+  void _openMatch(
+    BuildContext context,
+    PlayerProfile player,
+    MatchTicket? ticket,
+  ) {
+    final resumable = ticket?.status == MatchTicketStatus.matched &&
+        ticket?.matchId != null;
+
+    if (resumable) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => MatchRoomScreen(
+            matchId: ticket!.matchId!,
+            uid: player.uid,
+            matchBackend: matchBackend,
+          ),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MatchmakingScreen(
+          profile: player,
+          matchBackend: matchBackend,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final player = profile;
+    final l10n = AppLocalizations.of(context);
+
     if (player == null) {
-      return const FilledButton(onPressed: null, child: Text('PLAY'));
+      return _PlaySurface(label: l10n.play, onTap: null);
     }
 
     return StreamBuilder<MatchTicket?>(
@@ -169,39 +229,87 @@ class _PlayButton extends StatelessWidget {
         final resumable = ticket?.status == MatchTicketStatus.matched &&
             ticket?.matchId != null;
 
-        return FilledButton(
-          onPressed: () {
-            if (resumable) {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => MatchRoomScreen(
-                    matchId: ticket!.matchId!,
-                    uid: player.uid,
-                    matchBackend: matchBackend,
-                  ),
-                ),
-              );
-              return;
-            }
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => MatchmakingScreen(
-                  profile: player,
-                  matchBackend: matchBackend,
-                ),
-              ),
-            );
-          },
-          child: Text(
-            resumable ? 'RESUME' : 'PLAY',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-            ),
-          ),
+        return _PlaySurface(
+          label: resumable ? l10n.resume : l10n.play,
+          onTap: () => _openMatch(context, player, ticket),
+          resumable: resumable,
         );
       },
+    );
+  }
+}
+
+class _PlaySurface extends StatelessWidget {
+  const _PlaySurface({
+    required this.label,
+    required this.onTap,
+    this.resumable = false,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final bool resumable;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(GameRadii.panel),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GameRadii.panel),
+        child: Ink(
+          height: 92,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GameRadii.panel),
+            gradient: enabled
+                ? const LinearGradient(
+                    begin: AlignmentDirectional.topStart,
+                    end: AlignmentDirectional.bottomEnd,
+                    colors: [Color(0xFF34CDEB), Color(0xFF197EA8)],
+                  )
+                : const LinearGradient(
+                    colors: [GameColors.surfaceRaised, GameColors.surface],
+                  ),
+            border: Border.all(
+              color: enabled
+                  ? GameColors.accent.withValues(alpha: 0.65)
+                  : GameColors.surfaceStrong,
+            ),
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                      color: GameColors.accent.withValues(alpha: 0.16),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                resumable ? Icons.play_circle_outline_rounded : Icons.bolt_rounded,
+                size: 30,
+                color: enabled ? GameColors.background : GameColors.muted,
+              ),
+              const SizedBox(width: GameSpacing.sm),
+              Text(
+                label,
+                style: TextStyle(
+                  color: enabled ? GameColors.background : GameColors.muted,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -213,56 +321,113 @@ class _PlayerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final player = profile;
-    final tier = RankPolicy.tierFor(player?.rankPoints ?? 0);
+    final rankPoints = player?.rankPoints ?? 0;
+    final tier = RankPolicy.tierFor(rankPoints);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            const CircleAvatar(radius: 28, child: Icon(Icons.person, size: 30)),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    player?.gameName ?? 'Loading...',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      RankBadge(tier: tier, compact: true),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Level ${player?.level ?? 1} • ${player?.rankPoints ?? 0} RP',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+    return Container(
+      padding: const EdgeInsets.all(GameSpacing.md),
+      decoration: BoxDecoration(
+        color: GameColors.surface,
+        borderRadius: BorderRadius.circular(GameRadii.panel),
+        border: Border.all(color: GameColors.surfaceStrong),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: GameColors.surfaceRaised,
+              border: Border.all(
+                color: GameColors.accent.withValues(alpha: 0.5),
+                width: 2,
               ),
             ),
-            const SizedBox(width: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
+            child: const Icon(Icons.person_rounded, size: 34),
+          ),
+          const SizedBox(width: GameSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.star_rounded, size: 22),
-                const SizedBox(width: 3),
-                Text('${player?.stars ?? 0}'),
+                Text(
+                  player?.gameName ?? '—',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: GameColors.textStrong,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: GameSpacing.sm),
+                Wrap(
+                  spacing: GameSpacing.sm,
+                  runSpacing: GameSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    RankBadge(tier: tier, compact: true),
+                    Text(
+                      l10n.levelWithValue(player?.level ?? 1),
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      l10n.rpWithValue(rankPoints),
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 11,
+              vertical: 8,
+            ),
+            decoration: BoxDecoration(
+              color: GameColors.rewardGold.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(GameRadii.pill),
+              border: Border.all(
+                color: GameColors.rewardGold.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  color: GameColors.rewardGold,
+                  size: 20,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${player?.stars ?? 0}',
+                  style: const TextStyle(
+                    color: GameColors.rewardGold,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -277,21 +442,49 @@ class _MenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final enabled = onTap != null;
+
+    return Material(
+      color: GameColors.surface,
+      borderRadius: BorderRadius.circular(GameRadii.card),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            vertical: GameSpacing.md,
+            horizontal: GameSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GameRadii.card),
+            border: Border.all(color: GameColors.surfaceStrong),
+          ),
           child: Column(
             children: [
-              Icon(icon),
-              const SizedBox(height: 6),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: GameColors.accentSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: enabled ? GameColors.accent : GameColors.muted,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(height: GameSpacing.sm),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: enabled ? GameColors.textStrong : GameColors.muted,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
