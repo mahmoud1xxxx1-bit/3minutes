@@ -10,6 +10,11 @@ class PlayerProfile {
     required this.wins,
     required this.losses,
     required this.gamesPlayed,
+    this.ties = 0,
+    this.bestWinStreak = 0,
+    this.friendCode,
+    this.selectedTitleId,
+    this.showcaseAchievementIds = const <String>[],
   });
 
   final String uid;
@@ -21,9 +26,22 @@ class PlayerProfile {
   final int stars;
   final int wins;
   final int losses;
+  final int ties;
   final int gamesPlayed;
+  final int bestWinStreak;
+  final String? friendCode;
+  final String? selectedTitleId;
+  final List<String> showcaseAchievementIds;
+
+  double get winRate => gamesPlayed <= 0 ? 0 : wins / gamesPlayed;
 
   factory PlayerProfile.fromMap(String uid, Map<String, dynamic> map) {
+    final achievements = (map['showcaseAchievementIds'] as List<dynamic>?)
+            ?.whereType<String>()
+            .take(3)
+            .toList(growable: false) ??
+        const <String>[];
+
     return PlayerProfile(
       uid: uid,
       gameName: (map['gameName'] as String?) ?? 'Player',
@@ -34,7 +52,28 @@ class PlayerProfile {
       stars: (map['stars'] as num?)?.toInt() ?? 0,
       wins: (map['wins'] as num?)?.toInt() ?? 0,
       losses: (map['losses'] as num?)?.toInt() ?? 0,
+      ties: (map['ties'] as num?)?.toInt() ?? 0,
       gamesPlayed: (map['gamesPlayed'] as num?)?.toInt() ?? 0,
+      bestWinStreak: (map['bestWinStreak'] as num?)?.toInt() ?? 0,
+      friendCode: map['friendCode'] as String?,
+      selectedTitleId: map['selectedTitleId'] as String?,
+      showcaseAchievementIds: achievements,
     );
+  }
+}
+
+class ProfileShowcasePolicy {
+  const ProfileShowcasePolicy._();
+
+  static const int maxShowcaseAchievements = 3;
+
+  static List<String> normalizeAchievements(Iterable<String> ids) {
+    final unique = <String>[];
+    for (final id in ids) {
+      if (id.trim().isEmpty || unique.contains(id)) continue;
+      unique.add(id);
+      if (unique.length == maxShowcaseAchievements) break;
+    }
+    return List.unmodifiable(unique);
   }
 }
