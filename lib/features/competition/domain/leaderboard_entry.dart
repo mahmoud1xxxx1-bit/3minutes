@@ -9,6 +9,7 @@ class LeaderboardEntry {
     required this.stars,
     required this.wins,
     required this.losses,
+    this.legendarySeasons = 0,
   });
 
   final String uid;
@@ -18,6 +19,7 @@ class LeaderboardEntry {
   final int stars;
   final int wins;
   final int losses;
+  final int legendarySeasons;
 
   RankTier get tier => RankPolicy.tierFor(rankPoints);
   int get gamesPlayed => wins + losses;
