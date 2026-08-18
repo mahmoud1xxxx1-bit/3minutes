@@ -193,10 +193,17 @@ class _HeroIdentity extends StatelessWidget {
             spacing: GameSpacing.sm,
             runSpacing: GameSpacing.xs,
             children: [
-              RankBadge(tier: tier),
+              RankBadge(
+                tier: tier,
+                legendarySeasons: profile.legendarySeasons,
+              ),
               SeasonStarBadge(stars: profile.stars),
             ],
           ),
+          if (profile.legendarySeasons > 0) ...[
+            const SizedBox(height: GameSpacing.sm),
+            _LegendaryHistoryLine(count: profile.legendarySeasons),
+          ],
           const SizedBox(height: GameSpacing.sm),
           Text(
             '${l10n.levelWithValue(profile.level)} • ${l10n.rpWithValue(profile.rankPoints)}',
@@ -207,6 +214,38 @@ class _HeroIdentity extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LegendaryHistoryLine extends StatelessWidget {
+  const _LegendaryHistoryLine({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.history_edu_rounded,
+          size: 16,
+          color: GameColors.rewardGold,
+        ),
+        const SizedBox(width: 5),
+        Text(
+          ar
+              ? 'وصل إلى الأسطوري في $count ${count == 1 ? 'موسم' : 'مواسم'}'
+              : 'Legendary in $count ${count == 1 ? 'season' : 'seasons'}',
+          style: const TextStyle(
+            color: GameColors.textSoft,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -251,6 +290,13 @@ class _StatsGrid extends StatelessWidget {
           value: '${profile.bestWinStreak}',
           color: GameColors.violet,
         ),
+        if (profile.legendarySeasons > 0)
+          _StatCard(
+            icon: Icons.military_tech_rounded,
+            label: ar ? 'مواسم أسطورية' : 'Legendary seasons',
+            value: '×${profile.legendarySeasons}',
+            color: GameColors.rankLegend,
+          ),
       ],
     );
   }
