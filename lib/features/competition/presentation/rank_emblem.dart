@@ -73,11 +73,13 @@ class _RankEmblemPainter extends CustomPainter {
         canvas.drawPath(shield, fill);
         canvas.drawPath(shield, stroke);
         canvas.drawCircle(center, size.width * 0.10, dark);
+        break;
       case RankTier.silver:
         final shield = _polygon(center, size.width * 0.35, 6, math.pi / 6);
         canvas.drawPath(shield, fill);
         canvas.drawPath(shield, stroke);
         canvas.drawCircle(center, size.width * 0.12, dark);
+        break;
       case RankTier.gold:
         final crown = Path()
           ..moveTo(size.width * 0.20, size.height * 0.62)
@@ -90,12 +92,14 @@ class _RankEmblemPainter extends CustomPainter {
           ..close();
         canvas.drawPath(crown, fill);
         canvas.drawPath(crown, stroke);
+        break;
       case RankTier.platinum:
         final hex = _polygon(center, size.width * 0.34, 6, 0);
         canvas.drawPath(hex, fill);
         canvas.drawPath(hex, stroke);
         final inner = _polygon(center, size.width * 0.18, 6, math.pi / 6);
         canvas.drawPath(inner, dark);
+        break;
       case RankTier.diamond:
         final diamond = Path()
           ..moveTo(size.width * 0.50, size.height * 0.14)
@@ -115,11 +119,13 @@ class _RankEmblemPainter extends CustomPainter {
           Offset(size.width * 0.50, size.height * 0.86),
           stroke,
         );
+        break;
       case RankTier.master:
         final star = _star(center, size.width * 0.36, size.width * 0.16, 5);
         canvas.drawPath(star, fill);
         canvas.drawPath(star, stroke);
         canvas.drawCircle(center, size.width * 0.09, dark);
+        break;
     }
   }
 
