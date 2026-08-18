@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
+import '../../competition/data/competition_backend.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/leaderboard_screen.dart';
 import '../../competition/presentation/rank_badge.dart';
@@ -23,12 +24,14 @@ class HomeScreen extends StatelessWidget {
     required this.authService,
     required this.profileRepository,
     required this.matchBackend,
+    required this.competitionBackend,
   });
 
   final User user;
   final AuthService authService;
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
+  final CompetitionBackend competitionBackend;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +90,9 @@ class HomeScreen extends StatelessWidget {
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) => const LeaderboardScreen(),
+                                builder: (_) => LeaderboardScreen(
+                                  competitionBackend: competitionBackend,
+                                ),
                               ),
                             );
                           },
