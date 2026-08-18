@@ -46,4 +46,14 @@ class SeasonPassPolicy {
     if (levelForXp(seasonXp) >= maxLevel) return 1;
     return xpIntoLevel(seasonXp) / xpPerLevel;
   }
+
+  static int freeCoinRewardForLevel(int level) {
+    final safeLevel = level.clamp(1, maxLevel);
+    return 40 + safeLevel * 10;
+  }
+
+  static int premiumCoinRewardForLevel(int level) {
+    final safeLevel = level.clamp(1, maxLevel);
+    return 100 + safeLevel * 20;
+  }
 }
