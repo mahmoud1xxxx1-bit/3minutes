@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../competition/domain/rank_progress.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../progression/domain/player_progression.dart';
 import '../data/profile_repository.dart';
@@ -91,8 +92,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final profile = widget.profile;
     final tier = RankPolicy.tierFor(profile.rankPoints);
+    final rankProgress = RankProgressPolicy.forRp(profile.rankPoints);
     final xpTarget = ProgressionPolicy.xpRequiredForLevel(profile.level);
-    final xpProgress = xpTarget <= 0 ? 0.0 : (profile.xp / xpTarget).clamp(0.0, 1.0);
+    final xpProgress = ProgressionPolicy.progressFraction(
+      PlayerProgression(level: profile.level, xp: profile.xp),
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -120,6 +124,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
             const SizedBox(height: 18),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${tier.label} rank progress',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Text(
+                          rankProgress.isMaxTier
+                              ? 'MAX TIER'
+                              : '${rankProgress.rpToNextTier} RP to next',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    LinearProgressIndicator(value: rankProgress.fraction),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
