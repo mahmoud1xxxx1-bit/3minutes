@@ -65,11 +65,9 @@ Implemented:
 - Firestore rules allow authenticated season/leaderboard reads and owner-only inventory reads while denying all client writes to those authoritative collections.
 - Ranked settlement and coin transaction collections remain completely client-inaccessible.
 - Shared game design tokens for background, surfaces, accent, success/danger, spacing, radii, and animation durations.
-- App theme now consumes the shared design tokens instead of local hard-coded values.
-- Leaderboard and Shop screens now use the visual design system.
-- Full visual-identity contract documented for avatars, rank emblems, season stars, cosmetics, mini-game shell, motion, asset naming, and accessibility.
-- Mini-game SDK now classifies games as reaction, logic, memory, or precision.
-- All 10 current game IDs remain unique and deterministic while exposing category metadata for future balanced match selection.
+- App theme consumes shared design tokens instead of local hard-coded values.
+- Mini-game SDK classifies games as reaction, logic, memory, or precision.
+- All 10 approved game IDs remain unique and deterministic while exposing category metadata.
 - Dedicated tests verify registry uniqueness/category coverage and deterministic seed behavior.
 
 ## Milestone 3.5 — Secure cosmetic transaction contracts
@@ -93,10 +91,32 @@ Implemented:
 - Season numbering increments exactly once.
 - Tests verify contiguous season boundaries and duration.
 
+## Milestone 3.7 — Bilingual visual identity foundation
+
+Implemented:
+
+- Flutter `gen_l10n` enabled as the official localization source.
+- Arabic and English ARB catalogs added as first-class game languages.
+- App locale follows the device language automatically for Arabic/English.
+- Material localization delegates provide native RTL for Arabic and LTR for English.
+- Localization parity test prevents one language from silently missing message keys.
+- Player-name validation exposes language-neutral validation issues so UI errors can be localized.
+- Competitive dark navy/cyan/gold visual palette established in shared design tokens.
+- Shared theme upgraded for typography, buttons, cards, fields, dialogs, progress bars, and interaction states.
+- Home redesigned with a stronger player identity card, visible stars, localized rank badge, large competitive PLAY/RESUME surface, and a 2×2 navigation grid.
+- Dedicated Season screen added instead of hiding season identity inside Leaderboard.
+- Profile redesigned around player identity, localized stats, separate rank and XP progression, and localized editing errors.
+- Leaderboard/Season presentation redesigned and localized while keeping live authority disabled on Spark.
+- Shop redesigned and localized, including localized cosmetic names and four visual rarity levels: Common, Rare, Epic, Legendary.
+- Cosmetic starter catalog now carries explicit rarity metadata while remaining cosmetic-only.
+- Approved mini-game library is protected by a test that locks the current library to exactly 10 games until explicit approval for game 11.
+
 ## Product rules locked
 
 - Match length remains exactly 3 minutes.
 - A normal match remains 8 mini-games.
+- The approved mini-game library remains exactly 10 games until a proposed new game is shown and explicitly approved before implementation.
+- Arabic and English are foundational game languages, not a post-launch translation pass.
 - Ranked competition must never alter mini-game difficulty or give paid gameplay advantages.
 - Paid or earned shop items are cosmetic only.
 - Persistent seasonal stars remain part of the player identity above the avatar.
@@ -107,10 +127,11 @@ Implemented:
 
 The following may continue without Blaze:
 
-- UI shells and view models for leaderboard, season, progression, inventory, and cosmetics.
+- Arabic/English localization of all remaining match/auth/history screens.
+- Visual redesign of matchmaking, match room, countdown, gameplay shell, and result screen.
 - Rank/season/progression domain policies.
 - Cosmetic catalog definitions bundled with the app.
-- Additional mini-games and visual assets.
+- Rank/star/avatar/cosmetic visual assets.
 - Tests and release hardening.
 
 ## Blaze-required authority
@@ -131,8 +152,8 @@ These operations will sit behind Cloud Functions while Flutter continues using t
 
 ## Next
 
-1. Expand representative mini-game content beyond the first 10 games using reusable engines.
-2. Continue the visual-identity/graphics pass with actual rank/avatar/cosmetic assets.
-3. Prepare Cloud Functions implementation package when Blaze activation is chosen.
-4. Connect real leaderboard/inventory reads only after server-populated documents exist.
+1. Localize and redesign matchmaking, match room, countdown, match play shell, results, history, sign-in, and profile setup.
+2. Design the actual rank emblem and season-star asset family before integrating image assets.
+3. Continue cosmetic presentation and preview components without activating purchases on Spark.
+4. Prepare Cloud Functions implementation package when Blaze activation is chosen.
 5. Run analyze/tests/build and compile Firestore rules after this development block.
