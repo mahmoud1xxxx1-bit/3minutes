@@ -19,7 +19,7 @@ import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
 import '../../social/presentation/friends_screen.dart';
 import '../../social/presentation/social_copy.dart';
-import 'home_screen.dart';
+import 'cosmic_home_screen.dart';
 
 class GameShellScreen extends StatefulWidget {
   const GameShellScreen({
@@ -72,7 +72,7 @@ class _GameShellScreenState extends State<GameShellScreen> {
         }
 
         final pages = <Widget>[
-          HomeScreen(
+          CosmicHomeScreen(
             user: widget.user,
             authService: widget.authService,
             profileRepository: widget.profileRepository,
