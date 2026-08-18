@@ -1,3 +1,8 @@
+enum BackendPhase {
+  spark,
+  blaze,
+}
+
 class AppConfig {
   const AppConfig._();
 
@@ -5,9 +10,14 @@ class AppConfig {
   static const Duration matchDuration = Duration(minutes: 3);
   static const int gamesPerMatch = 8;
 
-  // These remain disabled on Spark. Enable only after the corresponding
-  // server-authoritative Blaze implementation and security review are live.
-  static const bool rankedAuthorityEnabled = false;
-  static const bool economyPurchasesEnabled = false;
-  static const bool liveLeaderboardEnabled = false;
+  // Single source of truth for trusted server features.
+  // Change to Blaze only after Cloud Functions and security review are live.
+  static const BackendPhase backendPhase = BackendPhase.spark;
+
+  static const bool rankedAuthorityEnabled =
+      backendPhase == BackendPhase.blaze;
+  static const bool economyPurchasesEnabled =
+      backendPhase == BackendPhase.blaze;
+  static const bool liveLeaderboardEnabled =
+      backendPhase == BackendPhase.blaze;
 }
