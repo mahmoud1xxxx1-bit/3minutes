@@ -10,7 +10,6 @@ import '../../minigames/domain/mini_game_contract.dart';
 import '../../minigames/presentation/mini_game_copy.dart';
 import '../../minigames/presentation/mini_game_host.dart';
 import '../data/social_match_backend.dart';
-import '../domain/match_progress.dart';
 import '../domain/match_runtime.dart';
 import '../domain/multiplayer_match.dart';
 import '../domain/multiplayer_result.dart';
