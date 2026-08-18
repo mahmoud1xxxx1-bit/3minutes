@@ -10,6 +10,7 @@ import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/leaderboard_screen.dart';
 import '../../competition/presentation/rank_badge.dart';
 import '../../competition/presentation/season_screen.dart';
+import '../../competition/presentation/season_star_badge.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
@@ -417,37 +418,7 @@ class _PlayerCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: GameSpacing.sm),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 11,
-              vertical: 8,
-            ),
-            decoration: BoxDecoration(
-              color: GameColors.rewardGold.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(GameRadii.pill),
-              border: Border.all(
-                color: GameColors.rewardGold.withValues(alpha: 0.35),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.star_rounded,
-                  color: GameColors.rewardGold,
-                  size: 20,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${player?.stars ?? 0}',
-                  style: const TextStyle(
-                    color: GameColors.rewardGold,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          SeasonStarBadge(stars: player?.stars ?? 0, compact: true),
         ],
       ),
     );
