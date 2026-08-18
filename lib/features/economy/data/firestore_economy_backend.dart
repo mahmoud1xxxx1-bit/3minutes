@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../domain/cosmetic_item.dart';
+import '../domain/purchase_receipt.dart';
 import 'cosmetic_catalog.dart';
 import 'economy_backend.dart';
 
@@ -38,7 +39,7 @@ class FirestoreEconomyBackend implements EconomyBackend {
       List<CosmeticItem>.unmodifiable(CosmeticCatalog.items);
 
   @override
-  Future<void> purchaseCosmetic({
+  Future<PurchaseReceipt> purchaseCosmetic({
     required String uid,
     required String cosmeticId,
   }) {
@@ -48,7 +49,7 @@ class FirestoreEconomyBackend implements EconomyBackend {
   }
 
   @override
-  Future<void> equipCosmetic({
+  Future<PlayerInventory> equipCosmetic({
     required String uid,
     required String cosmeticId,
   }) {
