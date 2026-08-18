@@ -328,6 +328,40 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Server-populated competition read models. Clients can read them after
+    // authentication but cannot create, update, or delete authoritative data.
+    match /seasons/{seasonId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /leaderboards/{seasonId}/entries/{uid} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Economy state is private to the owner. Coin balance, entitlements, and
+    // equipped cosmetics are server-authoritative and never client-writable.
+    match /inventories/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+
+      match /items/{cosmeticId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // Settlement and ledger records remain completely server-only from the
+    // client. Admin SDK operations in Cloud Functions bypass these rules.
+    match /rankedSettlements/{matchId} {
+      allow read, write: if false;
+    }
+
+    match /coinTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
