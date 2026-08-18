@@ -3,6 +3,10 @@ import '../domain/party.dart';
 abstract class PartyBackend {
   Stream<Party?> watchParty(String partyId);
 
+  Stream<Party?> watchMembership(String uid);
+
+  Stream<List<Party>> watchInvitations(String uid);
+
   Future<Party> createParty({required String leaderUid});
 
   Future<void> inviteMember({
@@ -12,6 +16,11 @@ abstract class PartyBackend {
   });
 
   Future<void> acceptInvite({
+    required String partyId,
+    required String uid,
+  });
+
+  Future<void> declineInvite({
     required String partyId,
     required String uid,
   });
