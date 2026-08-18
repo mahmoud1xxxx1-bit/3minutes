@@ -93,12 +93,16 @@ async function applyPlayerRollover(options: {
     const nextRp = startingRpForPeakTier(peakTier);
     const previousSeasons = Math.max(0, intValue(user.seasonsCompleted));
     const seasonsCompleted = previousSeasons + 1;
+    const previousLegendarySeasons = Math.max(0, intValue(user.legendarySeasons));
+    const legendaryAwarded = peakTier === "legend" ? 1 : 0;
+    const legendarySeasons = previousLegendarySeasons + legendaryAwarded;
     const finalTier = tierFor(finalRankPoints);
 
     transaction.update(userRef, {
       stars: nextStars,
       rankPoints: nextRp,
       seasonsCompleted,
+      legendarySeasons,
       updatedAt: FieldValue.serverTimestamp(),
     });
 
@@ -109,6 +113,8 @@ async function applyPlayerRollover(options: {
         finalStars: nextStars,
         resetRp: nextRp,
         finalStanding,
+        legendaryAwarded,
+        legendarySeasons,
         updatedAt: FieldValue.serverTimestamp(),
       });
     }
@@ -131,6 +137,8 @@ async function applyPlayerRollover(options: {
         starsBefore: previousStars,
         starsAwarded,
         starsAfter: nextStars,
+        legendaryAwarded,
+        legendarySeasonsAfter: legendarySeasons,
         resetRp: nextRp,
         closedAt: FieldValue.serverTimestamp(),
       });
@@ -192,6 +200,9 @@ async function applyPlayerRollover(options: {
       finalRankPoints,
       nextRp,
       seasonsCompleted,
+      previousLegendarySeasons,
+      legendaryAwarded,
+      legendarySeasons,
       createdAt: FieldValue.serverTimestamp(),
     });
   });
