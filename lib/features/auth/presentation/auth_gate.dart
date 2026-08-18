@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../home/presentation/home_screen.dart';
 import '../../profile/data/profile_repository.dart';
+import '../../profile/domain/player_profile.dart';
+import '../../profile/presentation/profile_setup_screen.dart';
 import '../data/auth_service.dart';
 import 'sign_in_screen.dart';
 
@@ -21,25 +23,33 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: authService.authStateChanges(),
       initialData: authService.currentUser,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (context, authSnapshot) {
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
           return const _LoadingScreen();
         }
 
-        final user = snapshot.data;
+        final user = authSnapshot.data;
         if (user == null) {
           return SignInScreen(authService: authService);
         }
 
-        return FutureBuilder<void>(
-          future: profileRepository.ensureProfile(user),
+        return StreamBuilder<PlayerProfile?>(
+          stream: profileRepository.watchProfile(user.uid),
           builder: (context, profileSnapshot) {
             if (profileSnapshot.hasError) {
               return _ProfileErrorScreen(onSignOut: authService.signOut);
             }
 
-            if (profileSnapshot.connectionState != ConnectionState.done) {
+            if (profileSnapshot.connectionState == ConnectionState.waiting) {
               return const _LoadingScreen();
+            }
+
+            final profile = profileSnapshot.data;
+            if (profile == null) {
+              return ProfileSetupScreen(
+                uid: user.uid,
+                profileRepository: profileRepository,
+              );
             }
 
             return HomeScreen(
