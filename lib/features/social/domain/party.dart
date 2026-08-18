@@ -5,15 +5,19 @@ class Party {
     required this.memberUids,
     required this.createdAt,
     required this.updatedAt,
+    this.pendingInviteUids = const <String>[],
   });
 
   final String id;
   final String leaderUid;
   final List<String> memberUids;
+  final List<String> pendingInviteUids;
   final DateTime createdAt;
   final DateTime updatedAt;
 
   int get size => memberUids.length;
+  bool isMember(String uid) => memberUids.contains(uid);
+  bool isInvited(String uid) => pendingInviteUids.contains(uid);
 }
 
 class PartyPolicy {
@@ -27,6 +31,12 @@ class PartyPolicy {
     }
     if (party.memberUids.toSet().length != party.memberUids.length) {
       throw StateError('Duplicate party members are not allowed.');
+    }
+    if (party.pendingInviteUids.toSet().length != party.pendingInviteUids.length) {
+      throw StateError('Duplicate party invitations are not allowed.');
+    }
+    if (party.pendingInviteUids.any(party.memberUids.contains)) {
+      throw StateError('Party members cannot also have pending invitations.');
     }
     if (!party.memberUids.contains(party.leaderUid)) {
       throw StateError('Party leader must be a party member.');
