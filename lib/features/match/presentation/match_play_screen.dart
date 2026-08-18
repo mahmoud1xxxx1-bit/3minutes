@@ -75,16 +75,17 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
     });
 
     try {
-      final progress = runtime.recordResult(result);
+      final nextProgress = runtime.previewResult(result);
       await widget.matchBackend.submitProgress(
         matchId: match.id,
         uid: widget.uid,
-        progress: progress,
+        progress: nextProgress,
         gameCount: match.gameCount,
       );
+      runtime.recordResult(result);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not save this game result. Check your connection.');
+      setState(() => _error = 'Could not save this game result. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -99,8 +100,12 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final runtime = _runtime;
+    final canExit = runtime != null &&
+        (runtime.allGamesCompleted || runtime.isExpired(DateTime.now()));
+
     return PopScope(
-      canPop: false,
+      canPop: canExit,
       child: Scaffold(
         body: SafeArea(
           child: StreamBuilder<MatchSession?>(
@@ -127,27 +132,27 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                 );
               }
 
-              final runtime = _ensureRuntime(match);
-              if (runtime == null) {
+              final activeRuntime = _ensureRuntime(match);
+              if (activeRuntime == null) {
                 return const Center(child: CircularProgressIndicator());
               }
 
               final now = DateTime.now();
-              final remaining = runtime.remaining(now);
-              final expired = runtime.isExpired(now);
-              final localComplete = runtime.allGamesCompleted;
+              final remaining = activeRuntime.remaining(now);
+              final expired = activeRuntime.isExpired(now);
+              final localComplete = activeRuntime.allGamesCompleted;
 
               if (expired || localComplete) {
                 return _MatchResultView(
                   uid: widget.uid,
                   match: match,
-                  localCompletedGames: runtime.progress.completedGames,
+                  localCompletedGames: activeRuntime.progress.completedGames,
                 );
               }
 
-              final game = runtime.currentGame!;
-              final gameIndex = runtime.progress.completedGames;
-              final gameSeed = runtime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
+              final game = activeRuntime.currentGame!;
+              final gameIndex = activeRuntime.progress.completedGames;
+              final gameSeed = activeRuntime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
 
               return Padding(
                 padding: const EdgeInsets.all(16),
