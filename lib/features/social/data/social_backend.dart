@@ -1,10 +1,13 @@
 import '../domain/friendship.dart';
 import '../domain/player_friend_code.dart';
+import '../domain/social_player_summary.dart';
 
 abstract class SocialBackend {
   Stream<List<Friendship>> watchFriendships(String uid);
 
   Future<PlayerFriendCode?> findByFriendCode(String code);
+
+  Future<SocialPlayerSummary?> loadPlayerSummary(String uid);
 
   Future<void> ensureFriendCode(PlayerFriendCode friendCode);
 
