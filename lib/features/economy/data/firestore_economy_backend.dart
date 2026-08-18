@@ -29,12 +29,21 @@ class FirestoreEconomyBackend implements EconomyBackend {
 
       return PlayerInventory(
         coins: (data['coins'] as num?)?.toInt() ?? 0,
+        prestigeStars: (data['prestigeStars'] as num?)?.toInt() ??
+            (data['stars'] as num?)?.toInt() ??
+            0,
         ownedCosmeticIds: Set.unmodifiable(ownedIds),
+        equippedAvatarId: data['equippedAvatarId'] as String?,
         equippedAvatarFrameId: data['equippedAvatarFrameId'] as String?,
         equippedBadgeId: data['equippedBadgeId'] as String?,
         equippedProfileBackgroundId:
             data['equippedProfileBackgroundId'] as String?,
         equippedNameStyleId: data['equippedNameStyleId'] as String?,
+        equippedMatchIntroId: data['equippedMatchIntroId'] as String?,
+        equippedVictoryEffectId: data['equippedVictoryEffectId'] as String?,
+        equippedRankAuraId: data['equippedRankAuraId'] as String?,
+        equippedEmoteId: data['equippedEmoteId'] as String?,
+        equippedRoomThemeId: data['equippedRoomThemeId'] as String?,
       );
     });
   }
