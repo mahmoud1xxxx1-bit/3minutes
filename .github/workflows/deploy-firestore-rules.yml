@@ -7,9 +7,32 @@ on:
       - firestore.rules
       - firebase.json
       - .github/workflows/deploy-firestore-rules.yml
+  pull_request:
+    paths:
+      - .github/workflows/deploy-firestore-rules.yml
 
 jobs:
+  credential-check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check Firebase deployment credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo 'FIREBASE_DEPLOY_AUTH=service_account'
+          elif [ -n "$FIREBASE_TOKEN" ]; then
+            echo 'FIREBASE_DEPLOY_AUTH=token'
+          else
+            echo 'FIREBASE_DEPLOY_AUTH=missing'
+          fi
+
   deploy-rules:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
