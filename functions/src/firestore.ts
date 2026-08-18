@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   matchmaking: "matchmaking",
   matches: "matches",
   seasons: "seasons",
+  seasonHistory: "seasonHistory",
   leaderboards: "leaderboards",
   entries: "entries",
   inventories: "inventories",
@@ -14,6 +15,20 @@ export const COLLECTIONS = {
   rankedEvidence: "rankedEvidence",
   players: "players",
   coinTransactions: "coinTransactions",
+  prestigeStarTransactions: "prestigeStarTransactions",
+  purchaseReceipts: "purchaseReceipts",
+  achievements: "achievements",
+  playerAchievements: "playerAchievements",
+  missions: "missions",
+  playerMissions: "playerMissions",
+  seasonPass: "seasonPass",
+  friendships: "friendships",
+  friendCodes: "friendCodes",
+  recentPlayers: "recentPlayers",
+  privateRooms: "privateRooms",
+  roomCodes: "roomCodes",
+  parties: "parties",
+  socialMatches: "socialMatches",
 } as const;
 
 export const AUTHORITY_VERSION = 1;
