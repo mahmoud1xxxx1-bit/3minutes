@@ -1,3 +1,5 @@
+export 'dart:ui' show FontFeature;
+
 import 'package:flutter/material.dart';
 
 class GameColors {
