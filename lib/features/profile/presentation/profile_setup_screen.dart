@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/profile_repository.dart';
+import '../domain/player_name_rules.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({
@@ -38,6 +39,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Future<void> _save() async {
     if (_saving) return;
 
+    FocusScope.of(context).unfocus();
+
+    try {
+      PlayerNameRules.validate(_nameController.text);
+    } on ArgumentError catch (error) {
+      setState(() => _error = error.message?.toString());
+      return;
+    }
+
     setState(() {
       _saving = true;
       _error = null;
@@ -54,7 +64,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       setState(() => _error = error.message?.toString());
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not create your profile. Please try again.');
+      setState(() {
+        _error = 'Could not create your profile. Check your connection and try again.';
+      });
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -79,8 +91,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _nameController,
-                maxLength: 20,
+                enabled: !_saving,
+                maxLength: PlayerNameRules.maxLength,
                 textInputAction: TextInputAction.done,
+                autocorrect: false,
                 decoration: const InputDecoration(
                   hintText: '3–20 characters',
                   border: OutlineInputBorder(),
@@ -100,7 +114,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   final number = _avatars.indexOf(avatarId) + 1;
 
                   return InkWell(
-                    onTap: () => setState(() => _avatarId = avatarId),
+                    onTap: _saving
+                        ? null
+                        : () => setState(() => _avatarId = avatarId),
                     borderRadius: BorderRadius.circular(40),
                     child: CircleAvatar(
                       radius: 30,
@@ -131,7 +147,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               ],
               FilledButton(
                 onPressed: _saving ? null : _save,
-                child: Text(_saving ? 'Saving...' : 'Continue'),
+                child: _saving
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Continue'),
               ),
             ],
           ),
