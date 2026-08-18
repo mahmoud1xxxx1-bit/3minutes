@@ -23,7 +23,6 @@ void main() {
 
   test('player profile map keeps safe defaults', () {
     final profile = PlayerProfile.fromMap('uid-1', const {});
-
     expect(profile.uid, 'uid-1');
     expect(profile.gameName, 'Player');
     expect(profile.level, 1);
@@ -45,7 +44,6 @@ void main() {
   test('same match seed produces identical eight-game order', () {
     final firstPhone = GameRegistry.sequence(seed: 314159, count: 8);
     final secondPhone = GameRegistry.sequence(seed: 314159, count: 8);
-
     expect(firstPhone.map((game) => game.id), secondPhone.map((game) => game.id));
     expect(firstPhone.length, AppConfig.gamesPerMatch);
     expect(firstPhone.map((game) => game.id).toSet().length, 8);
@@ -61,7 +59,6 @@ void main() {
   test('match runtime keeps a strict 180 second deadline', () {
     final start = DateTime.utc(2026, 1, 1, 12);
     final runtime = MatchRuntime(seed: 7, startedAt: start, gameCount: 8);
-
     expect(runtime.endsAt, start.add(const Duration(minutes: 3)));
     expect(runtime.remaining(start), const Duration(minutes: 3));
     expect(runtime.remaining(runtime.endsAt), Duration.zero);
@@ -74,7 +71,6 @@ void main() {
       startedAt: DateTime.utc(2026, 1, 1),
       gameCount: 8,
     );
-
     final progress = runtime.recordResult(
       const MiniGameResult(
         completed: true,
@@ -84,13 +80,11 @@ void main() {
         duration: Duration(seconds: 12),
       ),
     );
-
     expect(progress.completedGames, 1);
     expect(progress.totalScore, 120);
     expect(progress.averageAccuracy, 0.9);
     expect(progress.mistakes, 1);
     expect(progress.elapsedMs, 12000);
-
     expect(
       () => runtime.recordResult(
         const MiniGameResult(
@@ -120,7 +114,6 @@ void main() {
       initialProgress: saved,
     );
     final sequence = GameRegistry.sequence(seed: 12345, count: 8);
-
     expect(runtime.progress.completedGames, 3);
     expect(runtime.progress.totalScore, 280);
     expect(runtime.progress.elapsedMs, 34000);
@@ -143,7 +136,6 @@ void main() {
       mistakes: 0,
       elapsedMs: 50000,
     );
-
     expect(
       MatchSettlement.isSettled(
         playerA: finished,
@@ -175,7 +167,6 @@ void main() {
       mistakes: 1,
       elapsedMs: 70000,
     );
-
     expect(
       MatchSettlement.isSettled(
         playerA: complete,
@@ -203,22 +194,21 @@ void main() {
       mistakes: 0,
       elapsedMs: 1000,
     );
-
     expect(
-      MatchOutcomeResolver.compare(
-        playerA: playerA,
-        playerB: playerB,
-        gameCount: 8,
-      ),
+      MatchOutcomeResolver.compare(playerA: playerA, playerB: playerB, gameCount: 8),
       MatchOutcome.playerA,
     );
   });
 
-  test('rank policy maps rp to centralized tiers', () {
+  test('rank policy maps rp to final eight-tier ladder', () {
     expect(RankPolicy.tierFor(0), RankTier.bronze);
     expect(RankPolicy.tierFor(500), RankTier.silver);
-    expect(RankPolicy.tierFor(1000), RankTier.gold);
-    expect(RankPolicy.tierFor(3200), RankTier.master);
+    expect(RankPolicy.tierFor(1200), RankTier.gold);
+    expect(RankPolicy.tierFor(2200), RankTier.platinum);
+    expect(RankPolicy.tierFor(3500), RankTier.diamond);
+    expect(RankPolicy.tierFor(5000), RankTier.master);
+    expect(RankPolicy.tierFor(7000), RankTier.grandmaster);
+    expect(RankPolicy.tierFor(10000), RankTier.legend);
     expect(RankPolicy.tierFor(-100), RankTier.bronze);
   });
 
@@ -239,7 +229,6 @@ void main() {
     final win = RankedRewardPolicy.rewardFor(RankedResult.win);
     final loss = RankedRewardPolicy.rewardFor(RankedResult.loss);
     final tie = RankedRewardPolicy.rewardFor(RankedResult.tie);
-
     expect(win.rpDelta, greaterThan(0));
     expect(win.xp, greaterThan(loss.xp));
     expect(win.coins, greaterThan(loss.coins));
@@ -248,14 +237,15 @@ void main() {
   });
 
   test('season stars are persistent cumulative identity rewards', () {
-    expect(SeasonRewardPolicy.starsForPeakTier(RankTier.bronze), 0);
-    expect(SeasonRewardPolicy.starsForPeakTier(RankTier.master), 8);
+    expect(SeasonRewardPolicy.starsForPeakTier(RankTier.bronze), 1);
+    expect(SeasonRewardPolicy.starsForPeakTier(RankTier.master), 16);
+    expect(SeasonRewardPolicy.starsForPeakTier(RankTier.legend), 35);
     expect(
       SeasonRewardPolicy.nextPersistentStars(
         currentStars: 12,
         peakTier: RankTier.diamond,
       ),
-      17,
+      23,
     );
   });
 
@@ -264,7 +254,6 @@ void main() {
       current: const PlayerProgression(level: 1, xp: 90),
       earnedXp: 220,
     );
-
     expect(next.level, 3);
     expect(next.xp, 60);
     expect(ProgressionPolicy.progressFraction(next), closeTo(0.3, 0.0001));
@@ -272,9 +261,6 @@ void main() {
 
   test('coin balance rejects overspending', () {
     expect(CoinBalancePolicy.apply(balance: 100, delta: -40), 60);
-    expect(
-      () => CoinBalancePolicy.apply(balance: 20, delta: -25),
-      throwsStateError,
-    );
+    expect(() => CoinBalancePolicy.apply(balance: 20, delta: -25), throwsStateError);
   });
 }
