@@ -473,7 +473,8 @@ class _SocialResultView extends StatelessWidget {
             flex: 3,
             child: ListView.separated(
               itemCount: placements.length,
-              separatorBuilder: (_, __) => const SizedBox(height: GameSpacing.sm),
+              separatorBuilder: (context, index) =>
+                  const SizedBox(height: GameSpacing.sm),
               itemBuilder: (context, index) {
                 final placement = placements[index];
                 final participant = byUid[placement.uid]!;
