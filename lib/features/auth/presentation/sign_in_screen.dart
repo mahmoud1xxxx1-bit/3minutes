@@ -30,6 +30,10 @@ class _SignInScreenState extends State<SignInScreen> {
 
     try {
       await widget.authService.signInWithGoogle();
+    } on AuthSignInException catch (error) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      setState(() => _error = '${l10n.googleSignInFailed}\n${error.code}');
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = AppLocalizations.of(context).googleSignInFailed);
