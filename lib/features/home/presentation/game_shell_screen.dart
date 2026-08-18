@@ -12,7 +12,7 @@ import '../../match/data/match_backend.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
-import '../../profile/presentation/profile_screen.dart';
+import '../../profile/presentation/profile_showcase_screen.dart';
 import '../../progression/data/progression_backend.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
@@ -87,7 +87,11 @@ class _GameShellScreenState extends State<GameShellScreen> {
           ),
           FriendsScreen(profile: profile, socialBackend: widget.socialBackend),
           ShopScreen(uid: profile.uid, economyBackend: widget.economyBackend),
-          ProfileScreen(profile: profile, profileRepository: widget.profileRepository),
+          ProfileShowcaseScreen(
+            profile: profile,
+            profileRepository: widget.profileRepository,
+            economyBackend: widget.economyBackend,
+          ),
         ];
 
         return Scaffold(
