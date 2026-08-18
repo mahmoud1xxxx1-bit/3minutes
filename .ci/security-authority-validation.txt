@@ -1,0 +1,2 @@
+Temporary CI trigger for social evidence and Blaze ranked authority validation.
+Do not merge.
