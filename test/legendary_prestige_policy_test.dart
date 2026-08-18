@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:three_minutes/features/competition/domain/rank_tier.dart';
-import 'package:three_minutes/features/competition/domain/season_history.dart';
+import 'package:game/features/competition/domain/rank_tier.dart';
+import 'package:game/features/competition/domain/season_history.dart';
 
 void main() {
   SeasonHistoryEntry entry({
