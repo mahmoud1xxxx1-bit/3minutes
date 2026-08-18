@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
 import '../../match/data/match_backend.dart';
+import '../../match/domain/match_ticket.dart';
+import '../../match/presentation/match_room_screen.dart';
 import '../../match/presentation/matchmaking_screen.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
@@ -49,27 +51,9 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   _PlayerCard(profile: profile),
                   const Spacer(),
-                  FilledButton(
-                    onPressed: profile == null
-                        ? null
-                        : () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => MatchmakingScreen(
-                                  profile: profile,
-                                  matchBackend: matchBackend,
-                                ),
-                              ),
-                            );
-                          },
-                    child: const Text(
-                      'PLAY',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
-                      ),
-                    ),
+                  _PlayButton(
+                    profile: profile,
+                    matchBackend: matchBackend,
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -116,6 +100,67 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PlayButton extends StatelessWidget {
+  const _PlayButton({
+    required this.profile,
+    required this.matchBackend,
+  });
+
+  final PlayerProfile? profile;
+  final MatchBackend matchBackend;
+
+  @override
+  Widget build(BuildContext context) {
+    final player = profile;
+    if (player == null) {
+      return const FilledButton(onPressed: null, child: Text('PLAY'));
+    }
+
+    return StreamBuilder<MatchTicket?>(
+      stream: matchBackend.watchTicket(player.uid),
+      builder: (context, snapshot) {
+        final ticket = snapshot.data;
+        final resumable = ticket?.status == MatchTicketStatus.matched &&
+            ticket?.matchId != null;
+
+        return FilledButton(
+          onPressed: () {
+            if (resumable) {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => MatchRoomScreen(
+                    matchId: ticket!.matchId!,
+                    uid: player.uid,
+                    matchBackend: matchBackend,
+                  ),
+                ),
+              );
+              return;
+            }
+
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => MatchmakingScreen(
+                  profile: player,
+                  matchBackend: matchBackend,
+                ),
+              ),
+            );
+          },
+          child: Text(
+            resumable ? 'RESUME' : 'PLAY',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
             ),
           ),
         );
