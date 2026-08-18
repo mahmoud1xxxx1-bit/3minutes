@@ -25,6 +25,12 @@ abstract class PartyBackend {
     required String uid,
   });
 
+  Future<void> setActiveRoom({
+    required String partyId,
+    required String leaderUid,
+    required String? roomId,
+  });
+
   Future<void> leaveParty({
     required String partyId,
     required String uid,
