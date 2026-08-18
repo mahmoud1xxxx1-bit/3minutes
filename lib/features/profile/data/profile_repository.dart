@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import '../domain/player_profile.dart';
 
@@ -12,15 +11,24 @@ class ProfileRepository {
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection('users');
 
-  Future<void> ensureProfile(User user) async {
-    final ref = _users.doc(user.uid);
-    final snapshot = await ref.get();
+  Stream<PlayerProfile?> watchProfile(String uid) {
+    return _users.doc(uid).snapshots().map((snapshot) {
+      final data = snapshot.data();
+      if (!snapshot.exists || data == null) return null;
+      return PlayerProfile.fromMap(snapshot.id, data);
+    });
+  }
 
-    if (snapshot.exists) return;
+  Future<void> createProfile({
+    required String uid,
+    required String gameName,
+    required String avatarId,
+  }) async {
+    final cleanedName = _validateGameName(gameName);
 
-    await ref.set({
-      'gameName': _safeGameName(user.displayName),
-      'avatarId': 'default_01',
+    await _users.doc(uid).set({
+      'gameName': cleanedName,
+      'avatarId': avatarId,
       'level': 1,
       'xp': 0,
       'rankPoints': 0,
@@ -33,17 +41,11 @@ class ProfileRepository {
     });
   }
 
-  Stream<PlayerProfile?> watchProfile(String uid) {
-    return _users.doc(uid).snapshots().map((snapshot) {
-      final data = snapshot.data();
-      if (!snapshot.exists || data == null) return null;
-      return PlayerProfile.fromMap(snapshot.id, data);
-    });
-  }
-
-  String _safeGameName(String? displayName) {
-    final cleaned = (displayName ?? '').trim();
-    if (cleaned.isEmpty) return 'Player';
-    return cleaned.length <= 20 ? cleaned : cleaned.substring(0, 20);
+  String _validateGameName(String value) {
+    final cleaned = value.trim();
+    if (cleaned.length < 3 || cleaned.length > 20) {
+      throw ArgumentError('Game name must be between 3 and 20 characters.');
+    }
+    return cleaned;
   }
 }
