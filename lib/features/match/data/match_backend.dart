@@ -10,11 +10,28 @@ abstract class MatchBackend {
 
   Future<void> clearTicket(String uid);
 
+  Future<void> moveTicketToMatch({
+    required String uid,
+    required String matchId,
+  });
+
   Stream<MatchTicket?> watchTicket(String uid);
 
   Stream<MatchSession?> watchMatch(String matchId);
 
+  Future<List<MatchSession>> loadHistory(String uid);
+
   Future<void> markReady({
+    required String matchId,
+    required String uid,
+  });
+
+  Future<void> cancelMatch({
+    required String matchId,
+    required String uid,
+  });
+
+  Future<void> requestRematch({
     required String matchId,
     required String uid,
   });
