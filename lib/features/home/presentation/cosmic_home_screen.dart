@@ -273,11 +273,12 @@ class _SeasonSummary extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final rp = profile?.rankPoints ?? 0;
     final tier = RankPolicy.tierFor(rp);
-    final next = RankPolicy.nextTier(tier);
-    final floor = RankPolicy.minimumRp(tier);
-    final ceiling = next == null ? rp : RankPolicy.minimumRp(next);
-    final range = (ceiling - floor).clamp(1, 1 << 30);
-    final progress = next == null ? 1.0 : ((rp - floor) / range).clamp(0.0, 1.0);
+    final index = RankPolicy.bands.indexWhere((band) => band.tier == tier);
+    final floor = RankPolicy.bands[index].minimumRp;
+    final hasNext = index >= 0 && index < RankPolicy.bands.length - 1;
+    final ceiling = hasNext ? RankPolicy.bands[index + 1].minimumRp : rp;
+    final range = hasNext ? (ceiling - floor) : 1;
+    final progress = hasNext ? ((rp - floor) / range).clamp(0.0, 1.0) : 1.0;
 
     return CosmicPanel(
       child: Column(
@@ -303,7 +304,7 @@ class _SeasonSummary extends StatelessWidget {
           ),
           const SizedBox(height: GameSpacing.xs),
           Text(
-            next == null ? l10n.rpWithValue(rp) : '$rp / $ceiling RP',
+            hasNext ? '$rp / $ceiling RP' : l10n.rpWithValue(rp),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
