@@ -1,0 +1,63 @@
+import '../domain/cosmetic_item.dart';
+
+class CosmeticCatalog {
+  const CosmeticCatalog._();
+
+  static const items = <CosmeticItem>[
+    CosmeticItem(
+      id: 'frame_classic',
+      name: 'Classic Frame',
+      slot: CosmeticSlot.avatarFrame,
+      coinPrice: 250,
+    ),
+    CosmeticItem(
+      id: 'frame_neon',
+      name: 'Neon Frame',
+      slot: CosmeticSlot.avatarFrame,
+      coinPrice: 600,
+    ),
+    CosmeticItem(
+      id: 'badge_timer',
+      name: 'Three Minute Badge',
+      slot: CosmeticSlot.badge,
+      coinPrice: 400,
+    ),
+    CosmeticItem(
+      id: 'badge_crown',
+      name: 'Crown Badge',
+      slot: CosmeticSlot.badge,
+      coinPrice: 900,
+    ),
+    CosmeticItem(
+      id: 'background_grid',
+      name: 'Grid Profile',
+      slot: CosmeticSlot.profileBackground,
+      coinPrice: 500,
+    ),
+    CosmeticItem(
+      id: 'background_arena',
+      name: 'Arena Profile',
+      slot: CosmeticSlot.profileBackground,
+      coinPrice: 800,
+    ),
+    CosmeticItem(
+      id: 'name_bold',
+      name: 'Bold Name',
+      slot: CosmeticSlot.nameStyle,
+      coinPrice: 300,
+    ),
+    CosmeticItem(
+      id: 'name_champion',
+      name: 'Champion Name',
+      slot: CosmeticSlot.nameStyle,
+      coinPrice: 750,
+    ),
+  ];
+
+  static CosmeticItem? byId(String id) {
+    for (final item in items) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+}
