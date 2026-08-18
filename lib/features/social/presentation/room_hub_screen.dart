@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../profile/domain/player_profile.dart';
@@ -35,6 +36,7 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
   final _roomCodeController = TextEditingController();
   bool _busy = false;
   String? _error;
+  int _selectedPlayers = 4;
 
   static const _alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -46,10 +48,7 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
 
   String _newCode() {
     final random = Random.secure();
-    return List.generate(
-      5,
-      (_) => _alphabet[random.nextInt(_alphabet.length)],
-    ).join();
+    return List.generate(5, (_) => _alphabet[random.nextInt(_alphabet.length)]).join();
   }
 
   Future<void> _create(int maxPlayers) async {
@@ -98,10 +97,7 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
         if (mounted) setState(() => _error = copy.roomNotFound);
         return;
       }
-      await widget.roomBackend.joinRoom(
-        roomId: room.id,
-        uid: widget.profile.uid,
-      );
+      await widget.roomBackend.joinRoom(roomId: room.id, uid: widget.profile.uid);
       if (!mounted) return;
       await _openRoom(room);
     } catch (_) {
@@ -143,236 +139,253 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
   Widget build(BuildContext context) {
     final copy = SocialCopy.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          copy.playWithFriends,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(GameSpacing.md),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(GameSpacing.lg),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(GameRadii.panel),
-                gradient: const LinearGradient(
-                  begin: AlignmentDirectional.topStart,
-                  end: AlignmentDirectional.bottomEnd,
-                  colors: [GameColors.surfaceRaised, GameColors.surface],
-                ),
-                border: Border.all(
-                  color: GameColors.accent.withValues(alpha: 0.28),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.groups_2_rounded,
-                    size: 42,
-                    color: GameColors.accent,
-                  ),
-                  const SizedBox(height: GameSpacing.sm),
-                  Text(
-                    copy.privateRoom,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
-                  const SizedBox(height: GameSpacing.xs),
-                  Text(
-                    copy.roomRule,
-                    style: const TextStyle(color: GameColors.muted),
-                  ),
-                  const SizedBox(height: GameSpacing.xs),
-                  Text(
-                    copy.roomNoRankedRp,
-                    style: const TextStyle(
-                      color: GameColors.rewardGold,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(title: Text(copy.playWithFriends)),
+      body: CosmicBackground(
+        child: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              GameSpacing.md,
+              GameSpacing.md,
+              GameSpacing.md,
+              GameSpacing.xl,
             ),
-            const SizedBox(height: GameSpacing.md),
-            InkWell(
-              onTap: _openParty,
-              borderRadius: BorderRadius.circular(GameRadii.card),
-              child: Ink(
-                padding: const EdgeInsets.all(GameSpacing.md),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      GameColors.rarityEpic.withValues(alpha: 0.14),
-                      GameColors.surface,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(GameRadii.card),
-                  border: Border.all(
-                    color: GameColors.rarityEpic.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: Row(
+            children: [
+              CosmicPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: GameColors.rarityEpic.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.groups_3_rounded,
-                        color: GameColors.rarityEpic,
-                        size: 28,
+                    Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            gradient: GameColors.cosmicGradient,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.groups_2_rounded,
+                            color: GameColors.backgroundDeep,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: GameSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(copy.privateRoom, style: Theme.of(context).textTheme.titleLarge),
+                              const SizedBox(height: 3),
+                              Text(copy.roomRule, style: Theme.of(context).textTheme.bodySmall),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: GameSpacing.md),
+                    Text(
+                      copy.roomNoRankedRp,
+                      style: const TextStyle(
+                        color: GameColors.rewardGold,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: GameSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            copy.party,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            copy.partySubtitle,
-                            style: const TextStyle(
-                              color: GameColors.muted,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right_rounded),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: GameSpacing.lg),
-            Text(
-              copy.createRoom,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            const SizedBox(height: GameSpacing.sm),
-            Row(
-              children: [
-                for (final entry in <(int, String)>[
-                  (2, copy.players2),
-                  (4, copy.players4),
-                  (6, copy.players6),
-                ]) ...[
-                  Expanded(
-                    child: _PlayerCountButton(
-                      count: entry.$1,
-                      label: entry.$2,
-                      busy: _busy,
-                      onPressed: () => _create(entry.$1),
-                    ),
-                  ),
-                  if (entry.$1 != 6)
-                    const SizedBox(width: GameSpacing.sm),
-                ],
-              ],
-            ),
-            const SizedBox(height: GameSpacing.xl),
-            Text(
-              copy.joinRoom,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-            const SizedBox(height: GameSpacing.sm),
-            Container(
-              padding: const EdgeInsets.all(GameSpacing.md),
-              decoration: BoxDecoration(
-                color: GameColors.surface,
+              const SizedBox(height: GameSpacing.md),
+              InkWell(
+                onTap: _openParty,
                 borderRadius: BorderRadius.circular(GameRadii.card),
-                border: Border.all(color: GameColors.surfaceStrong),
-              ),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _roomCodeController,
-                    textCapitalization: TextCapitalization.characters,
-                    maxLength: 5,
-                    decoration: InputDecoration(
-                      hintText: copy.enterRoomCode,
-                      prefixIcon: const Icon(Icons.key_rounded),
-                    ),
-                    onSubmitted: (_) => _join(),
+                child: Ink(
+                  padding: const EdgeInsets.all(GameSpacing.md),
+                  decoration: BoxDecoration(
+                    color: GameColors.surfaceGlass,
+                    borderRadius: BorderRadius.circular(GameRadii.card),
+                    border: Border.all(color: GameColors.violet.withValues(alpha: 0.4)),
                   ),
-                  const SizedBox(height: GameSpacing.sm),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _busy ? null : _join,
-                      icon: const Icon(Icons.login_rounded),
-                      label: Text(_busy ? copy.joiningRoom : copy.joinRoom),
-                    ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.groups_3_rounded, color: GameColors.violet, size: 32),
+                      const SizedBox(width: GameSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(copy.party, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                            const SizedBox(height: 3),
+                            Text(copy.partySubtitle, style: Theme.of(context).textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, color: GameColors.muted),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-            if (_error != null) ...[
+              const SizedBox(height: GameSpacing.lg),
+              Text(copy.createRoom, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: GameSpacing.sm),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: GameColors.danger),
+              CosmicPanel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        _PlayerCountChoice(
+                          count: 2,
+                          label: copy.players2,
+                          selected: _selectedPlayers == 2,
+                          onTap: _busy ? null : () => setState(() => _selectedPlayers = 2),
+                        ),
+                        const SizedBox(width: GameSpacing.sm),
+                        _PlayerCountChoice(
+                          count: 4,
+                          label: copy.players4,
+                          selected: _selectedPlayers == 4,
+                          onTap: _busy ? null : () => setState(() => _selectedPlayers = 4),
+                        ),
+                        const SizedBox(width: GameSpacing.sm),
+                        _PlayerCountChoice(
+                          count: 6,
+                          label: copy.players6,
+                          selected: _selectedPlayers == 6,
+                          onTap: _busy ? null : () => setState(() => _selectedPlayers = 6),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: GameSpacing.md),
+                    CosmicPrimaryButton(
+                      onPressed: _busy ? null : () => _create(_selectedPlayers),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_busy)
+                            const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else
+                            const Icon(Icons.add_rounded),
+                          const SizedBox(width: GameSpacing.sm),
+                          Text(copy.createRoom),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: GameSpacing.lg),
+              Text(copy.joinRoom, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: GameSpacing.sm),
+              CosmicPanel(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _roomCodeController,
+                      textCapitalization: TextCapitalization.characters,
+                      maxLength: 5,
+                      decoration: InputDecoration(
+                        hintText: copy.enterRoomCode,
+                        prefixIcon: const Icon(Icons.key_rounded),
+                        counterText: '',
+                      ),
+                      onSubmitted: (_) => _join(),
+                    ),
+                    const SizedBox(height: GameSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _busy ? null : _join,
+                        icon: const Icon(Icons.login_rounded),
+                        label: Text(_busy ? copy.joiningRoom : copy.joinRoom),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: GameSpacing.md),
+                CosmicPanel(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: GameColors.danger),
+                      const SizedBox(width: GameSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: GameColors.danger),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _PlayerCountButton extends StatelessWidget {
-  const _PlayerCountButton({
+class _PlayerCountChoice extends StatelessWidget {
+  const _PlayerCountChoice({
     required this.count,
     required this.label,
-    required this.busy,
-    required this.onPressed,
+    required this.selected,
+    required this.onTap,
   });
 
   final int count;
   final String label;
-  final bool busy;
-  final VoidCallback onPressed;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: busy ? null : onPressed,
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: GameSpacing.md),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            count == 2
-                ? Icons.people_rounded
-                : count == 4
-                    ? Icons.groups_rounded
-                    : Icons.groups_2_rounded,
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        child: AnimatedContainer(
+          duration: GameDurations.normal,
+          padding: const EdgeInsets.symmetric(vertical: GameSpacing.md),
+          decoration: BoxDecoration(
+            color: selected ? GameColors.accentSoft : GameColors.surfaceRaised,
+            borderRadius: BorderRadius.circular(GameRadii.card),
+            border: Border.all(
+              color: selected ? GameColors.accentBright : GameColors.surfaceStrong,
+              width: selected ? 1.4 : 0.8,
+            ),
           ),
-          const SizedBox(height: GameSpacing.xs),
-          Text(label),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                count == 2
+                    ? Icons.people_rounded
+                    : count == 4
+                        ? Icons.groups_rounded
+                        : Icons.groups_2_rounded,
+                color: selected ? GameColors.accentBright : GameColors.textSoft,
+              ),
+              const SizedBox(height: GameSpacing.xs),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: selected ? GameColors.textStrong : GameColors.textSoft,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
