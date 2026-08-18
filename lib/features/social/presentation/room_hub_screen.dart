@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../profile/domain/player_profile.dart';
+import '../data/firestore_party_backend.dart';
 import '../data/room_backend.dart';
 import '../data/social_backend.dart';
 import '../domain/private_room.dart';
+import 'party_screen.dart';
 import 'private_room_screen.dart';
 import 'social_copy.dart';
 
@@ -123,6 +125,20 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
     );
   }
 
+  void _openParty() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PartyScreen(
+          profile: widget.profile,
+          partyBackend: FirestorePartyBackend(),
+          roomBackend: widget.roomBackend,
+          socialBackend: widget.socialBackend,
+          socialMatchBackend: widget.socialMatchBackend,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final copy = SocialCopy.of(context);
@@ -179,6 +195,67 @@ class _RoomHubScreenState extends State<RoomHubScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: GameSpacing.md),
+            InkWell(
+              onTap: _openParty,
+              borderRadius: BorderRadius.circular(GameRadii.card),
+              child: Ink(
+                padding: const EdgeInsets.all(GameSpacing.md),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      GameColors.rarityEpic.withValues(alpha: 0.14),
+                      GameColors.surface,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(GameRadii.card),
+                  border: Border.all(
+                    color: GameColors.rarityEpic.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: GameColors.rarityEpic.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.groups_3_rounded,
+                        color: GameColors.rarityEpic,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: GameSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            copy.party,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            copy.partySubtitle,
+                            style: const TextStyle(
+                              color: GameColors.muted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: GameSpacing.lg),
