@@ -146,6 +146,7 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                 return _MatchResultView(
                   uid: widget.uid,
                   match: match,
+                  matchBackend: widget.matchBackend,
                   localCompletedGames: activeRuntime.progress.completedGames,
                 );
               }
@@ -231,21 +232,41 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
   }
 }
 
-class _MatchResultView extends StatelessWidget {
+class _MatchResultView extends StatefulWidget {
   const _MatchResultView({
     required this.uid,
     required this.match,
+    required this.matchBackend,
     required this.localCompletedGames,
   });
 
   final String uid;
   final MatchSession match;
+  final MatchBackend matchBackend;
   final int localCompletedGames;
 
   @override
+  State<_MatchResultView> createState() => _MatchResultViewState();
+}
+
+class _MatchResultViewState extends State<_MatchResultView> {
+  bool _leaving = false;
+
+  Future<void> _backHome() async {
+    if (_leaving) return;
+    setState(() => _leaving = true);
+    try {
+      await widget.matchBackend.clearTicket(widget.uid);
+    } finally {
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final remoteLocal = match.progressFor(uid);
-    final waitingForFinalWrite = localCompletedGames >= match.gameCount &&
+    final match = widget.match;
+    final remoteLocal = match.progressFor(widget.uid);
+    final waitingForFinalWrite = widget.localCompletedGames >= match.gameCount &&
         (remoteLocal.completedGames < match.gameCount || remoteLocal.completedAt == null);
 
     if (waitingForFinalWrite) {
@@ -267,14 +288,14 @@ class _MatchResultView extends StatelessWidget {
       gameCount: match.gameCount,
     );
 
-    final iAmA = match.playerAId == uid;
+    final iAmA = match.playerAId == widget.uid;
     final won = (outcome == MatchOutcome.playerA && iAmA) ||
         (outcome == MatchOutcome.playerB && !iAmA);
     final lost = (outcome == MatchOutcome.playerA && !iAmA) ||
         (outcome == MatchOutcome.playerB && iAmA);
     final title = won ? 'YOU WIN' : (lost ? 'YOU LOSE' : 'TIE');
-    final mine = match.progressFor(uid);
-    final opponent = match.opponentProgress(uid);
+    final mine = match.progressFor(widget.uid);
+    final opponent = match.opponentProgress(widget.uid);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -301,8 +322,8 @@ class _MatchResultView extends StatelessWidget {
           ),
           const Spacer(),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('BACK TO HOME'),
+            onPressed: _leaving ? null : _backHome,
+            child: Text(_leaving ? 'LEAVING...' : 'BACK TO HOME'),
           ),
         ],
       ),
