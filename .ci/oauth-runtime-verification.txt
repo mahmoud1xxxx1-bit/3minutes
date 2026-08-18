@@ -1,2 +1,2 @@
 Temporary CI trigger for runtime Google OAuth resource and APK certificate verification.
-Rerun after explicit CI debug signing configuration.
+Verification completed successfully with explicit CI debug signing.
