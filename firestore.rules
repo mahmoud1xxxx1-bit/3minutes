@@ -34,13 +34,125 @@ service cloud.firestore {
         && request.resource.data.losses == 0
         && request.resource.data.gamesPlayed == 0;
 
-      // Competitive and economy fields will become server-authoritative on Blaze.
       allow update: if isOwner(uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'gameName',
           'avatarId',
           'updatedAt'
         ]);
+
+      allow delete: if false;
+    }
+
+    // Spark-era queue. Public only to authenticated players so a second device
+    // can discover and atomically claim a waiting ticket. Blaze will move this
+    // operation to Cloud Functions.
+    match /matchmaking/{uid} {
+      allow read: if signedIn();
+
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'gameName',
+          'avatarId',
+          'status',
+          'matchId',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.matchId == null;
+
+      allow update: if signedIn()
+        && resource.data.status == 'waiting'
+        && request.resource.data.status == 'matched'
+        && request.resource.data.matchId is string
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.gameName == resource.data.gameName
+        && request.resource.data.avatarId == resource.data.avatarId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'matchId',
+          'updatedAt'
+        ]);
+
+      allow delete: if isOwner(uid);
+    }
+
+    match /matches/{matchId} {
+      function participant() {
+        return signedIn()
+          && (request.auth.uid == resource.data.playerAId
+            || request.auth.uid == resource.data.playerBId);
+      }
+
+      allow read: if participant();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'playerAId',
+          'playerAName',
+          'playerAAvatarId',
+          'playerBId',
+          'playerBName',
+          'playerBAvatarId',
+          'seed',
+          'gameCount',
+          'registryVersion',
+          'status',
+          'readyA',
+          'readyB',
+          'countdownStartedAt',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.playerAId != request.resource.data.playerBId
+        && (request.auth.uid == request.resource.data.playerAId
+          || request.auth.uid == request.resource.data.playerBId)
+        && request.resource.data.status == 'waitingReady'
+        && request.resource.data.readyA == false
+        && request.resource.data.readyB == false
+        && request.resource.data.countdownStartedAt == null
+        && request.resource.data.gameCount == 8;
+
+      allow update: if participant()
+        && request.resource.data.playerAId == resource.data.playerAId
+        && request.resource.data.playerAName == resource.data.playerAName
+        && request.resource.data.playerAAvatarId == resource.data.playerAAvatarId
+        && request.resource.data.playerBId == resource.data.playerBId
+        && request.resource.data.playerBName == resource.data.playerBName
+        && request.resource.data.playerBAvatarId == resource.data.playerBAvatarId
+        && request.resource.data.seed == resource.data.seed
+        && request.resource.data.gameCount == resource.data.gameCount
+        && request.resource.data.registryVersion == resource.data.registryVersion
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'readyA',
+          'readyB',
+          'status',
+          'countdownStartedAt',
+          'updatedAt'
+        ])
+        && (
+          (request.auth.uid == resource.data.playerAId
+            && request.resource.data.readyB == resource.data.readyB
+            && request.resource.data.readyA == true)
+          ||
+          (request.auth.uid == resource.data.playerBId
+            && request.resource.data.readyA == resource.data.readyA
+            && request.resource.data.readyB == true)
+        )
+        && (
+          request.resource.data.status == resource.data.status
+          || (
+            resource.data.status == 'waitingReady'
+            && request.resource.data.status == 'countdown'
+            && request.resource.data.readyA == true
+            && request.resource.data.readyB == true
+          )
+        );
 
       allow delete: if false;
     }
