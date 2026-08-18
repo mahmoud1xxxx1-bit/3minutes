@@ -7,6 +7,7 @@ import '../../competition/data/competition_backend.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../match/data/match_backend.dart';
+import '../../match/data/social_match_backend.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_setup_screen.dart';
@@ -21,6 +22,7 @@ class AuthGate extends StatefulWidget {
     required this.authService,
     required this.profileRepository,
     required this.matchBackend,
+    required this.socialMatchBackend,
     required this.competitionBackend,
     required this.economyBackend,
     required this.socialBackend,
@@ -30,6 +32,7 @@ class AuthGate extends StatefulWidget {
   final AuthService authService;
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
+  final SocialMatchBackend socialMatchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
   final SocialBackend socialBackend;
@@ -91,6 +94,7 @@ class _AuthGateState extends State<AuthGate> {
               authService: widget.authService,
               profileRepository: widget.profileRepository,
               matchBackend: widget.matchBackend,
+              socialMatchBackend: widget.socialMatchBackend,
               competitionBackend: widget.competitionBackend,
               economyBackend: widget.economyBackend,
               socialBackend: widget.socialBackend,
