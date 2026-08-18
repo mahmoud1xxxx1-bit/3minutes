@@ -19,6 +19,7 @@ class ServerCollections {
   static const privateRooms = 'privateRooms';
   static const roomCodes = 'roomCodes';
   static const parties = 'parties';
+  static const socialMatches = 'socialMatches';
 
   static const achievements = 'achievements';
   static const playerAchievements = 'playerAchievements';
