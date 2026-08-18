@@ -9,6 +9,9 @@ class SeasonPlayerState {
     required this.wins,
     required this.losses,
     required this.gamesPlayed,
+    this.ties = 0,
+    this.seasonXp = 0,
+    this.finalStanding,
   });
 
   final String uid;
@@ -17,7 +20,12 @@ class SeasonPlayerState {
   final RankTier peakTier;
   final int wins;
   final int losses;
+  final int ties;
   final int gamesPlayed;
+  final int seasonXp;
+  final int? finalStanding;
+
+  double get winRate => gamesPlayed <= 0 ? 0 : wins / gamesPlayed;
 }
 
 class SeasonPeakTierPolicy {
