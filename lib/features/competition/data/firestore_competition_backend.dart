@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/firebase/server_collections.dart';
 import '../domain/leaderboard_entry.dart';
 import '../domain/leaderboard_policy.dart';
 import '../domain/season.dart';
@@ -12,7 +13,7 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> get _seasons =>
-      _firestore.collection('seasons');
+      _firestore.collection(ServerCollections.seasons);
 
   @override
   Stream<Season?> watchCurrentSeason() {
@@ -34,9 +35,9 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
     final seasonId = current.docs.first.id;
     final safeLimit = limit.clamp(1, 100).toInt();
     final snapshot = await _firestore
-        .collection('leaderboards')
+        .collection(ServerCollections.leaderboards)
         .doc(seasonId)
-        .collection('entries')
+        .collection(ServerCollections.leaderboardEntries)
         .orderBy('rankPoints', descending: true)
         .limit(safeLimit)
         .get();
@@ -51,9 +52,9 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
       if (season == null) return Stream<LeaderboardEntry?>.value(null);
 
       return _firestore
-          .collection('leaderboards')
+          .collection(ServerCollections.leaderboards)
           .doc(season.id)
-          .collection('entries')
+          .collection(ServerCollections.leaderboardEntries)
           .doc(uid)
           .snapshots()
           .map((snapshot) {
