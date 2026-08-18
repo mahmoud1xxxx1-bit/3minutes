@@ -5,12 +5,24 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import { cosmeticById } from "./catalog.js";
 import { COLLECTIONS, intValue } from "./firestore.js";
+import type { RankTier } from "./policy.js";
 
 const CALLABLE_OPTIONS = {
   region: "me-central2",
   enforceAppCheck: true,
   timeoutSeconds: 30,
 } as const;
+
+const RANK_TIERS: readonly RankTier[] = [
+  "bronze",
+  "silver",
+  "gold",
+  "platinum",
+  "diamond",
+  "master",
+  "grandmaster",
+  "legend",
+];
 
 function requireUid(uid: string | undefined): string {
   if (!uid) throw new HttpsError("unauthenticated", "Sign-in is required.");
@@ -23,6 +35,49 @@ function requireCosmeticId(value: unknown): string {
   }
   return value.trim();
 }
+
+function requireRankTier(value: unknown): RankTier {
+  if (typeof value !== "string" || !RANK_TIERS.includes(value as RankTier)) {
+    throw new HttpsError("invalid-argument", "A valid rankTier is required.");
+  }
+  return value as RankTier;
+}
+
+function storedPeakTier(value: unknown): RankTier {
+  return typeof value === "string" && RANK_TIERS.includes(value as RankTier)
+    ? (value as RankTier)
+    : "bronze";
+}
+
+// Historical rank emblems are earned through Ranked play, never purchased.
+// The server verifies the requested showcase tier is no higher than the
+// lifetime peak tier written by ranked settlement authority.
+export const selectRankShowcase = onCall(CALLABLE_OPTIONS, async (request) => {
+  const uid = requireUid(request.auth?.uid);
+  const requestedTier = requireRankTier(request.data?.rankTier);
+  const db = getFirestore();
+  const userRef = db.collection(COLLECTIONS.users).doc(uid);
+  const userSnap = await userRef.get();
+  const user = userSnap.data();
+  if (!user) {
+    throw new HttpsError("failed-precondition", "Player profile does not exist.");
+  }
+
+  const peakTier = storedPeakTier(user.peakRankTier);
+  if (RANK_TIERS.indexOf(requestedTier) > RANK_TIERS.indexOf(peakTier)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "This rank emblem has not been earned yet.",
+    );
+  }
+
+  await userRef.update({
+    showcaseRankTier: requestedTier,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+
+  return { rankTier: requestedTier, peakRankTier: peakTier };
+});
 
 // Prestige Stars are permanent account history. Unlocking a prestige cosmetic
 // checks the lifetime star threshold but never subtracts stars.
