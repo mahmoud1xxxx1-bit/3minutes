@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../data/cosmetic_catalog.dart';
 import '../domain/cosmetic_item.dart';
@@ -23,6 +24,8 @@ class ShopScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final purchasesEnabled = AppConfig.economyPurchasesEnabled;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Shop')),
       body: SafeArea(
@@ -35,9 +38,13 @@ class ShopScreen extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       backgroundColor: GameColors.surfaceRaised,
-                      child: Icon(Icons.lock_outline),
+                      child: Icon(
+                        purchasesEnabled
+                            ? Icons.verified_user_outlined
+                            : Icons.lock_outline,
+                      ),
                     ),
                     const SizedBox(width: GameSpacing.md),
                     Expanded(
@@ -51,9 +58,11 @@ class ShopScreen extends StatelessWidget {
                                 ),
                           ),
                           const SizedBox(height: GameSpacing.xs),
-                          const Text(
-                            'Cosmetics only. Purchases activate after the secure server economy is enabled.',
-                            style: TextStyle(color: GameColors.muted),
+                          Text(
+                            purchasesEnabled
+                                ? 'Cosmetic purchases are protected by the secure server economy.'
+                                : 'Cosmetics only. Purchases activate after the secure server economy is enabled.',
+                            style: const TextStyle(color: GameColors.muted),
                           ),
                         ],
                       ),
@@ -115,10 +124,12 @@ class ShopScreen extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 3),
-                          const Text(
-                            'LOCKED',
+                          Text(
+                            purchasesEnabled ? 'AVAILABLE' : 'LOCKED',
                             style: TextStyle(
-                              color: GameColors.muted,
+                              color: purchasesEnabled
+                                  ? GameColors.success
+                                  : GameColors.muted,
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
