@@ -5,6 +5,8 @@ import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_gate.dart';
+import 'features/competition/data/competition_backend.dart';
+import 'features/competition/data/firestore_competition_backend.dart';
 import 'features/match/data/firestore_match_backend.dart';
 import 'features/match/data/match_backend.dart';
 import 'features/profile/data/profile_repository.dart';
@@ -21,6 +23,7 @@ Future<void> main() async {
       authService: authService,
       profileRepository: ProfileRepository(),
       matchBackend: FirestoreMatchBackend(),
+      competitionBackend: FirestoreCompetitionBackend(),
     ),
   );
 }
@@ -31,11 +34,13 @@ class ThreeMinutesApp extends StatelessWidget {
     required this.authService,
     required this.profileRepository,
     required this.matchBackend,
+    required this.competitionBackend,
   });
 
   final AuthService authService;
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
+  final CompetitionBackend competitionBackend;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +52,7 @@ class ThreeMinutesApp extends StatelessWidget {
         authService: authService,
         profileRepository: profileRepository,
         matchBackend: matchBackend,
+        competitionBackend: competitionBackend,
       ),
     );
   }
