@@ -15,6 +15,7 @@ class PrivateRoom {
     required this.hostUid,
     required this.maxPlayers,
     required this.participantUids,
+    required this.readyUids,
     required this.status,
     required this.createdAt,
     required this.expiresAt,
@@ -26,12 +27,18 @@ class PrivateRoom {
   final String hostUid;
   final int maxPlayers;
   final List<String> participantUids;
+  final Set<String> readyUids;
   final PrivateRoomStatus status;
   final DateTime createdAt;
   final DateTime expiresAt;
   final String? partyId;
 
   bool get isFull => participantUids.length == maxPlayers;
+  bool get everyoneReady =>
+      participantUids.isNotEmpty && participantUids.every(readyUids.contains);
+  bool get canStart => isFull && everyoneReady && status == PrivateRoomStatus.lobby;
+
+  bool isReady(String uid) => readyUids.contains(uid);
 }
 
 class PrivateRoomPolicy {
@@ -58,6 +65,9 @@ class PrivateRoomPolicy {
     }
     if (!room.participantUids.contains(room.hostUid)) {
       throw StateError('Room host must be a participant.');
+    }
+    if (!room.readyUids.every(room.participantUids.contains)) {
+      throw StateError('Only current participants can be ready.');
     }
     if (!room.expiresAt.isAfter(room.createdAt)) {
       throw StateError('Room expiry must be after creation.');
