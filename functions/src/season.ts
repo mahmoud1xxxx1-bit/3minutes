@@ -19,7 +19,9 @@ function safeTier(value: unknown, rankPoints: number): RankTier {
     value === "gold" ||
     value === "platinum" ||
     value === "diamond" ||
-    value === "master"
+    value === "master" ||
+    value === "grandmaster" ||
+    value === "legend"
   ) {
     return value;
   }
