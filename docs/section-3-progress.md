@@ -21,6 +21,19 @@ Implemented:
 - `EconomyBackend` abstraction for catalog, purchases, and equipment.
 - Automated tests for rank tiers, 30-day seasons, and XP progression.
 
+## Milestone 3.2 — Spark-safe competitive presentation
+
+Implemented:
+
+- Current rank tier shown on the home player card.
+- Profile screen shows rank tier, RP, stars, wins/losses, and level.
+- Profile screen shows XP progress toward the next level using the centralized progression policy.
+- Leaderboard/season screen is connected from Home.
+- Rank ladder and 30-day season rule are visible without inventing fake player standings.
+- Cosmetic starter catalog with avatar frames, badges, profile backgrounds, and name styles.
+- Shop screen is connected from Home and shows cosmetic prices.
+- Shop purchasing remains visibly locked until secure server-side economy authority exists.
+
 ## Product rules locked
 
 - Match length remains exactly 3 minutes.
@@ -59,9 +72,8 @@ These operations will sit behind Cloud Functions while Flutter continues using t
 
 ## Next
 
-1. Build leaderboard and season UI against read-only/mockable contracts.
-2. Build profile rank badge/tier presentation.
-3. Build progression presentation (level + XP progress).
-4. Build cosmetic catalog/shop UI without purchase authority.
-5. Prepare Cloud Functions contracts and data shapes for Blaze.
-6. Expand representative mini-game content and visual identity.
+1. Prepare Cloud Functions request/response contracts and Firestore data shapes for ranked settlement.
+2. Define season rollover and persistent-star award rules behind server authority.
+3. Define secure coin reward/spending transactions and inventory grants.
+4. Continue expanding representative mini-games and visual identity.
+5. Run final analyze/tests/build after this development block when device access is convenient.
