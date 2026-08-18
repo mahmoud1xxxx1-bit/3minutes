@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../domain/leaderboard_entry.dart';
+import '../domain/leaderboard_policy.dart';
 import '../domain/season.dart';
 import 'competition_backend.dart';
 
@@ -40,7 +41,8 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
         .limit(safeLimit)
         .get();
 
-    return snapshot.docs.map(_leaderboardFromDoc).toList(growable: false);
+    final entries = snapshot.docs.map(_leaderboardFromDoc);
+    return LeaderboardPolicy.sorted(entries);
   }
 
   @override
