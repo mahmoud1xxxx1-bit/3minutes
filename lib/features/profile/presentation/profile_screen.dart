@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../competition/domain/rank_progress.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/rank_badge.dart';
+import '../../competition/presentation/season_star_badge.dart';
 import '../../progression/domain/player_progression.dart';
 import '../data/profile_repository.dart';
 import '../domain/player_name_rules.dart';
@@ -340,23 +341,7 @@ class _IdentityCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: GameSpacing.sm),
-          Column(
-            children: [
-              const Icon(
-                Icons.star_rounded,
-                color: GameColors.rewardGold,
-                size: 28,
-              ),
-              Text(
-                '${profile.stars}',
-                style: const TextStyle(
-                  color: GameColors.rewardGold,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                ),
-              ),
-            ],
-          ),
+          SeasonStarBadge(stars: profile.stars),
         ],
       ),
     );
