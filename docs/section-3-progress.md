@@ -30,6 +30,7 @@ Implemented:
 - Profile screen shows XP progress toward the next level using the centralized progression policy.
 - Leaderboard/season screen is connected from Home.
 - Rank ladder and 30-day season rule are visible without inventing fake player standings.
+- Rank ladder shows persistent star rewards for each peak season tier.
 - Cosmetic starter catalog with avatar frames, badges, profile backgrounds, and name styles.
 - Shop screen is connected from Home and shows cosmetic prices.
 - Shop purchasing remains visibly locked until secure server-side economy authority exists.
@@ -50,7 +51,19 @@ Implemented:
 - Match integrity policy for impossible progress/game-count/accuracy/time values.
 - Blaze/Cloud Functions contracts documented for ranked settlement, cosmetic purchase/equip, and 30-day season rollover.
 - Recommended immutable settlement and coin-ledger data shapes documented.
-- Automated tests cover reward policy, permanent season stars, multi-level XP, and safe coin balances.
+- Automated tests cover reward policy, permanent season stars, multi-level XP, safe coin balances, and impossible ranked progress.
+
+## Milestone 3.4 — Read model and visual foundation
+
+Implemented:
+
+- Read-only `FirestoreCompetitionBackend` prepared for server-populated active season and leaderboard data.
+- Read layer contains no RP/XP/coin mutation methods.
+- Shared game design tokens for background, surfaces, accent, success/danger, spacing, radii, and animation durations.
+- App theme now consumes the shared design tokens instead of local hard-coded values.
+- Mini-game SDK now classifies games as reaction, logic, memory, or precision.
+- All 10 current game IDs remain unique and deterministic while exposing category metadata for future balanced match selection.
+- Dedicated tests verify registry uniqueness/category coverage and deterministic seed behavior.
 
 ## Product rules locked
 
@@ -90,8 +103,8 @@ These operations will sit behind Cloud Functions while Flutter continues using t
 
 ## Next
 
-1. Add anti-cheat/integrity policy tests and settlement idempotency contract.
-2. Prepare read-only Firestore shapes for season/leaderboard/inventory UI while keeping writes server-only.
-3. Expand representative mini-game content beyond the first 10 games.
-4. Begin visual-identity/graphics pass without disturbing multiplayer architecture.
+1. Prepare server-only Firestore read permissions/data shapes for seasons, leaderboard, and inventory without enabling client writes.
+2. Add settlement idempotency record policy and duplicate-request tests.
+3. Expand representative mini-game content beyond the first 10 games using reusable engines.
+4. Continue the visual-identity/graphics pass without disturbing multiplayer architecture.
 5. Run analyze/tests/build after this development block when convenient.
