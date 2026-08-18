@@ -1,3 +1,5 @@
+import 'match_progress.dart';
+
 enum MatchStatus {
   waitingReady,
   countdown,
@@ -28,6 +30,8 @@ class MatchSession {
     required this.status,
     required this.readyA,
     required this.readyB,
+    required this.progressA,
+    required this.progressB,
     this.countdownStartedAt,
   });
 
@@ -44,6 +48,8 @@ class MatchSession {
   final MatchStatus status;
   final bool readyA;
   final bool readyB;
+  final MatchProgress progressA;
+  final MatchProgress progressB;
   final DateTime? countdownStartedAt;
 
   bool containsPlayer(String uid) => playerAId == uid || playerBId == uid;
@@ -54,4 +60,10 @@ class MatchSession {
       playerAId == uid ? playerBAvatarId : playerAAvatarId;
 
   bool isReady(String uid) => playerAId == uid ? readyA : readyB;
+
+  MatchProgress progressFor(String uid) =>
+      playerAId == uid ? progressA : progressB;
+
+  MatchProgress opponentProgress(String uid) =>
+      playerAId == uid ? progressB : progressA;
 }
