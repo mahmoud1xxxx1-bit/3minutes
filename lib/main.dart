@@ -12,6 +12,7 @@ import 'features/economy/data/firestore_economy_backend.dart';
 import 'features/match/data/firestore_match_backend.dart';
 import 'features/match/data/match_backend.dart';
 import 'features/profile/data/profile_repository.dart';
+import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,9 +51,11 @@ class ThreeMinutesApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: AppConfig.appName,
+      onGenerateTitle: (context) => AppLocalizations.of(context).appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: AuthGate(
         authService: authService,
         profileRepository: profileRepository,
