@@ -39,6 +39,10 @@ class CosmeticItem {
     this.isPremium = false,
     this.isSeasonLimited = false,
     this.requiredAchievementId,
+    this.collection = 'core',
+    this.isFeatured = false,
+    this.isAnimated = false,
+    this.sortPriority = 0,
   });
 
   final String id;
@@ -51,6 +55,10 @@ class CosmeticItem {
   final bool isPremium;
   final bool isSeasonLimited;
   final String? requiredAchievementId;
+  final String collection;
+  final bool isFeatured;
+  final bool isAnimated;
+  final int sortPriority;
 
   CosmeticPriceType get priceType {
     if (requiredAchievementId != null) return CosmeticPriceType.achievement;
