@@ -7,55 +7,57 @@ class GameRegistry {
 
   static const int version = 2;
 
+  // Display copy is intentionally owned by MiniGameCopy so the registry stays
+  // deterministic and language-neutral. Titles remain empty internal metadata.
   static const List<MiniGameDescriptor> games = [
     MiniGameDescriptor(
       id: 'tap_target',
-      title: 'Tap Target',
+      title: '',
       category: MiniGameCategory.precision,
     ),
     MiniGameDescriptor(
       id: 'quick_math',
-      title: 'Quick Math',
+      title: '',
       category: MiniGameCategory.logic,
     ),
     MiniGameDescriptor(
       id: 'color_match',
-      title: 'Color Match',
+      title: '',
       category: MiniGameCategory.reaction,
     ),
     MiniGameDescriptor(
       id: 'odd_one_out',
-      title: 'Odd One Out',
+      title: '',
       category: MiniGameCategory.logic,
     ),
     MiniGameDescriptor(
       id: 'memory_flash',
-      title: 'Memory Flash',
+      title: '',
       category: MiniGameCategory.memory,
     ),
     MiniGameDescriptor(
       id: 'direction_swipe',
-      title: 'Direction Swipe',
+      title: '',
       category: MiniGameCategory.reaction,
     ),
     MiniGameDescriptor(
       id: 'number_order',
-      title: 'Number Order',
+      title: '',
       category: MiniGameCategory.memory,
     ),
     MiniGameDescriptor(
       id: 'shape_count',
-      title: 'Shape Count',
+      title: '',
       category: MiniGameCategory.logic,
     ),
     MiniGameDescriptor(
       id: 'reaction_stop',
-      title: 'Reaction Stop',
+      title: '',
       category: MiniGameCategory.reaction,
     ),
     MiniGameDescriptor(
       id: 'symbol_pair',
-      title: 'Symbol Pair',
+      title: '',
       category: MiniGameCategory.precision,
     ),
   ];
