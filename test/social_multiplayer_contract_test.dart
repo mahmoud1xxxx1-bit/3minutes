@@ -104,12 +104,53 @@ void main() {
 
   test('multi-player placement follows progress score accuracy mistakes time', () {
     final ranked = MultiplayerResultPolicy.rank([
-      player('less-progress', games: 7, score: 9999, accuracy: 1, elapsedMs: 1),
-      player('score-winner', games: 8, score: 900, accuracy: .7, mistakes: 3, elapsedMs: 90000),
-      player('accuracy-winner', games: 8, score: 800, accuracy: .95, mistakes: 4, elapsedMs: 80000),
-      player('mistakes-winner', games: 8, score: 800, accuracy: .90, mistakes: 1, elapsedMs: 85000),
-      player('time-winner', games: 8, score: 800, accuracy: .90, mistakes: 2, elapsedMs: 70000),
-      player('time-loser', games: 8, score: 800, accuracy: .90, mistakes: 2, elapsedMs: 80000),
+      player(
+        'less-progress',
+        games: 7,
+        score: 9999,
+        accuracy: 1,
+        elapsedMs: 1,
+      ),
+      player(
+        'score-winner',
+        games: 8,
+        score: 900,
+        accuracy: .7,
+        mistakes: 3,
+        elapsedMs: 90000,
+      ),
+      player(
+        'accuracy-winner',
+        games: 8,
+        score: 800,
+        accuracy: .95,
+        mistakes: 4,
+        elapsedMs: 80000,
+      ),
+      player(
+        'mistakes-winner',
+        games: 8,
+        score: 800,
+        accuracy: .90,
+        mistakes: 1,
+        elapsedMs: 85000,
+      ),
+      player(
+        'time-winner',
+        games: 8,
+        score: 800,
+        accuracy: .90,
+        mistakes: 2,
+        elapsedMs: 70000,
+      ),
+      player(
+        'time-loser',
+        games: 8,
+        score: 800,
+        accuracy: .90,
+        mistakes: 2,
+        elapsedMs: 80000,
+      ),
     ]);
 
     expect(
@@ -127,13 +168,27 @@ void main() {
   });
 
   test('private and party modes never award rank points', () {
-    expect(MultiplayerMatchPolicy.awardsRankPoints(MatchMode.privateRoom), isFalse);
+    expect(
+      MultiplayerMatchPolicy.awardsRankPoints(MatchMode.privateRoom),
+      isFalse,
+    );
     expect(MultiplayerMatchPolicy.awardsRankPoints(MatchMode.party), isFalse);
     expect(MultiplayerMatchPolicy.awardsRankPoints(MatchMode.ranked), isTrue);
     expect(
       MultiplayerMatchPolicy.usesReducedSocialRewards(MatchMode.privateRoom),
       isTrue,
     );
-    expect(MultiplayerMatchPolicy.usesReducedSocialRewards(MatchMode.party), isTrue);
+    expect(
+      MultiplayerMatchPolicy.usesReducedSocialRewards(MatchMode.party),
+      isTrue,
+    );
+  });
+
+  test('room invite uses the Android app-native deep-link contract', () {
+    final uri = RoomInvitePolicy.buildUri('ab12c');
+    expect(uri.scheme, 'threeminutes');
+    expect(uri.host, 'join');
+    expect(uri.pathSegments, ['AB12C']);
+    expect(uri.toString(), 'threeminutes://join/AB12C');
   });
 }
