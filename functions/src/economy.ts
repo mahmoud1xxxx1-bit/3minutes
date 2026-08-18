@@ -29,6 +29,12 @@ export const purchaseCosmetic = onCall(CALLABLE_OPTIONS, async (request) => {
   const cosmeticId = requireCosmeticId(request.data?.cosmeticId);
   const cosmetic = cosmeticById(cosmeticId);
   if (!cosmetic) throw new HttpsError("not-found", "Unknown cosmetic.");
+  if (cosmetic.priceType !== "coins") {
+    throw new HttpsError(
+      "failed-precondition",
+      "This cosmetic cannot be purchased with the coin purchase flow.",
+    );
+  }
 
   const db = getFirestore();
   const inventoryRef = db.collection(COLLECTIONS.inventories).doc(uid);
@@ -118,22 +124,8 @@ export const equipCosmetic = onCall(CALLABLE_OPTIONS, async (request) => {
     return {
       coins: Math.max(0, intValue(inventory.coins)),
       ownedCosmeticIds: owned,
-      equippedAvatarFrameId:
-        field === "equippedAvatarFrameId"
-          ? cosmeticId
-          : (inventory.equippedAvatarFrameId ?? null),
-      equippedBadgeId:
-        field === "equippedBadgeId"
-          ? cosmeticId
-          : (inventory.equippedBadgeId ?? null),
-      equippedProfileBackgroundId:
-        field === "equippedProfileBackgroundId"
-          ? cosmeticId
-          : (inventory.equippedProfileBackgroundId ?? null),
-      equippedNameStyleId:
-        field === "equippedNameStyleId"
-          ? cosmeticId
-          : (inventory.equippedNameStyleId ?? null),
+      equippedField: field,
+      cosmeticId,
     };
   });
 });
