@@ -1,8 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../../core/theme/design_tokens.dart';
 import '../domain/rank_tier.dart';
 
 class RankEmblem extends StatelessWidget {
@@ -15,160 +13,28 @@ class RankEmblem extends StatelessWidget {
   final RankTier tier;
   final double size;
 
-  Color get color => switch (tier) {
-        RankTier.bronze => GameColors.rankBronze,
-        RankTier.silver => GameColors.rankSilver,
-        RankTier.gold => GameColors.rankGold,
-        RankTier.platinum => GameColors.rankPlatinum,
-        RankTier.diamond => GameColors.rankDiamond,
-        RankTier.master => GameColors.rankMaster,
-        RankTier.grandmaster => GameColors.rankGrandmaster,
-        RankTier.legend => GameColors.rankLegend,
+  String get _assetPath => switch (tier) {
+        RankTier.bronze => 'assets/ranks/bronze.svg',
+        RankTier.silver => 'assets/ranks/silver.svg',
+        RankTier.gold => 'assets/ranks/gold.svg',
+        RankTier.platinum => 'assets/ranks/platinum.svg',
+        RankTier.diamond => 'assets/ranks/diamond.svg',
+        RankTier.master => 'assets/ranks/master.svg',
+        RankTier.grandmaster => 'assets/ranks/grandmaster.svg',
+        RankTier.legend => 'assets/ranks/legendary.svg',
       };
 
   @override
   Widget build(BuildContext context) {
     return SizedBox.square(
       dimension: size,
-      child: CustomPaint(
-        painter: _RankEmblemPainter(
-          tier: tier,
-          color: color,
-        ),
+      child: SvgPicture.asset(
+        _assetPath,
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        semanticsLabel: tier.label,
       ),
     );
-  }
-}
-
-class _RankEmblemPainter extends CustomPainter {
-  const _RankEmblemPainter({required this.tier, required this.color});
-
-  final RankTier tier;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final outer = Paint()
-      ..style = PaintingStyle.fill
-      ..color = color.withValues(alpha: 0.16);
-    final fill = Paint()
-      ..style = PaintingStyle.fill
-      ..color = color.withValues(alpha: 0.92);
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1.4, size.width * 0.055)
-      ..strokeJoin = StrokeJoin.round
-      ..color = color;
-    final dark = Paint()
-      ..style = PaintingStyle.fill
-      ..color = GameColors.background;
-
-    canvas.drawCircle(center, size.width * 0.49, outer);
-
-    switch (tier) {
-      case RankTier.bronze:
-        final shield = _polygon(center, size.width * 0.34, 5, -math.pi / 2);
-        canvas.drawPath(shield, fill);
-        canvas.drawPath(shield, stroke);
-        canvas.drawCircle(center, size.width * 0.10, dark);
-        break;
-      case RankTier.silver:
-        final shield = _polygon(center, size.width * 0.35, 6, math.pi / 6);
-        canvas.drawPath(shield, fill);
-        canvas.drawPath(shield, stroke);
-        canvas.drawCircle(center, size.width * 0.12, dark);
-        break;
-      case RankTier.gold:
-        final crown = Path()
-          ..moveTo(size.width * 0.20, size.height * 0.62)
-          ..lineTo(size.width * 0.25, size.height * 0.31)
-          ..lineTo(size.width * 0.42, size.height * 0.48)
-          ..lineTo(size.width * 0.50, size.height * 0.23)
-          ..lineTo(size.width * 0.58, size.height * 0.48)
-          ..lineTo(size.width * 0.75, size.height * 0.31)
-          ..lineTo(size.width * 0.80, size.height * 0.62)
-          ..close();
-        canvas.drawPath(crown, fill);
-        canvas.drawPath(crown, stroke);
-        break;
-      case RankTier.platinum:
-        final hex = _polygon(center, size.width * 0.34, 6, 0);
-        canvas.drawPath(hex, fill);
-        canvas.drawPath(hex, stroke);
-        canvas.drawPath(_polygon(center, size.width * 0.18, 6, math.pi / 6), dark);
-        break;
-      case RankTier.diamond:
-        final diamond = Path()
-          ..moveTo(size.width * 0.50, size.height * 0.14)
-          ..lineTo(size.width * 0.82, size.height * 0.46)
-          ..lineTo(size.width * 0.50, size.height * 0.86)
-          ..lineTo(size.width * 0.18, size.height * 0.46)
-          ..close();
-        canvas.drawPath(diamond, fill);
-        canvas.drawPath(diamond, stroke);
-        canvas.drawLine(Offset(size.width * 0.18, size.height * 0.46), Offset(size.width * 0.82, size.height * 0.46), stroke);
-        canvas.drawLine(Offset(size.width * 0.50, size.height * 0.14), Offset(size.width * 0.50, size.height * 0.86), stroke);
-        break;
-      case RankTier.master:
-        final star = _star(center, size.width * 0.36, size.width * 0.16, 5);
-        canvas.drawPath(star, fill);
-        canvas.drawPath(star, stroke);
-        canvas.drawCircle(center, size.width * 0.09, dark);
-        break;
-      case RankTier.grandmaster:
-        final outerStar = _star(center, size.width * 0.38, size.width * 0.19, 6);
-        canvas.drawPath(outerStar, fill);
-        canvas.drawPath(outerStar, stroke);
-        canvas.drawCircle(center, size.width * 0.13, dark);
-        canvas.drawCircle(center, size.width * 0.065, fill);
-        break;
-      case RankTier.legend:
-        final halo = Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = math.max(1.2, size.width * 0.04)
-          ..color = color.withValues(alpha: 0.9);
-        canvas.drawCircle(center, size.width * 0.37, halo);
-        final star = _star(center, size.width * 0.33, size.width * 0.14, 8);
-        canvas.drawPath(star, fill);
-        canvas.drawPath(star, stroke);
-        canvas.drawCircle(center, size.width * 0.09, dark);
-        canvas.drawCircle(center, size.width * 0.045, fill);
-        break;
-    }
-  }
-
-  Path _polygon(Offset center, double radius, int sides, double rotation) {
-    final path = Path();
-    for (var i = 0; i < sides; i++) {
-      final angle = rotation + (math.pi * 2 * i / sides);
-      final point = Offset(center.dx + math.cos(angle) * radius, center.dy + math.sin(angle) * radius);
-      if (i == 0) {
-        path.moveTo(point.dx, point.dy);
-      } else {
-        path.lineTo(point.dx, point.dy);
-      }
-    }
-    return path..close();
-  }
-
-  Path _star(Offset center, double outerRadius, double innerRadius, int points) {
-    final path = Path();
-    for (var i = 0; i < points * 2; i++) {
-      final radius = i.isEven ? outerRadius : innerRadius;
-      final angle = -math.pi / 2 + math.pi * i / points;
-      final point = Offset(center.dx + math.cos(angle) * radius, center.dy + math.sin(angle) * radius);
-      if (i == 0) {
-        path.moveTo(point.dx, point.dy);
-      } else {
-        path.lineTo(point.dx, point.dy);
-      }
-    }
-    return path..close();
-  }
-
-  @override
-  bool shouldRepaint(covariant _RankEmblemPainter oldDelegate) {
-    return oldDelegate.tier != tier || oldDelegate.color != color;
   }
 }
