@@ -63,7 +63,7 @@ void main() {
           currentStars: 10,
           peakTier: RankTier.master,
         ),
-        18,
+        26,
       );
     });
 
