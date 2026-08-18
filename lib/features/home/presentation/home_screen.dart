@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../auth/data/auth_service.dart';
+import '../../competition/domain/rank_tier.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/domain/match_ticket.dart';
 import '../../match/presentation/match_history_screen.dart';
@@ -184,6 +185,9 @@ class _PlayerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final player = profile;
+    final tier = RankPolicy.tierFor(player?.rankPoints ?? 0);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -196,7 +200,7 @@ class _PlayerCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    profile?.gameName ?? 'Loading...',
+                    player?.gameName ?? 'Loading...',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -204,7 +208,9 @@ class _PlayerCard extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 4),
-                  Text('Level ${profile?.level ?? 1} • ${profile?.rankPoints ?? 0} RP'),
+                  Text(
+                    'Level ${player?.level ?? 1} • ${player?.rankPoints ?? 0} RP • ${tier.label}',
+                  ),
                 ],
               ),
             ),
@@ -213,7 +219,7 @@ class _PlayerCard extends StatelessWidget {
               children: [
                 const Icon(Icons.star_rounded, size: 22),
                 const SizedBox(width: 3),
-                Text('${profile?.stars ?? 0}'),
+                Text('${player?.stars ?? 0}'),
               ],
             ),
           ],
