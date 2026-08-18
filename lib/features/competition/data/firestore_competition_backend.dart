@@ -31,12 +31,13 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
     if (current.docs.isEmpty) return const [];
 
     final seasonId = current.docs.first.id;
+    final safeLimit = limit.clamp(1, 100).toInt();
     final snapshot = await _firestore
         .collection('leaderboards')
         .doc(seasonId)
         .collection('entries')
         .orderBy('rankPoints', descending: true)
-        .limit(limit.clamp(1, 100))
+        .limit(safeLimit)
         .get();
 
     return snapshot.docs.map(_leaderboardFromDoc).toList(growable: false);
