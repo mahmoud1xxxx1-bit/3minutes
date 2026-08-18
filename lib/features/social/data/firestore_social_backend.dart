@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/firebase/server_collections.dart';
 import '../domain/friendship.dart';
 import '../domain/player_friend_code.dart';
+import '../domain/social_player_summary.dart';
 import 'social_backend.dart';
 
 class FirestoreSocialBackend implements SocialBackend {
@@ -35,6 +36,21 @@ class FirestoreSocialBackend implements SocialBackend {
     final uid = doc.data()?['uid'] as String?;
     if (uid == null || uid.isEmpty) return null;
     return PlayerFriendCode(uid: uid, code: normalized);
+  }
+
+  @override
+  Future<SocialPlayerSummary?> loadPlayerSummary(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    final data = doc.data();
+    if (!doc.exists || data == null) return null;
+    return SocialPlayerSummary(
+      uid: uid,
+      displayName: (data['gameName'] as String?) ?? 'Player',
+      avatarId: (data['avatarId'] as String?) ?? 'default_01',
+      rankPoints: (data['rankPoints'] as num?)?.toInt() ?? 0,
+      level: (data['level'] as num?)?.toInt() ?? 1,
+      stars: (data['stars'] as num?)?.toInt() ?? 0,
+    );
   }
 
   @override
@@ -147,12 +163,13 @@ class FirestoreSocialBackend implements SocialBackend {
     String uid, {
     int limit = 30,
   }) async {
+    final safeLimit = limit < 1 ? 1 : (limit > 100 ? 100 : limit);
     final snapshot = await _firestore
         .collection(ServerCollections.recentPlayers)
         .doc(uid)
         .collection('players')
         .orderBy('lastPlayedAt', descending: true)
-        .limit(limit.clamp(1, 100))
+        .limit(safeLimit)
         .get();
     return snapshot.docs.map((doc) {
       final data = doc.data();
