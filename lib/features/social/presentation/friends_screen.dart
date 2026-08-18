@@ -52,12 +52,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Future<void> _ensureCode() async {
+    final copy = SocialCopy.of(context);
     try {
       await widget.socialBackend.ensureFriendCode(
         PlayerFriendCode(uid: widget.profile.uid, code: _friendCode),
       );
     } catch (_) {
-      if (mounted) setState(() => _error = SocialCopy.of(context).socialError);
+      if (mounted) setState(() => _error = copy.socialError);
     }
   }
 
