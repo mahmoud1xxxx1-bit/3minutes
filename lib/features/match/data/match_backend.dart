@@ -41,6 +41,11 @@ abstract class MatchBackend {
     required String uid,
   });
 
+  Future<void> cancelRematchRequest({
+    required String matchId,
+    required String uid,
+  });
+
   Future<void> submitProgress({
     required String matchId,
     required String uid,
