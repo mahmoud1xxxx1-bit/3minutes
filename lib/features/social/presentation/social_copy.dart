@@ -40,6 +40,7 @@ class SocialCopy {
   String get createRoom => isArabic ? 'إنشاء غرفة' : 'Create room';
   String get joinRoom => isArabic ? 'الانضمام لغرفة' : 'Join room';
   String get roomCode => isArabic ? 'رمز الغرفة' : 'Room code';
+  String get enterRoomCode => isArabic ? 'أدخل رمز الغرفة المكوّن من 5 رموز' : 'Enter the 5-character room code';
   String get players2 => isArabic ? 'لاعبان' : '2 players';
   String get players4 => isArabic ? '4 لاعبين' : '4 players';
   String get players6 => isArabic ? '6 لاعبين' : '6 players';
@@ -52,9 +53,26 @@ class SocialCopy {
       : 'Friend matches do not award RP.';
   String get invite => isArabic ? 'دعوة' : 'Invite';
   String get shareRoom => isArabic ? 'مشاركة الغرفة' : 'Share room';
+  String get inviteCopied => isArabic ? 'تم نسخ رابط الدعوة' : 'Invite link copied';
   String get roomFull => isArabic ? 'الغرفة مكتملة' : 'Room full';
   String get waitingPlayers => isArabic ? 'بانتظار اللاعبين' : 'Waiting for players';
   String get party => isArabic ? 'المجموعة' : 'Party';
   String get playAgainTogether => isArabic ? 'العبوا مرة أخرى' : 'Play again together';
+  String get ready => isArabic ? 'جاهز' : 'Ready';
+  String get notReady => isArabic ? 'غير جاهز' : 'Not ready';
+  String get startMatch => isArabic ? 'ابدأ المباراة' : 'Start match';
+  String get host => isArabic ? 'المضيف' : 'Host';
+  String get you => isArabic ? 'أنت' : 'You';
+  String get leaveRoom => isArabic ? 'مغادرة الغرفة' : 'Leave room';
+  String get cancelRoom => isArabic ? 'إلغاء الغرفة' : 'Cancel room';
+  String get roomCancelled => isArabic ? 'تم إلغاء الغرفة' : 'Room cancelled';
+  String get roomNotFound => isArabic ? 'لم يتم العثور على الغرفة' : 'Room not found';
+  String get invalidRoomCode => isArabic ? 'رمز الغرفة غير صحيح' : 'Invalid room code';
+  String get creatingRoom => isArabic ? 'جارٍ إنشاء الغرفة...' : 'Creating room...';
+  String get joiningRoom => isArabic ? 'جارٍ الانضمام...' : 'Joining room...';
+  String get everyoneMustBeReady => isArabic
+      ? 'يجب أن تمتلئ الغرفة ويكون الجميع جاهزين.'
+      : 'The room must be full and everyone must be ready.';
+  String get matchStarting => isArabic ? 'المباراة تبدأ الآن...' : 'Match starting...';
   String get socialError => isArabic ? 'تعذر إكمال العملية. حاول مرة أخرى.' : 'Could not complete the action. Try again.';
 }
