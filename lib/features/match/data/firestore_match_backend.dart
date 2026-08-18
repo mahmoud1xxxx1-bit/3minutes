@@ -24,6 +24,10 @@ class FirestoreMatchBackend implements MatchBackend {
   @override
   Future<void> joinQueue(PlayerProfile profile) async {
     final ownRef = _queue.doc(profile.uid);
+    final existing = await ownRef.get();
+    if (existing.exists) {
+      await ownRef.delete();
+    }
 
     await ownRef.set({
       'uid': profile.uid,
