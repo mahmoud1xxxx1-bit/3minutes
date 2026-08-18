@@ -6,18 +6,17 @@ class AppTheme {
   const AppTheme._();
 
   static ThemeData get dark {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: GameColors.accent,
-      brightness: Brightness.dark,
-      surface: GameColors.surface,
-    ).copyWith(
+    final scheme = const ColorScheme.dark().copyWith(
       primary: GameColors.accent,
-      onPrimary: GameColors.background,
-      secondary: GameColors.rewardGold,
-      onSecondary: GameColors.background,
+      onPrimary: GameColors.backgroundDeep,
+      secondary: GameColors.violet,
+      onSecondary: GameColors.textStrong,
       surface: GameColors.surface,
       onSurface: GameColors.textStrong,
       error: GameColors.danger,
+      onError: GameColors.textStrong,
+      outline: GameColors.surfaceStrong,
+      outlineVariant: GameColors.surfaceRaised,
     );
 
     final baseTextTheme = ThemeData.dark().textTheme;
@@ -25,6 +24,7 @@ class AppTheme {
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
         color: GameColors.textStrong,
         fontWeight: FontWeight.w900,
+        letterSpacing: -0.5,
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
         color: GameColors.textStrong,
@@ -43,10 +43,9 @@ class AppTheme {
         fontWeight: FontWeight.w700,
       ),
       bodyLarge: baseTextTheme.bodyLarge?.copyWith(color: GameColors.textStrong),
-      bodyMedium: baseTextTheme.bodyMedium?.copyWith(color: GameColors.textStrong),
-      labelLarge: baseTextTheme.labelLarge?.copyWith(
-        fontWeight: FontWeight.w900,
-      ),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(color: GameColors.textSoft),
+      bodySmall: baseTextTheme.bodySmall?.copyWith(color: GameColors.muted),
+      labelLarge: baseTextTheme.labelLarge?.copyWith(fontWeight: FontWeight.w900),
     );
 
     return ThemeData(
@@ -54,12 +53,14 @@ class AppTheme {
       brightness: Brightness.dark,
       colorScheme: scheme,
       textTheme: textTheme,
-      scaffoldBackgroundColor: GameColors.background,
+      scaffoldBackgroundColor: Colors.transparent,
+      canvasColor: GameColors.background,
       dividerColor: GameColors.surfaceStrong,
-      splashFactory: InkSparkle.splashFactory,
+      splashFactory: InkRipple.splashFactory,
       appBarTheme: const AppBarTheme(
-        backgroundColor: GameColors.background,
+        backgroundColor: Colors.transparent,
         foregroundColor: GameColors.textStrong,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -68,24 +69,24 @@ class AppTheme {
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(54),
           backgroundColor: GameColors.accent,
-          foregroundColor: GameColors.background,
+          foregroundColor: GameColors.backgroundDeep,
           disabledBackgroundColor: GameColors.surfaceRaised,
           disabledForegroundColor: GameColors.muted,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(GameRadii.button),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w900),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(48),
-          foregroundColor: GameColors.accent,
+          minimumSize: const Size.fromHeight(50),
+          foregroundColor: GameColors.textStrong,
           side: const BorderSide(color: GameColors.surfaceStrong),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(GameRadii.button),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w900),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -95,19 +96,20 @@ class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: GameColors.surface,
+        color: GameColors.surfaceGlass,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          side: const BorderSide(color: GameColors.surfaceStrong),
+          side: const BorderSide(color: GameColors.surfaceStrong, width: 0.8),
           borderRadius: BorderRadius.circular(GameRadii.card),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: GameColors.surface,
+        fillColor: GameColors.surfaceGlass,
         labelStyle: const TextStyle(color: GameColors.muted),
         helperStyle: const TextStyle(color: GameColors.muted),
+        hintStyle: const TextStyle(color: GameColors.muted),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(GameRadii.button),
           borderSide: BorderSide.none,
@@ -118,26 +120,43 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(GameRadii.button),
-          borderSide: const BorderSide(color: GameColors.accent, width: 1.6),
+          borderSide: const BorderSide(color: GameColors.accent, width: 1.4),
         ),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: GameColors.accent,
         linearTrackColor: GameColors.surfaceRaised,
+        circularTrackColor: GameColors.surfaceRaised,
       ),
       chipTheme: ChipThemeData(
         backgroundColor: GameColors.surfaceRaised,
         selectedColor: GameColors.accentSoft,
         side: const BorderSide(color: GameColors.surfaceStrong),
+        labelStyle: const TextStyle(color: GameColors.textSoft),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(GameRadii.pill),
         ),
       ),
+      navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: GameColors.surfaceGlass,
+        indicatorColor: GameColors.accentSoft,
+        elevation: 0,
+        height: 68,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      ),
       dialogTheme: DialogThemeData(
         backgroundColor: GameColors.surface,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
+          side: const BorderSide(color: GameColors.surfaceStrong),
           borderRadius: BorderRadius.circular(GameRadii.panel),
         ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: GameColors.surface,
+        surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: GameColors.surface,
+        showDragHandle: true,
       ),
     );
   }
