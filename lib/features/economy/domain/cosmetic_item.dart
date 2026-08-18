@@ -5,12 +5,20 @@ enum CosmeticSlot {
   nameStyle,
 }
 
+enum CosmeticRarity {
+  common,
+  rare,
+  epic,
+  legendary,
+}
+
 class CosmeticItem {
   const CosmeticItem({
     required this.id,
     required this.name,
     required this.slot,
     required this.coinPrice,
+    this.rarity = CosmeticRarity.common,
     this.isPremium = false,
   });
 
@@ -18,6 +26,7 @@ class CosmeticItem {
   final String name;
   final CosmeticSlot slot;
   final int coinPrice;
+  final CosmeticRarity rarity;
   final bool isPremium;
 }
 
