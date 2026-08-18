@@ -1,8 +1,9 @@
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { COLLECTIONS, intValue } from "./firestore.js";
+import { COLLECTIONS, intValue, timestampMillis } from "./firestore.js";
 import {
+  MATCH_DURATION_MS,
   MATCH_GAME_COUNT,
   REGISTRY_VERSION,
   parseEvidence,
@@ -14,6 +15,9 @@ const OPTIONS = {
   enforceAppCheck: true,
   timeoutSeconds: 30,
 } as const;
+
+const COUNTDOWN_MS = 3000;
+const SUBMISSION_TRANSPORT_GRACE_MS = 15000;
 
 function uidOf(uid: string | undefined): string {
   if (!uid) throw new HttpsError("unauthenticated", "Sign-in is required.");
@@ -31,6 +35,23 @@ function asRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object"
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function requireActiveSubmissionWindow(match: Record<string, unknown>): void {
+  const countdownStartedAtMs = timestampMillis(match.countdownStartedAt);
+  if (countdownStartedAtMs === null) {
+    throw new HttpsError("failed-precondition", "Social match has not started.");
+  }
+  const now = Date.now();
+  const playStartedAtMs = countdownStartedAtMs + COUNTDOWN_MS;
+  if (now < playStartedAtMs) {
+    throw new HttpsError("failed-precondition", "Social countdown is still running.");
+  }
+  const latestTransportArrivalMs =
+    playStartedAtMs + MATCH_DURATION_MS + SUBMISSION_TRANSPORT_GRACE_MS;
+  if (now > latestTransportArrivalMs) {
+    throw new HttpsError("deadline-exceeded", "Social submission window has closed.");
+  }
 }
 
 export const submitSocialGameResult = onCall(OPTIONS, async (request) => {
@@ -74,6 +95,7 @@ export const submitSocialGameResult = onCall(OPTIONS, async (request) => {
     if (gameCount !== MATCH_GAME_COUNT) {
       throw new HttpsError("failed-precondition", "Unexpected social game count.");
     }
+    requireActiveSubmissionWindow(match);
 
     let previous;
     try {
@@ -100,10 +122,10 @@ export const submitSocialGameResult = onCall(OPTIONS, async (request) => {
     if (Object.keys(participant).length === 0) {
       throw new HttpsError("data-loss", "Social participant state is missing.");
     }
-    const totalScore = combined.reduce((sum, entry) => sum + entry.score, 0);
-    const accuracyTotal = combined.reduce((sum, entry) => sum + entry.accuracy, 0);
-    const mistakes = combined.reduce((sum, entry) => sum + entry.mistakes, 0);
-    const elapsedMs = combined.reduce((sum, entry) => sum + entry.durationMs, 0);
+    const totalScore = combined.reduce((total, entry) => total + entry.score, 0);
+    const accuracyTotal = combined.reduce((total, entry) => total + entry.accuracy, 0);
+    const mistakes = combined.reduce((total, entry) => total + entry.mistakes, 0);
+    const elapsedMs = combined.reduce((total, entry) => total + entry.durationMs, 0);
 
     participants[uid] = {
       ...participant,
