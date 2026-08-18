@@ -9,7 +9,7 @@ void main() {
         currentPeak: RankTier.gold,
         nextRankPoints: 2400,
       ),
-      RankTier.diamond,
+      RankTier.platinum,
     );
 
     expect(
