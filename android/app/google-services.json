@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "492486855771",
+    "project_id": "minutes-d7dfc",
+    "storage_bucket": "minutes-d7dfc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:492486855771:android:7cbe840f5695f19883037e",
+        "android_client_info": {
+          "package_name": "com.threeminutes.game"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "492486855771-07rauv9n9tb1ofrb9agj5sl6bnbsgjru.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.threeminutes.game",
+            "certificate_hash": "ba784da0ffe35d88a42ca8ab757bf2a5d6279ba9"
+          }
+        },
+        {
+          "client_id": "492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVrJQtl7VS5FRpAWcTRBUutwymaoGs__o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
