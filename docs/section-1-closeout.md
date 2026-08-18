@@ -1,6 +1,6 @@
 # Section 1 Closeout — Foundation
 
-Status: CLOSED CANDIDATE
+Status: CLOSED
 
 Section 1 establishes the lightweight Android foundation for 3 Minutes. It does not implement real matchmaking, ranked competition, economy, seasons, or playable mini-games.
 
@@ -21,17 +21,20 @@ Section 1 establishes the lightweight Android foundation for 3 Minutes. It does 
 - Lightweight architecture prepared for a later Spark-to-Blaze backend boundary.
 - Automated Dart/Flutter tests and GitHub Flutter CI configuration.
 
-## Runtime evidence before closeout
+## Final verification
 
-The foundation was manually exercised on a physical Android phone:
+The foundation was manually exercised on a physical Android phone and then revalidated after the closeout hardening changes:
 
-1. Google authentication completed.
-2. First-run profile setup opened.
+1. Google authentication completed successfully.
+2. First-run profile setup opened correctly.
 3. Player name and avatar were saved to Firestore.
 4. Home screen loaded the saved profile.
-5. Local `flutter analyze` completed with no issues.
-6. Local `flutter test` completed with all tests passing.
-7. Debug APK build completed successfully.
+5. `flutter pub get` completed successfully.
+6. `flutter analyze` completed with `No issues found!`.
+7. `flutter test` completed with `All tests passed!` (4 tests).
+8. `flutter build apk --debug` completed successfully and produced `app-debug.apk`.
+
+Final verified closeout base before this status-only commit: `385ce29`.
 
 ## Security boundary
 
@@ -52,4 +55,4 @@ These competitive fields will become server-authoritative when the project moves
 - Representative playable mini-games.
 - Ranked scoring, seasons, economy, shop behavior, and server-authoritative anti-cheat.
 
-After the final local verification of the closeout commits, this document marks Section 1 as CLOSED and the next development work starts in Section 2 only.
+Section 1 is now frozen as the stable foundation. New gameplay and multiplayer development starts in Section 2.
