@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
 import '../domain/rank_tier.dart';
 import '../domain/season.dart';
+import '../domain/season_reward_policy.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
@@ -12,48 +14,70 @@ class LeaderboardScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Leaderboard')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(GameSpacing.md),
           children: [
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(GameSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'Season competition',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_month_outlined),
+                        const SizedBox(width: GameSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'Season competition',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: GameSpacing.sm),
                     Text('Each season lasts ${SeasonPolicy.duration.inDays} days.'),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: GameSpacing.xs),
                     const Text(
-                      'Live player standings activate with the secure competition backend so rank points cannot be forged by a modified client.',
+                      'Your highest tier in the season awards permanent stars. Stars stay on your identity and never affect gameplay.',
+                    ),
+                    const SizedBox(height: GameSpacing.sm),
+                    const Text(
+                      'Live player standings activate with the secure competition backend so RP cannot be forged by a modified client.',
+                      style: TextStyle(color: GameColors.muted),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: GameSpacing.lg),
             Text(
               'Rank ladder',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
-            const SizedBox(height: 8),
-            for (final band in RankPolicy.bands)
+            const SizedBox(height: GameSpacing.sm),
+            for (final band in RankPolicy.bands) ...[
               Card(
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.shield_outlined),
+                  leading: CircleAvatar(
+                    backgroundColor: GameColors.surfaceRaised,
+                    child: const Icon(Icons.shield_outlined),
                   ),
-                  title: Text(band.tier.label),
+                  title: Text(
+                    band.tier.label,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    '${SeasonRewardPolicy.starsForPeakTier(band.tier)} season stars',
+                  ),
                   trailing: Text('${band.minimumRp} RP'),
                 ),
               ),
+              const SizedBox(height: GameSpacing.sm),
+            ],
           ],
         ),
       ),
