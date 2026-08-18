@@ -137,127 +137,135 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Match room'),
-          leading: IconButton(
-            tooltip: 'Leave match',
-            onPressed: _cancelBusy ? null : _cancelMatch,
-            icon: const Icon(Icons.close),
+      child: StreamBuilder<MatchSession?>(
+        stream: widget.matchBackend.watchMatch(widget.matchId),
+        builder: (context, snapshot) {
+          final match = snapshot.data;
+
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Match room'),
+              leading: match?.status == MatchStatus.waitingReady
+                  ? IconButton(
+                      tooltip: 'Leave match',
+                      onPressed: _cancelBusy ? null : _cancelMatch,
+                      icon: const Icon(Icons.close),
+                    )
+                  : null,
+            ),
+            body: SafeArea(
+              child: _buildBody(context, snapshot, match),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    AsyncSnapshot<MatchSession?> snapshot,
+    MatchSession? match,
+  ) {
+    if (snapshot.hasError) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Connection lost. Keep this screen open; the match will resume when the connection returns.',
+            textAlign: TextAlign.center,
           ),
         ),
-        body: SafeArea(
-          child: StreamBuilder<MatchSession?>(
-            stream: widget.matchBackend.watchMatch(widget.matchId),
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Text(
-                      'Connection lost. Keep this screen open; the match will resume when the connection returns.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                );
-              }
+      );
+    }
+    if (match == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-              final match = snapshot.data;
-              if (match == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (match.status == MatchStatus.cancelled) {
-                final opponentLeft = match.cancelledBy != widget.uid;
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.person_off_outlined, size: 52),
-                        const SizedBox(height: 16),
-                        Text(
-                          opponentLeft ? 'Opponent left the match.' : 'Match cancelled.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 18),
-                        FilledButton(
-                          onPressed: _leaveCancelledMatch,
-                          child: const Text('BACK TO HOME'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              final countdown = _countdown(match);
-              if (countdown == 0) _openPlay();
-
-              return Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _PlayerRow(
-                      label: 'You',
-                      name: match.playerAId == widget.uid
-                          ? match.playerAName
-                          : match.playerBName,
-                      ready: match.isReady(widget.uid),
-                    ),
-                    const SizedBox(height: 10),
-                    _PlayerRow(
-                      label: 'Opponent',
-                      name: match.opponentName(widget.uid),
-                      ready: match.playerAId == widget.uid
-                          ? match.readyB
-                          : match.readyA,
-                    ),
-                    const Spacer(),
-                    if (countdown != null) ...[
-                      Text(
-                        countdown == 0 ? 'GO!' : '$countdown',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text('Both players are ready', textAlign: TextAlign.center),
-                    ] else ...[
-                      const Text(
-                        'Both players must be ready before the synchronized 3-2-1 starts.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                    const Spacer(),
-                    if (countdown == null && !match.isReady(widget.uid))
-                      FilledButton(
-                        onPressed: _readyBusy || _cancelBusy ? null : _markReady,
-                        child: Text(_readyBusy ? 'Getting ready...' : 'READY'),
-                      )
-                    else if (countdown == null)
-                      const FilledButton(
-                        onPressed: null,
-                        child: Text('Waiting for opponent...'),
-                      ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error),
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            },
+    if (match.status == MatchStatus.cancelled) {
+      final opponentLeft = match.cancelledBy != widget.uid;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.person_off_outlined, size: 52),
+              const SizedBox(height: 16),
+              Text(
+                opponentLeft ? 'Opponent left the match.' : 'Match cancelled.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                onPressed: _leaveCancelledMatch,
+                child: const Text('BACK TO HOME'),
+              ),
+            ],
           ),
         ),
+      );
+    }
+
+    final countdown = _countdown(match);
+    if (countdown == 0) _openPlay();
+
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PlayerRow(
+            label: 'You',
+            name: match.playerAId == widget.uid
+                ? match.playerAName
+                : match.playerBName,
+            ready: match.isReady(widget.uid),
+          ),
+          const SizedBox(height: 10),
+          _PlayerRow(
+            label: 'Opponent',
+            name: match.opponentName(widget.uid),
+            ready: match.playerAId == widget.uid ? match.readyB : match.readyA,
+          ),
+          const Spacer(),
+          if (countdown != null) ...[
+            Text(
+              countdown == 0 ? 'GO!' : '$countdown',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Both players are ready', textAlign: TextAlign.center),
+          ] else ...[
+            const Text(
+              'Both players must be ready before the synchronized 3-2-1 starts.',
+              textAlign: TextAlign.center,
+            ),
+          ],
+          const Spacer(),
+          if (countdown == null && !match.isReady(widget.uid))
+            FilledButton(
+              onPressed: _readyBusy || _cancelBusy ? null : _markReady,
+              child: Text(_readyBusy ? 'Getting ready...' : 'READY'),
+            )
+          else if (countdown == null)
+            const FilledButton(
+              onPressed: null,
+              child: Text('Waiting for opponent...'),
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
       ),
     );
   }
