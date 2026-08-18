@@ -1,0 +1,2 @@
+Temporary CI trigger for final Firestore rules compilation validation.
+Do not merge this marker branch.
