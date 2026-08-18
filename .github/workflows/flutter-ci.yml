@@ -63,6 +63,8 @@ jobs:
         run: flutter test
 
       - name: Build Android debug APK
+        env:
+          CI_DEBUG_KEYSTORE: /home/runner/.android/debug.keystore
         run: flutter build apk --debug
 
       - name: Verify generated Google OAuth resources
@@ -84,6 +86,7 @@ jobs:
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/apkcert.txt
           grep -Fi '4ba2bad2ad8fb270c0f7bab61107ba6fee332a0920c95039cb0e83ba5dff8530' /tmp/apkcert.txt
+          grep -Fi '9d0cae8acee49746eec81f16e6b1f17a3365b9ea' /tmp/apkcert.txt
 
       - name: Upload validated debug APK
         if: success()
