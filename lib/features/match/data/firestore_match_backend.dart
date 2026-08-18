@@ -135,6 +135,9 @@ class FirestoreMatchBackend implements MatchBackend {
   }
 
   @override
+  Future<void> clearTicket(String uid) => _queue.doc(uid).delete();
+
+  @override
   Stream<MatchTicket?> watchTicket(String uid) {
     return _queue.doc(uid).snapshots().map((snapshot) {
       final data = snapshot.data();
@@ -258,11 +261,11 @@ class FirestoreMatchBackend implements MatchBackend {
     if (data == null) throw StateError('Match not found.');
 
     final playerAId = data['playerAId'] as String?;
-    final field = uid == playerAId ? 'progressA' : 'progressB';
     final playerBId = data['playerBId'] as String?;
     if (uid != playerAId && uid != playerBId) {
       throw StateError('Player is not part of this match.');
     }
+    final field = uid == playerAId ? 'progressA' : 'progressB';
 
     await ref.update({
       field: {
