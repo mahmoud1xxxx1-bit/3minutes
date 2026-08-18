@@ -1,13 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
+import '../../competition/domain/rank_tier.dart';
 import '../domain/player_name_rules.dart';
 import '../domain/player_profile.dart';
 
 class ProfileRepository {
-  ProfileRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  ProfileRepository({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions ??
+            FirebaseFunctions.instanceFor(region: 'me-central2');
 
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection('users');
@@ -33,6 +40,8 @@ class ProfileRepository {
       'level': 1,
       'xp': 0,
       'rankPoints': 0,
+      'peakRankTier': RankTier.bronze.name,
+      'legendarySeasons': 0,
       'stars': 0,
       'wins': 0,
       'losses': 0,
@@ -53,6 +62,15 @@ class ProfileRepository {
       'gameName': cleanedName,
       'avatarId': avatarId,
       'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Selects a historical rank emblem for the public profile/showcase.
+  /// The callable function validates the requested tier against the lifetime
+  /// server-owned peak rank so a client cannot equip an unearned emblem.
+  Future<void> selectRankShowcase(RankTier tier) async {
+    await _functions.httpsCallable('selectRankShowcase').call<void>({
+      'rankTier': tier.name,
     });
   }
 }
