@@ -1,0 +1,1 @@
+Final platform-stage validation marker. Do not merge.
