@@ -5,6 +5,8 @@ import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_gate.dart';
+import 'features/match/data/firestore_match_backend.dart';
+import 'features/match/data/match_backend.dart';
 import 'features/profile/data/profile_repository.dart';
 
 Future<void> main() async {
@@ -18,6 +20,7 @@ Future<void> main() async {
     ThreeMinutesApp(
       authService: authService,
       profileRepository: ProfileRepository(),
+      matchBackend: FirestoreMatchBackend(),
     ),
   );
 }
@@ -27,10 +30,12 @@ class ThreeMinutesApp extends StatelessWidget {
     super.key,
     required this.authService,
     required this.profileRepository,
+    required this.matchBackend,
   });
 
   final AuthService authService;
   final ProfileRepository profileRepository;
+  final MatchBackend matchBackend;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +46,7 @@ class ThreeMinutesApp extends StatelessWidget {
       home: AuthGate(
         authService: authService,
         profileRepository: profileRepository,
+        matchBackend: matchBackend,
       ),
     );
   }
