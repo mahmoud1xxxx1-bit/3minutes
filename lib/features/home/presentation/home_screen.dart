@@ -21,6 +21,11 @@ import '../../match/presentation/matchmaking_screen.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_screen.dart';
+import '../../social/data/room_backend.dart';
+import '../../social/data/social_backend.dart';
+import '../../social/presentation/friends_screen.dart';
+import '../../social/presentation/room_hub_screen.dart';
+import '../../social/presentation/social_copy.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -31,6 +36,8 @@ class HomeScreen extends StatelessWidget {
     required this.matchBackend,
     required this.competitionBackend,
     required this.economyBackend,
+    required this.socialBackend,
+    required this.roomBackend,
   });
 
   final User user;
@@ -39,10 +46,13 @@ class HomeScreen extends StatelessWidget {
   final MatchBackend matchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
+  final SocialBackend socialBackend;
+  final RoomBackend roomBackend;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final socialCopy = SocialCopy.of(context);
 
     return StreamBuilder<PlayerProfile?>(
       stream: profileRepository.watchProfile(user.uid),
@@ -91,7 +101,6 @@ class HomeScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _PlayerCard(profile: profile),
-                          const Spacer(),
                           const SizedBox(height: GameSpacing.xl),
                           _PlayButton(
                             profile: profile,
@@ -106,7 +115,24 @@ class HomeScreen extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),
-                          const Spacer(),
+                          const SizedBox(height: GameSpacing.md),
+                          _FriendsPlaySurface(
+                            label: socialCopy.playWithFriends,
+                            enabled: profile != null,
+                            onTap: profile == null
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => RoomHubScreen(
+                                          profile: profile,
+                                          roomBackend: roomBackend,
+                                          socialBackend: socialBackend,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                          ),
                           const SizedBox(height: GameSpacing.xl),
                           Row(
                             children: [
@@ -148,17 +174,16 @@ class HomeScreen extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: _MenuTile(
-                                  icon: Icons.person_rounded,
-                                  label: l10n.profile,
+                                  icon: Icons.group_rounded,
+                                  label: socialCopy.friends,
                                   onTap: profile == null
                                       ? null
                                       : () {
                                           Navigator.of(context).push(
                                             MaterialPageRoute<void>(
-                                              builder: (_) => ProfileScreen(
+                                              builder: (_) => FriendsScreen(
                                                 profile: profile,
-                                                profileRepository:
-                                                    profileRepository,
+                                                socialBackend: socialBackend,
                                               ),
                                             ),
                                           );
@@ -183,6 +208,23 @@ class HomeScreen extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: GameSpacing.sm),
+                          _MenuTile(
+                            icon: Icons.person_rounded,
+                            label: l10n.profile,
+                            onTap: profile == null
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => ProfileScreen(
+                                          profile: profile,
+                                          profileRepository: profileRepository,
+                                        ),
+                                      ),
+                                    );
+                                  },
                           ),
                         ],
                       ),
@@ -331,6 +373,35 @@ class _PlaySurface extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FriendsPlaySurface extends StatelessWidget {
+  const _FriendsPlaySurface({
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: enabled ? onTap : null,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: GameSpacing.md),
+        side: BorderSide(color: GameColors.accent.withValues(alpha: 0.35)),
+        backgroundColor: GameColors.accentSoft.withValues(alpha: 0.35),
+      ),
+      icon: const Icon(Icons.groups_2_rounded),
+      label: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w900),
       ),
     );
   }
