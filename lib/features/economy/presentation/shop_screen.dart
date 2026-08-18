@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/cosmetic_catalog.dart';
@@ -141,7 +142,9 @@ class _ShopScreenState extends State<ShopScreen> {
         cosmeticId: item.id,
       );
       if (!mounted) return;
-      setState(() => _message = _isArabic ? 'تم تجهيز العنصر.' : 'Item equipped.');
+      setState(
+        () => _message = _isArabic ? 'تم تجهيز العنصر.' : 'Item equipped.',
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _message = AppLocalizations.of(context).equipFailed);
@@ -176,33 +179,50 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(l10n.shop, style: const TextStyle(fontWeight: FontWeight.w900)),
+        backgroundColor: Colors.transparent,
+        title: Text(
+          l10n.shop,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
-      body: SafeArea(
-        child: StreamBuilder<PlayerInventory?>(
-          stream: widget.economyBackend.watchInventory(widget.uid),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting &&
-                !snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(child: Text(l10n.couldNotLoadInventory));
-            }
-            final inventory = snapshot.data ??
-                const PlayerInventory(coins: 0, ownedCosmeticIds: <String>{});
-            return _buildContent(context, inventory);
-          },
+      body: CosmicBackground(
+        child: SafeArea(
+          top: false,
+          child: StreamBuilder<PlayerInventory?>(
+            stream: widget.economyBackend.watchInventory(widget.uid),
+            builder: (context, snapshot) {
+              final inventory = snapshot.data ??
+                  const PlayerInventory(
+                    coins: 0,
+                    ownedCosmeticIds: <String>{},
+                  );
+              final inventoryUnavailable = snapshot.hasError ||
+                  (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData);
+              return _buildContent(
+                context,
+                inventory,
+                inventoryUnavailable: inventoryUnavailable,
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildContent(BuildContext context, PlayerInventory inventory) {
+  Widget _buildContent(
+    BuildContext context,
+    PlayerInventory inventory, {
+    required bool inventoryUnavailable,
+  }) {
     final copy = ShopCopy.of(context);
     final items = _itemsForSection(inventory);
-    final heroItem = items.isNotEmpty ? items.first : CosmeticCatalog.featured.first;
+    final heroItem = items.isNotEmpty
+        ? items.first
+        : CosmeticCatalog.featured.first;
 
     return CustomScrollView(
       slivers: [
@@ -218,6 +238,14 @@ class _ShopScreenState extends State<ShopScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _WalletHeader(inventory: inventory),
+                if (inventoryUnavailable) ...[
+                  const SizedBox(height: GameSpacing.sm),
+                  _InfoBanner(
+                    text: _isArabic
+                        ? 'تعذر تحديث الرصيد الآن، لكن كتالوج المتجر متاح بالكامل للمعاينة.'
+                        : 'Balance could not be refreshed right now, but the full shop catalog remains available for preview.',
+                  ),
+                ],
                 if (!_purchasesEnabled) ...[
                   const SizedBox(height: GameSpacing.sm),
                   _InfoBanner(
@@ -247,7 +275,9 @@ class _ShopScreenState extends State<ShopScreen> {
                     child: TextButton.icon(
                       onPressed: _restorePremium,
                       icon: const Icon(Icons.restore_rounded),
-                      label: Text(_isArabic ? 'استعادة المشتريات' : 'Restore purchases'),
+                      label: Text(
+                        _isArabic ? 'استعادة المشتريات' : 'Restore purchases',
+                      ),
                     ),
                   ),
                 ],
@@ -258,9 +288,7 @@ class _ShopScreenState extends State<ShopScreen> {
                 const SizedBox(height: GameSpacing.lg),
                 Text(
                   _sectionTitle(copy),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -292,7 +320,7 @@ class _ShopScreenState extends State<ShopScreen> {
               GameSpacing.md,
               0,
               GameSpacing.md,
-              GameSpacing.xl,
+              110,
             ),
             sliver: SliverList.separated(
               itemCount: items.length,
@@ -317,7 +345,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   slotLabel: _slotLabel(item.slot),
                   rarityLabel: _rarityLabel(item.rarity),
                   premiumPrice: _premiumSnapshot?.localizedPrice(item.id),
-                  purchasesEnabled: _purchasesEnabled,
+                  purchasesEnabled: _purchasesEnabled && !inventoryUnavailable,
                   owned: owned,
                   equipped: _isEquipped(inventory, item),
                   canAcquire: canAfford,
@@ -333,7 +361,8 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  List<CosmeticItem> _itemsForSection(PlayerInventory inventory) => switch (_section) {
+  List<CosmeticItem> _itemsForSection(PlayerInventory inventory) =>
+      switch (_section) {
         _ShopSection.featured => CosmeticCatalog.featured,
         _ShopSection.coins =>
           CosmeticCatalog.forPriceType(CosmeticPriceType.coins),
@@ -369,7 +398,8 @@ class _ShopScreenState extends State<ShopScreen> {
         CosmeticSlot.profileBackground => _isArabic ? 'خلفية' : 'Background',
         CosmeticSlot.nameStyle => _isArabic ? 'نمط الاسم' : 'Name style',
         CosmeticSlot.matchIntro => _isArabic ? 'دخول المباراة' : 'Match intro',
-        CosmeticSlot.victoryEffect => _isArabic ? 'تأثير الفوز' : 'Victory effect',
+        CosmeticSlot.victoryEffect =>
+          _isArabic ? 'تأثير الفوز' : 'Victory effect',
         CosmeticSlot.rankAura => _isArabic ? 'هالة الرتبة' : 'Rank aura',
         CosmeticSlot.emote => _isArabic ? 'إيموت' : 'Emote',
         CosmeticSlot.roomTheme => _isArabic ? 'ثيم الغرفة' : 'Room theme',
@@ -430,7 +460,10 @@ class _BalancePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: GameSpacing.sm, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameSpacing.sm,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(GameRadii.card),
@@ -513,10 +546,19 @@ class _FeaturedHero extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(GameRadii.panel),
         gradient: LinearGradient(
-          colors: [color.withValues(alpha: .18), GameColors.surface, GameColors.background],
+          colors: [
+            color.withValues(alpha: .18),
+            GameColors.surfaceGlass,
+            GameColors.background.withValues(alpha: .85),
+          ],
         ),
         border: Border.all(color: color.withValues(alpha: .5)),
-        boxShadow: [BoxShadow(color: color.withValues(alpha: .1), blurRadius: 24)],
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: .1),
+            blurRadius: 24,
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -531,13 +573,22 @@ class _FeaturedHero extends StatelessWidget {
                   children: [
                     _Tag(label: copy.exclusive, color: color),
                     if (item.isAnimated)
-                      _Tag(label: copy.animated, color: GameColors.accent),
+                      _Tag(label: copy.animated, color: GameColors.accentBright),
                   ],
                 ),
                 const SizedBox(height: GameSpacing.sm),
-                Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(description, style: const TextStyle(color: GameColors.muted)),
+                Text(
+                  description,
+                  style: const TextStyle(color: GameColors.muted),
+                ),
                 const SizedBox(height: GameSpacing.sm),
                 _PriceLine(item: item, premiumPrice: premiumPrice),
               ],
@@ -597,20 +648,16 @@ class _CosmeticCard extends StatelessWidget {
       }
       return switch (item.priceType) {
         CosmeticPriceType.coins => ar ? 'شراء بالكوينز' : 'Buy with Coins',
-        CosmeticPriceType.prestigeStars => ar ? 'فتح بالنجوم' : 'Unlock with Stars',
+        CosmeticPriceType.prestigeStars =>
+          ar ? 'فتح بالنجوم' : 'Unlock with Stars',
         CosmeticPriceType.premium => ar ? 'شراء' : 'Buy',
         CosmeticPriceType.achievement => '',
         CosmeticPriceType.seasonalPlacement => '',
       };
     }
 
-    return Container(
+    return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.md),
-      decoration: BoxDecoration(
-        color: GameColors.surface,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: color.withValues(alpha: .36)),
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -620,21 +667,43 @@ class _CosmeticCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(itemName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                Text(
+                  itemName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 3),
                 Text(
                   description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: GameColors.muted, fontSize: 12),
+                  style: const TextStyle(
+                    color: GameColors.muted,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Wrap(
                   spacing: GameSpacing.sm,
                   runSpacing: 4,
                   children: [
-                    Text(slotLabel, style: const TextStyle(color: GameColors.muted, fontSize: 11)),
-                    Text(rarityLabel, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+                    Text(
+                      slotLabel,
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        fontSize: 11,
+                      ),
+                    ),
+                    Text(
+                      rarityLabel,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     _PriceLine(item: item, premiumPrice: premiumPrice),
                   ],
                 ),
@@ -645,7 +714,10 @@ class _CosmeticCard extends StatelessWidget {
                   SizedBox(
                     height: 38,
                     child: OutlinedButton(
-                      onPressed: busy || earnedOnly || !purchasesEnabled || (!owned && !canAcquire)
+                      onPressed: busy ||
+                              earnedOnly ||
+                              !purchasesEnabled ||
+                              (!owned && !canAcquire)
                           ? null
                           : (owned ? onEquip : onAcquire),
                       child: busy
@@ -685,7 +757,8 @@ class _PriceLine extends StatelessWidget {
         ),
       CosmeticPriceType.premium => _Price(
           icon: Icons.workspace_premium_rounded,
-          value: premiumPrice ?? '\$${(item.premiumPriceCents / 100).toStringAsFixed(2)}',
+          value: premiumPrice ??
+              '\$${(item.premiumPriceCents / 100).toStringAsFixed(2)}',
           color: GameColors.rarityEpic,
         ),
       CosmeticPriceType.achievement => const _Price(
@@ -703,7 +776,11 @@ class _PriceLine extends StatelessWidget {
 }
 
 class _Price extends StatelessWidget {
-  const _Price({required this.icon, required this.value, required this.color});
+  const _Price({
+    required this.icon,
+    required this.value,
+    required this.color,
+  });
   final IconData icon;
   final String value;
   final Color color;
@@ -715,7 +792,14 @@ class _Price extends StatelessWidget {
       children: [
         Icon(icon, size: 15, color: color),
         const SizedBox(width: 3),
-        Text(value, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ],
     );
   }
@@ -735,7 +819,14 @@ class _Tag extends StatelessWidget {
         borderRadius: BorderRadius.circular(GameRadii.pill),
         border: Border.all(color: color.withValues(alpha: .28)),
       ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900)),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
@@ -753,7 +844,14 @@ class _Status extends StatelessWidget {
         color: color.withValues(alpha: .1),
         borderRadius: BorderRadius.circular(GameRadii.pill),
       ),
-      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
@@ -764,14 +862,16 @@ class _InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.sm),
-      decoration: BoxDecoration(
-        color: GameColors.accentSoft,
-        borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: GameColors.accent.withValues(alpha: .22)),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: GameColors.muted,
+          fontSize: 12,
+        ),
       ),
-      child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted, fontSize: 12)),
     );
   }
 }
