@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'gameName',
+          'avatarId',
+          'level',
+          'xp',
+          'rankPoints',
+          'stars',
+          'wins',
+          'losses',
+          'gamesPlayed',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.level == 1
+        && request.resource.data.xp == 0
+        && request.resource.data.rankPoints == 0
+        && request.resource.data.stars == 0
+        && request.resource.data.wins == 0
+        && request.resource.data.losses == 0
+        && request.resource.data.gamesPlayed == 0;
+
+      // Competitive and economy fields will become server-authoritative on Blaze.
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'gameName',
+          'avatarId',
+          'updatedAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
