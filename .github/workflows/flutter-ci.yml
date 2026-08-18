@@ -29,6 +29,12 @@ jobs:
       - name: Build Cloud Functions
         run: npm run --prefix functions build
 
+      - name: Set up Java 21 for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Compile Firestore rules
         run: npx --yes firebase-tools@15.25.1 emulators:exec --only firestore --project demo-3minutes "echo Firestore rules compiled"
 
