@@ -33,7 +33,7 @@ class SeasonPassPolicy {
   static int levelForXp(int seasonXp) {
     if (seasonXp <= 0) return 1;
     final level = 1 + seasonXp ~/ xpPerLevel;
-    return level.clamp(1, maxLevel);
+    return level > maxLevel ? maxLevel : level;
   }
 
   static int xpIntoLevel(int seasonXp) {
