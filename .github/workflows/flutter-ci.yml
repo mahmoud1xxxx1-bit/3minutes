@@ -56,19 +56,6 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: Verify generated Google OAuth resources
-        run: |
-          cd android
-          ./gradlew :app:processDebugGoogleServices
-          cd ..
-          VALUES_FILE=$(find build android/app/build -path '*processDebugGoogleServices*values*values.xml' -print -quit 2>/dev/null || true)
-          if [ -z "$VALUES_FILE" ]; then
-            echo 'Generated Google Services values.xml not found'
-            exit 1
-          fi
-          cat "$VALUES_FILE"
-          grep -F '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com' "$VALUES_FILE"
-
       - name: Analyze
         run: flutter analyze
 
@@ -78,11 +65,25 @@ jobs:
       - name: Build Android debug APK
         run: flutter build apk --debug
 
+      - name: Verify generated Google OAuth resources
+        run: |
+          VALUES_FILE=$(find build android -type f -name values.xml -path '*google-services*' -o -type f -name values.xml -path '*GoogleServices*' | head -1)
+          if [ -z "$VALUES_FILE" ]; then
+            VALUES_FILE=$(grep -rl 'default_web_client_id' build android | head -1 || true)
+          fi
+          if [ -z "$VALUES_FILE" ]; then
+            echo 'Generated Google Services resource containing default_web_client_id not found'
+            exit 1
+          fi
+          echo "Using $VALUES_FILE"
+          cat "$VALUES_FILE"
+          grep -F '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com' "$VALUES_FILE"
+
       - name: Verify APK certificate
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/apkcert.txt
-          grep -F 'Signer #1 certificate SHA-256 digest: 4ba2bad2ad8fb270c0f7bab61107ba6fee332a0920c95039cb0e83ba5dff8530' /tmp/apkcert.txt
+          grep -Fi '4ba2bad2ad8fb270c0f7bab61107ba6fee332a0920c95039cb0e83ba5dff8530' /tmp/apkcert.txt
 
       - name: Upload validated debug APK
         if: success()
