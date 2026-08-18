@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../profile/domain/player_profile.dart';
 import '../data/match_backend.dart';
 import '../domain/match_ticket.dart';
@@ -43,7 +45,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       await widget.matchBackend.joinQueue(widget.profile);
     } catch (_) {
       if (!mounted) return;
-      setState(() => _error = 'Could not start matchmaking. Try again.');
+      setState(() => _error = AppLocalizations.of(context).matchmakingFailed);
     } finally {
       if (mounted) setState(() => _joining = false);
     }
@@ -79,6 +81,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -86,7 +90,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Finding opponent'),
+          title: Text(l10n.findingOpponent),
           automaticallyImplyLeading: false,
         ),
         body: SafeArea(
@@ -100,45 +104,101 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
               }
 
               return Padding(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(GameSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Spacer(),
-                    const Center(
+                    Center(
                       child: SizedBox.square(
-                        dimension: 64,
-                        child: CircularProgressIndicator(strokeWidth: 6),
+                        dimension: 156,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox.square(
+                              dimension: 156,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: GameColors.accent.withValues(alpha: 0.75),
+                                backgroundColor: GameColors.surfaceStrong,
+                              ),
+                            ),
+                            Container(
+                              width: 112,
+                              height: 112,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: GameColors.surface,
+                                border: Border.all(
+                                  color: GameColors.accent.withValues(alpha: 0.35),
+                                  width: 2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: GameColors.accent.withValues(alpha: 0.12),
+                                    blurRadius: 28,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.person_search_rounded,
+                                size: 54,
+                                color: GameColors.accent,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: GameSpacing.xl),
                     Text(
-                      _joining ? 'Joining queue...' : 'Searching for a player...',
+                      _joining ? l10n.joiningQueue : l10n.searchingForPlayer,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleLarge,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Your match will use the same 3-minute clock and game seed for both players.',
+                    const SizedBox(height: GameSpacing.sm),
+                    Text(
+                      l10n.fairMatchMessage,
                       textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: GameColors.muted,
+                        height: 1.45,
+                      ),
                     ),
                     if (_error != null) ...[
-                      const SizedBox(height: 20),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Theme.of(context).colorScheme.error),
-                      ),
-                      const SizedBox(height: 12),
-                      OutlinedButton(
-                        onPressed: _joining ? null : _join,
-                        child: const Text('Try again'),
+                      const SizedBox(height: GameSpacing.lg),
+                      Container(
+                        padding: const EdgeInsets.all(GameSpacing.md),
+                        decoration: BoxDecoration(
+                          color: GameColors.danger.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(GameRadii.card),
+                          border: Border.all(
+                            color: GameColors.danger.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: GameColors.danger),
+                            ),
+                            const SizedBox(height: GameSpacing.sm),
+                            OutlinedButton(
+                              onPressed: _joining ? null : _join,
+                              child: Text(l10n.tryAgain),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                     const Spacer(),
-                    OutlinedButton(
+                    OutlinedButton.icon(
                       onPressed: _leaving ? null : _cancel,
-                      child: Text(_leaving ? 'Leaving...' : 'Cancel'),
+                      icon: const Icon(Icons.close_rounded),
+                      label: Text(_leaving ? l10n.leaving : l10n.cancel),
                     ),
                   ],
                 ),
