@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/core/config/app_config.dart';
+import 'package:game/features/profile/domain/player_name_rules.dart';
 import 'package:game/features/profile/domain/player_profile.dart';
 
 void main() {
@@ -16,5 +17,16 @@ void main() {
     expect(profile.level, 1);
     expect(profile.rankPoints, 0);
     expect(profile.stars, 0);
+  });
+
+  test('player name normalization trims and collapses spaces', () {
+    expect(PlayerNameRules.validate('  Player   One  '), 'Player One');
+    expect(PlayerNameRules.validate('  لاعب   واحد  '), 'لاعب واحد');
+  });
+
+  test('player name rejects empty and symbol-only values', () {
+    expect(() => PlayerNameRules.validate('   '), throwsArgumentError);
+    expect(() => PlayerNameRules.validate('---'), throwsArgumentError);
+    expect(() => PlayerNameRules.validate('ab'), throwsArgumentError);
   });
 }
