@@ -44,6 +44,22 @@ function requireMatchId(value: unknown): string {
   return value.trim();
 }
 
+function storedRankTier(value: unknown, fallback: RankTier): RankTier {
+  if (
+    value === "bronze" ||
+    value === "silver" ||
+    value === "gold" ||
+    value === "platinum" ||
+    value === "diamond" ||
+    value === "master" ||
+    value === "grandmaster" ||
+    value === "legend"
+  ) {
+    return value;
+  }
+  return fallback;
+}
+
 function settlementPlayer(options: {
   uid: string;
   previousRp: number;
@@ -216,6 +232,14 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const previousTierB = tierFor(previousRpB);
     const nextTierA = tierFor(nextRpA);
     const nextTierB = tierFor(nextRpB);
+    const lifetimePeakA = higherTier(
+      storedRankTier(profileA.peakRankTier, previousTierA),
+      nextTierA,
+    );
+    const lifetimePeakB = higherTier(
+      storedRankTier(profileB.peakRankTier, previousTierB),
+      nextTierB,
+    );
     const progressionA = applyXp(
       { level: intValue(profileA.level, 1), xp: intValue(profileA.xp) },
       rewardA.xp,
@@ -275,6 +299,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
 
     transaction.update(playerARef, {
       rankPoints: nextRpA,
+      peakRankTier: lifetimePeakA,
       level: progressionA.level,
       xp: progressionA.xp,
       wins: winsA,
@@ -284,6 +309,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     });
     transaction.update(playerBRef, {
       rankPoints: nextRpB,
+      peakRankTier: lifetimePeakB,
       level: progressionB.level,
       xp: progressionB.xp,
       wins: winsB,
@@ -319,6 +345,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       gameName: stringValue(profile.gameName, "Player"),
       avatarId: stringValue(profile.avatarId, "default_01"),
       stars: intValue(profile.stars),
+      legendarySeasons: Math.max(0, intValue(profile.legendarySeasons)),
       updatedAt: FieldValue.serverTimestamp(),
     });
     transaction.set(
