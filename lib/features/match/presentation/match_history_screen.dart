@@ -60,16 +60,25 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                     children: [
                       const Text('Could not load match history.'),
                       const SizedBox(height: 12),
-                      FilledButton(onPressed: _reload, child: const Text('TRY AGAIN')),
+                      FilledButton(
+                        onPressed: _reload,
+                        child: const Text('TRY AGAIN'),
+                      ),
                     ],
                   ),
                 ),
               );
             }
 
-            final items = snapshot.data ?? const <MatchSession>[];
+            final items = (snapshot.data ?? const <MatchSession>[])
+                .where(
+                  (match) =>
+                      match.status == MatchStatus.finished ||
+                      match.status == MatchStatus.cancelled,
+                )
+                .toList(growable: false);
             if (items.isEmpty) {
-              return const Center(child: Text('No matches yet.'));
+              return const Center(child: Text('No finished matches yet.'));
             }
 
             return ListView.separated(
