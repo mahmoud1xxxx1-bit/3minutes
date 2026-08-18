@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/firebase/server_collections.dart';
@@ -11,10 +12,14 @@ import '../domain/multiplayer_match.dart';
 import 'social_match_backend.dart';
 
 class FirestoreSocialMatchBackend implements SocialMatchBackend {
-  FirestoreSocialMatchBackend({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+  FirestoreSocialMatchBackend({
+    FirebaseFirestore? firestore,
+    FirebaseFunctions? functions,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _functions = functions ?? FirebaseFunctions.instanceFor(region: 'me-central2');
 
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
   CollectionReference<Map<String, dynamic>> get _matches =>
       _firestore.collection(ServerCollections.socialMatches);
@@ -186,6 +191,14 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
         ),
       );
       tx.update(ref, {'participants': participants});
+    });
+  }
+
+  @override
+  Future<void> settleMatch(String matchId) async {
+    if (AppConfig.backendPhase != BackendPhase.blaze) return;
+    await _functions.httpsCallable('settleSocialMatch').call<void>({
+      'matchId': matchId,
     });
   }
 
