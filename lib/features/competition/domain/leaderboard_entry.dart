@@ -9,6 +9,8 @@ class LeaderboardEntry {
     required this.stars,
     required this.wins,
     required this.losses,
+    this.ties = 0,
+    this.peakTier,
     this.legendarySeasons = 0,
   });
 
@@ -19,8 +21,11 @@ class LeaderboardEntry {
   final int stars;
   final int wins;
   final int losses;
+  final int ties;
+  final RankTier? peakTier;
   final int legendarySeasons;
 
   RankTier get tier => RankPolicy.tierFor(rankPoints);
-  int get gamesPlayed => wins + losses;
+  RankTier get effectivePeakTier => peakTier ?? tier;
+  int get gamesPlayed => wins + losses + ties;
 }
