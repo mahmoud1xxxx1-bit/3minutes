@@ -20,15 +20,17 @@ import {
   parseEvidence,
   validateEvidence,
 } from "./registry.js";
+import {
+  RANKED_COUNTDOWN_MS,
+  RANKED_SUBMISSION_TRANSPORT_GRACE_MS,
+  seasonAcceptsNewRankedMatch,
+} from "./season_boundary.js";
 
 const OPTIONS = {
   region: "me-central2",
   enforceAppCheck: true,
   timeoutSeconds: 30,
 } as const;
-
-const COUNTDOWN_MS = 3000;
-const SUBMISSION_TRANSPORT_GRACE_MS = 15000;
 
 function uidOf(uid: string | undefined): string {
   if (!uid) throw new HttpsError("unauthenticated", "Sign-in is required.");
@@ -43,13 +45,12 @@ function text(value: unknown, name: string): string {
 }
 
 function seasonAcceptsRanked(data: Record<string, unknown>, nowMs: number): boolean {
-  const startsAtMs = timestampMillis(data.startsAt);
-  const endsAtMs = timestampMillis(data.endsAt);
-  return data.active === true &&
-    startsAtMs !== null &&
-    endsAtMs !== null &&
-    nowMs >= startsAtMs &&
-    nowMs < endsAtMs;
+  return seasonAcceptsNewRankedMatch({
+    active: data.active === true,
+    startsAtMs: timestampMillis(data.startsAt),
+    endsAtMs: timestampMillis(data.endsAt),
+    nowMs,
+  });
 }
 
 function requireActiveSubmissionWindow(match: Record<string, unknown>): void {
@@ -58,12 +59,12 @@ function requireActiveSubmissionWindow(match: Record<string, unknown>): void {
     throw new HttpsError("failed-precondition", "Ranked match has not started.");
   }
   const now = Date.now();
-  const playStartedAtMs = countdownStartedAtMs + COUNTDOWN_MS;
+  const playStartedAtMs = countdownStartedAtMs + RANKED_COUNTDOWN_MS;
   if (now < playStartedAtMs) {
     throw new HttpsError("failed-precondition", "Ranked countdown is still running.");
   }
   const latestTransportArrivalMs =
-    playStartedAtMs + MATCH_DURATION_MS + SUBMISSION_TRANSPORT_GRACE_MS;
+    playStartedAtMs + MATCH_DURATION_MS + RANKED_SUBMISSION_TRANSPORT_GRACE_MS;
   if (now > latestTransportArrivalMs) {
     throw new HttpsError("deadline-exceeded", "Ranked submission window has closed.");
   }
@@ -238,7 +239,7 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
       if (!season || !seasonAcceptsRanked(season, Date.now())) {
         throw new HttpsError(
           "failed-precondition",
-          "The ranked season ended. Start a new queue for the next season.",
+          "Not enough season time remains for a ranked rematch.",
         );
       }
 
