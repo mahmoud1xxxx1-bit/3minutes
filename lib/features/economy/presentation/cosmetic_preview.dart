@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../domain/cosmetic_item.dart';
+import 'avatar_artwork.dart';
 
 class CosmeticPreview extends StatelessWidget {
   const CosmeticPreview({
@@ -48,7 +49,7 @@ class CosmeticPreview extends StatelessWidget {
               : null,
         ),
         child: Padding(
-          padding: EdgeInsets.all(size * 0.12),
+          padding: EdgeInsets.all(size * 0.08),
           child: _visual(),
         ),
       ),
@@ -56,6 +57,13 @@ class CosmeticPreview extends StatelessWidget {
   }
 
   Widget _visual() {
+    if (item.slot == CosmeticSlot.avatar && AvatarArtwork.supports(item.id)) {
+      return AvatarArtwork(
+        avatarId: item.id,
+        size: size * 0.84,
+        borderRadius: size * 0.20,
+      );
+    }
     return switch (item.id) {
       'frame_classic' => _AvatarFrame(color: GameColors.rankSilver, glow: false),
       'frame_neon' => _AvatarFrame(color: GameColors.accent, glow: true),
@@ -83,7 +91,6 @@ class CosmeticPreview extends StatelessWidget {
         ),
       'name_electric' => _NameVisual(color: GameColors.accent, fontWeight: FontWeight.w900),
       'name_royal' => _NameVisual(color: GameColors.rewardGold, fontWeight: FontWeight.w900),
-      'avatar_comet' => const _IconOrb(icon: Icons.rocket_launch_rounded),
       'emote_gg' => const _TextOrb(text: 'GG'),
       'victory_confetti' => const _IconOrb(icon: Icons.celebration_rounded),
       'victory_crown_burst' => const _IconOrb(icon: Icons.workspace_premium_rounded),
@@ -119,71 +126,61 @@ class CosmeticPreview extends StatelessWidget {
 
 class _AvatarFrame extends StatelessWidget {
   const _AvatarFrame({required this.color, required this.glow});
-
   final Color color;
   final bool glow;
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: color, width: glow ? 3 : 2),
-        boxShadow: glow
-            ? [BoxShadow(color: color.withValues(alpha: 0.28), blurRadius: 10)]
-            : null,
-      ),
-      child: const Center(
-        child: Icon(Icons.person_rounded, size: 21, color: GameColors.textStrong),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: glow ? 3 : 2),
+          boxShadow: glow
+              ? [BoxShadow(color: color.withValues(alpha: 0.28), blurRadius: 10)]
+              : null,
+        ),
+        child: const Center(
+          child: Icon(Icons.person_rounded, size: 21, color: GameColors.textStrong),
+        ),
+      );
 }
 
 class _ObsidianFrame extends StatelessWidget {
   const _ObsidianFrame();
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const SweepGradient(
-          colors: [Color(0xFF202535), Color(0xFF7B61FF), Color(0xFF05070B), Color(0xFF202535)],
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const SweepGradient(
+            colors: [Color(0xFF202535), Color(0xFF7B61FF), Color(0xFF05070B), Color(0xFF202535)],
+          ),
+          boxShadow: [
+            BoxShadow(color: GameColors.rarityEpic.withValues(alpha: 0.25), blurRadius: 10),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(color: GameColors.rarityEpic.withValues(alpha: 0.25), blurRadius: 10),
-        ],
-      ),
-      padding: const EdgeInsets.all(3),
-      child: const DecoratedBox(
-        decoration: BoxDecoration(shape: BoxShape.circle, color: GameColors.surface),
-        child: Icon(Icons.person_rounded, color: GameColors.textStrong),
-      ),
-    );
-  }
+        padding: const EdgeInsets.all(3),
+        child: const DecoratedBox(
+          decoration: BoxDecoration(shape: BoxShape.circle, color: GameColors.surface),
+          child: Icon(Icons.person_rounded, color: GameColors.textStrong),
+        ),
+      );
 }
 
 class _BadgeVisual extends StatelessWidget {
   const _BadgeVisual({required this.color, required this.child});
   final Color color;
   final Widget child;
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.65)),
-      ),
-      alignment: Alignment.center,
-      child: IconTheme(
-        data: IconThemeData(color: color),
-        child: DefaultTextStyle(style: TextStyle(color: color), child: child),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.65)),
+        ),
+        alignment: Alignment.center,
+        child: IconTheme(
+          data: IconThemeData(color: color),
+          child: DefaultTextStyle(style: TextStyle(color: color), child: child),
+        ),
+      );
 }
 
 class _GridVisual extends StatelessWidget {
@@ -205,7 +202,6 @@ class _GridPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
@@ -213,43 +209,37 @@ class _GridPainter extends CustomPainter {
 class _ArenaVisual extends StatelessWidget {
   const _ArenaVisual();
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const RadialGradient(colors: [Color(0xFF7B61FF), Color(0xFF111827)]),
-      ),
-      child: const Center(child: Icon(Icons.bolt_rounded, color: Colors.white, size: 24)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: const RadialGradient(colors: [Color(0xFF7B61FF), Color(0xFF111827)]),
+        ),
+        child: const Center(child: Icon(Icons.bolt_rounded, color: Colors.white, size: 24)),
+      );
 }
 
 class _ConstellationVisual extends StatelessWidget {
   const _ConstellationVisual();
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const LinearGradient(colors: [Color(0xFF141A35), Color(0xFF30205C)]),
-      ),
-      child: const Center(child: Icon(Icons.auto_awesome_rounded, color: GameColors.rewardGold)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: const LinearGradient(colors: [Color(0xFF141A35), Color(0xFF30205C)]),
+        ),
+        child: const Center(child: Icon(Icons.auto_awesome_rounded, color: GameColors.rewardGold)),
+      );
 }
 
 class _VoidVisual extends StatelessWidget {
   const _VoidVisual();
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: const RadialGradient(colors: [Color(0xFF6337A8), Color(0xFF05060B)]),
-      ),
-      child: const Center(child: Icon(Icons.blur_circular_rounded, color: Colors.white)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: const RadialGradient(colors: [Color(0xFF6337A8), Color(0xFF05060B)]),
+        ),
+        child: const Center(child: Icon(Icons.blur_circular_rounded, color: Colors.white)),
+      );
 }
 
 class _NameVisual extends StatelessWidget {
@@ -257,22 +247,19 @@ class _NameVisual extends StatelessWidget {
   final Color color;
   final FontWeight fontWeight;
   final bool underline;
-
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Aa',
-        style: TextStyle(
-          color: color,
-          fontSize: 19,
-          fontWeight: fontWeight,
-          decoration: underline ? TextDecoration.underline : null,
-          decorationColor: color,
+  Widget build(BuildContext context) => Center(
+        child: Text(
+          'Aa',
+          style: TextStyle(
+            color: color,
+            fontSize: 19,
+            fontWeight: fontWeight,
+            decoration: underline ? TextDecoration.underline : null,
+            decorationColor: color,
+          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _IconOrb extends StatelessWidget {
@@ -295,51 +282,45 @@ class _AuraVisual extends StatelessWidget {
   const _AuraVisual({required this.icon});
   final IconData icon;
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: GameColors.rarityMythic, width: 2),
-        boxShadow: [
-          BoxShadow(color: GameColors.rarityMythic.withValues(alpha: 0.30), blurRadius: 12),
-        ],
-      ),
-      child: Center(child: Icon(icon, color: GameColors.rarityMythic, size: 23)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: GameColors.rarityMythic, width: 2),
+          boxShadow: [
+            BoxShadow(color: GameColors.rarityMythic.withValues(alpha: 0.30), blurRadius: 12),
+          ],
+        ),
+        child: Center(child: Icon(icon, color: GameColors.rarityMythic, size: 23)),
+      );
 }
 
 class _PortalVisual extends StatelessWidget {
   const _PortalVisual();
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: SweepGradient(
-          colors: [Color(0xFF00D4FF), Color(0xFF7B61FF), Color(0xFFFF4FD8), Color(0xFF00D4FF)],
+  Widget build(BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: SweepGradient(
+            colors: [Color(0xFF00D4FF), Color(0xFF7B61FF), Color(0xFFFF4FD8), Color(0xFF00D4FF)],
+          ),
         ),
-      ),
-      padding: const EdgeInsets.all(4),
-      child: const DecoratedBox(
-        decoration: BoxDecoration(shape: BoxShape.circle, color: GameColors.surface),
-        child: Icon(Icons.arrow_forward_rounded, color: Colors.white),
-      ),
-    );
-  }
+        padding: const EdgeInsets.all(4),
+        child: const DecoratedBox(
+          decoration: BoxDecoration(shape: BoxShape.circle, color: GameColors.surface),
+          child: Icon(Icons.arrow_forward_rounded, color: Colors.white),
+        ),
+      );
 }
 
 class _RoomVisual extends StatelessWidget {
   const _RoomVisual({required this.icon});
   final IconData icon;
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: GameColors.accent.withValues(alpha: 0.5)),
-      ),
-      child: Center(child: Icon(icon, color: GameColors.accent, size: 25)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: GameColors.accent.withValues(alpha: 0.5)),
+        ),
+        child: Center(child: Icon(icon, color: GameColors.accent, size: 25)),
+      );
 }
