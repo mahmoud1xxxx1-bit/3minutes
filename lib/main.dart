@@ -15,6 +15,7 @@ import 'features/economy/data/cloud_functions_economy_backend.dart';
 import 'features/economy/data/economy_backend.dart';
 import 'features/economy/data/firestore_economy_backend.dart';
 import 'features/match/data/cloud_functions_match_backend.dart';
+import 'features/match/data/cloud_functions_quick_match_backend.dart';
 import 'features/match/data/firestore_match_backend.dart';
 import 'features/match/data/firestore_social_match_backend.dart';
 import 'features/match/data/match_backend.dart';
@@ -45,12 +46,14 @@ Future<void> main() async {
   final MatchBackend matchBackend = blaze
       ? CloudFunctionsMatchBackend(onSettlement: RankPromotionEvents.publish)
       : FirestoreMatchBackend();
+  final MatchBackend quickMatchBackend = CloudFunctionsQuickMatchBackend();
 
   runApp(
     ThreeMinutesApp(
       authService: authService,
       profileRepository: ProfileRepository(),
       matchBackend: matchBackend,
+      quickMatchBackend: quickMatchBackend,
       socialMatchBackend: FirestoreSocialMatchBackend(),
       competitionBackend: FirestoreCompetitionBackend(),
       economyBackend: economyBackend,
@@ -67,6 +70,7 @@ class ThreeMinutesApp extends StatelessWidget {
     required this.authService,
     required this.profileRepository,
     required this.matchBackend,
+    required this.quickMatchBackend,
     required this.socialMatchBackend,
     required this.competitionBackend,
     required this.economyBackend,
@@ -78,6 +82,7 @@ class ThreeMinutesApp extends StatelessWidget {
   final AuthService authService;
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
+  final MatchBackend quickMatchBackend;
   final SocialMatchBackend socialMatchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
@@ -100,6 +105,7 @@ class ThreeMinutesApp extends StatelessWidget {
         authService: authService,
         profileRepository: profileRepository,
         matchBackend: matchBackend,
+        quickMatchBackend: quickMatchBackend,
         socialMatchBackend: socialMatchBackend,
         competitionBackend: competitionBackend,
         economyBackend: economyBackend,
