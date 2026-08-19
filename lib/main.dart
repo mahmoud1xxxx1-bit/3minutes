@@ -3,7 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'core/audio/game_audio_controller.dart';
 import 'core/config/app_config.dart';
+import 'core/settings/game_settings_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_gate.dart';
@@ -14,6 +16,7 @@ import 'features/competition/presentation/rank_promotion_overlay_host.dart';
 import 'features/economy/data/cloud_functions_economy_backend.dart';
 import 'features/economy/data/economy_backend.dart';
 import 'features/economy/data/firestore_economy_backend.dart';
+import 'features/economy/presentation/avatar_artwork.dart';
 import 'features/match/data/cloud_functions_match_backend.dart';
 import 'features/match/data/cloud_functions_quick_match_backend.dart';
 import 'features/match/data/firestore_match_backend.dart';
@@ -40,6 +43,15 @@ Future<void> main() async {
 
   final authService = AuthService();
   await authService.initialize();
+
+  // Warm first-run experience before entering the game shell. Avatar atlases are
+  // decoded once here so Shop/Profile browsing does not flash loading spinners.
+  await Future.wait([
+    GameSettingsController.instance.load(),
+    AvatarArtwork.preloadAll(),
+  ]);
+  await GameAudioController.instance.initialize();
+
   final blaze = AppConfig.backendPhase == BackendPhase.blaze;
   final EconomyBackend economyBackend =
       blaze ? CloudFunctionsEconomyBackend() : FirestoreEconomyBackend();
