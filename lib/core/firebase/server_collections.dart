@@ -1,6 +1,8 @@
 class ServerCollections {
   const ServerCollections._();
 
+  static const users = 'users';
+
   static const seasons = 'seasons';
   static const seasonPlayers = 'players';
   static const seasonHistory = 'seasonHistory';
