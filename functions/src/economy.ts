@@ -102,30 +102,37 @@ export const equipCosmetic = onCall(CALLABLE_OPTIONS, async (request) => {
 
   return db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(inventoryRef);
-    const inventory = snapshot.data();
-    if (!inventory) {
-      throw new HttpsError("failed-precondition", "Inventory does not exist.");
-    }
+    const inventory = snapshot.data() ?? {};
     const owned = Array.isArray(inventory.ownedCosmeticIds)
       ? inventory.ownedCosmeticIds.filter(
           (value): value is string => typeof value === "string",
         )
       : [];
-    if (!owned.includes(cosmeticId)) {
+
+    const alreadyOwned = owned.includes(cosmeticId);
+    const mayClaimForFree = cosmetic.priceType === "free";
+    if (!alreadyOwned && !mayClaimForFree) {
       throw new HttpsError("permission-denied", "Cosmetic is not owned.");
     }
 
+    const nextOwned = alreadyOwned ? owned : [...owned, cosmeticId];
     const field = equippedField(cosmetic.slot);
-    transaction.update(inventoryRef, {
-      [field]: cosmeticId,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    transaction.set(
+      inventoryRef,
+      {
+        ownedCosmeticIds: nextOwned,
+        [field]: cosmeticId,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
 
     return {
       coins: Math.max(0, intValue(inventory.coins)),
-      ownedCosmeticIds: owned,
+      ownedCosmeticIds: nextOwned,
       equippedField: field,
       cosmeticId,
+      grantedFree: !alreadyOwned && mayClaimForFree,
     };
   });
 });
