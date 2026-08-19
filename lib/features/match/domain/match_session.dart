@@ -34,6 +34,7 @@ class MatchSession {
     required this.progressB,
     required this.rematchA,
     required this.rematchB,
+    this.mode = 'ranked',
     this.rematchMatchId,
     this.cancelledBy,
     this.countdownStartedAt,
@@ -57,10 +58,14 @@ class MatchSession {
   final MatchProgress progressB;
   final bool rematchA;
   final bool rematchB;
+  final String mode;
   final String? rematchMatchId;
   final String? cancelledBy;
   final DateTime? countdownStartedAt;
   final DateTime? createdAt;
+
+  bool get isQuick => mode == 'quick';
+  bool get isRanked => !isQuick;
 
   bool containsPlayer(String uid) => playerAId == uid || playerBId == uid;
 
