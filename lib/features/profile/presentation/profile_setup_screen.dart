@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../economy/presentation/avatar_artwork.dart';
 import '../data/profile_repository.dart';
 import '../domain/player_name_rules.dart';
 
@@ -23,14 +24,15 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _nameController = TextEditingController();
   bool _saving = false;
-  String _avatarId = 'default_01';
+  String _avatarId = 'avatar_free_vanguard';
   String? _error;
 
   static const _avatars = <String>[
-    'default_01',
-    'default_02',
-    'default_03',
-    'default_04',
+    'avatar_free_vanguard',
+    'avatar_free_arena',
+    'avatar_free_hacker',
+    'avatar_free_phantom',
+    'avatar_free_warden',
   ];
 
   @override
@@ -79,15 +81,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(
-          l10n.createProfile,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: Text(l10n.createProfile, style: const TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: CosmicBackground(
         child: SafeArea(
@@ -115,17 +115,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         borderRadius: BorderRadius.circular(19),
                         boxShadow: GameShadows.primaryGlow,
                       ),
-                      child: const Icon(
-                        Icons.person_add_alt_1_rounded,
-                        color: Colors.white,
-                        size: 31,
-                      ),
+                      child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 31),
                     ),
                     const SizedBox(height: GameSpacing.md),
-                    Text(
-                      l10n.choosePlayerName,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+                    Text(l10n.choosePlayerName, style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: GameSpacing.md),
                     TextField(
                       controller: _nameController,
@@ -145,49 +138,42 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Text(l10n.chooseAvatar, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 5),
                     Text(
-                      l10n.chooseAvatar,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      ar
+                          ? 'هذه الشخصيات الخمس مجانية دائمًا. يمكنك معاينة وفتح شخصيات أندر لاحقًا من المتجر.'
+                          : 'These five characters are permanently free. Rarer avatars can be previewed and unlocked later in the shop.',
+                      style: const TextStyle(color: GameColors.muted, fontSize: 12, height: 1.4),
                     ),
                     const SizedBox(height: GameSpacing.md),
                     Wrap(
-                      alignment: WrapAlignment.spaceBetween,
+                      alignment: WrapAlignment.center,
                       spacing: GameSpacing.md,
                       runSpacing: GameSpacing.md,
                       children: _avatars.map((avatarId) {
                         final selected = avatarId == _avatarId;
-                        final number = _avatars.indexOf(avatarId) + 1;
                         return InkWell(
-                          onTap: _saving
-                              ? null
-                              : () => setState(() => _avatarId = avatarId),
-                          borderRadius: BorderRadius.circular(42),
+                          onTap: _saving ? null : () => setState(() => _avatarId = avatarId),
+                          borderRadius: BorderRadius.circular(48),
                           child: AnimatedContainer(
                             duration: GameDurations.fast,
-                            width: 68,
-                            height: 68,
-                            alignment: Alignment.center,
+                            padding: const EdgeInsets.all(3),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: selected ? GameColors.cosmicGradient : null,
                               color: selected ? null : GameColors.surfaceRaised,
                               border: Border.all(
-                                color: selected
-                                    ? GameColors.accentBright
-                                    : GameColors.surfaceStrong,
+                                color: selected ? GameColors.accentBright : GameColors.surfaceStrong,
                                 width: selected ? 2.5 : 1,
                               ),
-                              boxShadow:
-                                  selected ? GameShadows.primaryGlow : null,
+                              boxShadow: selected ? GameShadows.primaryGlow : null,
                             ),
-                            child: Text(
-                              '$number',
-                              style: TextStyle(
-                                color: selected
-                                    ? Colors.white
-                                    : GameColors.textStrong,
-                                fontSize: 19,
-                                fontWeight: FontWeight.w900,
+                            child: ClipOval(
+                              child: AvatarArtwork(
+                                avatarId: avatarId,
+                                size: 76,
+                                borderRadius: 76,
                               ),
                             ),
                           ),
@@ -200,11 +186,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               const SizedBox(height: GameSpacing.xl),
               if (_error != null) ...[
                 CosmicPanel(
-                  child: Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: GameColors.danger),
-                  ),
+                  child: Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
                 ),
                 const SizedBox(height: GameSpacing.md),
               ],
