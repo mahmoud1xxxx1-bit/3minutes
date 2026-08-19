@@ -28,6 +28,7 @@ export {
   cancelQuickRematch,
   settleQuickMatch,
 } from "./quick.js";
+export { getQuickTicket } from "./quick_ticket.js";
 
 export { settleRankedMatch } from "./settlement.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
