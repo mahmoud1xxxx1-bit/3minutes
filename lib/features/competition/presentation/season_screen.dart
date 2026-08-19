@@ -17,7 +17,7 @@ import 'season_player_progress_panel.dart';
 class SeasonScreen extends StatelessWidget {
   const SeasonScreen({
     super.key,
-    required this.uid,
+    this.uid = '',
     required this.competitionBackend,
     this.onOpenMissions,
   });
@@ -132,7 +132,7 @@ class SeasonScreen extends StatelessWidget {
                 backend: competitionBackend,
                 liveEnabled: liveEnabled,
               ),
-              if (liveEnabled) ...[
+              if (liveEnabled && uid.isNotEmpty) ...[
                 const SizedBox(height: GameSpacing.md),
                 SeasonHistoryPanel(
                   uid: uid,
