@@ -10,6 +10,7 @@ import '../../economy/data/cosmetic_catalog.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../economy/domain/cosmetic_item.dart';
 import '../../economy/presentation/cosmetic_preview.dart';
+import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../progression/data/achievement_catalog.dart';
 import '../../progression/presentation/progression_copy.dart';
 import '../data/profile_repository.dart';
@@ -40,10 +41,7 @@ class ProfileShowcaseScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(
-          l10n.profile,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: Text(l10n.profile, style: const TextStyle(fontWeight: FontWeight.w900)),
         actions: [
           IconButton(
             tooltip: ar ? 'شارات الرتب' : 'Rank emblems',
@@ -86,7 +84,7 @@ class ProfileShowcaseScreen extends StatelessWidget {
                   110,
                 ),
                 children: [
-                  _HeroIdentity(profile: profile, tier: tier),
+                  _HeroIdentity(profile: profile, tier: tier, inventory: inventory),
                   const SizedBox(height: GameSpacing.md),
                   _StatsGrid(profile: profile),
                   const SizedBox(height: GameSpacing.lg),
@@ -100,7 +98,7 @@ class ProfileShowcaseScreen extends StatelessWidget {
                   const SizedBox(height: GameSpacing.lg),
                   _SectionTitle(
                     icon: Icons.auto_awesome_rounded,
-                    title: ar ? 'المظهر المجهز' : 'Equipped style',
+                    title: ar ? 'المقتنيات المجهزة' : 'Equipped collection',
                     color: GameColors.violet,
                   ),
                   const SizedBox(height: GameSpacing.sm),
@@ -141,13 +139,143 @@ class ProfileShowcaseScreen extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.icon,
-    required this.title,
-    required this.color,
+class _HeroIdentity extends StatelessWidget {
+  const _HeroIdentity({
+    required this.profile,
+    required this.tier,
+    required this.inventory,
   });
 
+  final PlayerProfile profile;
+  final RankTier tier;
+  final PlayerInventory? inventory;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final avatarId = inventory?.equippedAvatarId ?? profile.avatarId;
+    final frameId = inventory?.equippedAvatarFrameId;
+    final badgeId = inventory?.equippedBadgeId;
+    final backgroundId = inventory?.equippedProfileBackgroundId;
+    final nameStyleId = inventory?.equippedNameStyleId;
+    final auraId = inventory?.equippedRankAuraId;
+
+    return CosmeticProfileBackground(
+      backgroundId: backgroundId,
+      child: Container(
+        padding: const EdgeInsets.all(GameSpacing.lg),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(GameRadii.panel),
+          border: Border.all(
+            color: backgroundId == null
+                ? GameColors.surfaceStrong
+                : GameColors.accentBright.withValues(alpha: .28),
+          ),
+        ),
+        child: Column(
+          children: [
+            CosmeticAvatarView(
+              avatarId: avatarId,
+              frameId: frameId,
+              size: 116,
+            ),
+            const SizedBox(height: GameSpacing.md),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: CosmeticNameText(
+                    text: profile.gameName,
+                    styleId: nameStyleId,
+                    fontSize: 24,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                if (badgeId != null) ...[
+                  const SizedBox(width: 8),
+                  CosmeticBadgeView(badgeId: badgeId, size: 40),
+                ],
+              ],
+            ),
+            if (profile.selectedTitleId != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                profile.selectedTitleId!,
+                style: const TextStyle(
+                  color: GameColors.rewardGold,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+            const SizedBox(height: GameSpacing.md),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: GameSpacing.md,
+              runSpacing: GameSpacing.sm,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                CosmeticRankAura(
+                  auraId: auraId,
+                  padding: auraId == null ? 0 : 7,
+                  child: RankBadge(
+                    tier: tier,
+                    legendarySeasons: profile.legendarySeasons,
+                  ),
+                ),
+                SeasonStarBadge(stars: profile.stars),
+              ],
+            ),
+            if (profile.legendarySeasons > 0) ...[
+              const SizedBox(height: GameSpacing.sm),
+              _LegendaryHistoryLine(count: profile.legendarySeasons),
+            ],
+            if (profile.showcaseRankTier != null) ...[
+              const SizedBox(height: GameSpacing.sm),
+              Text(
+                Localizations.localeOf(context).languageCode == 'ar'
+                    ? 'شارة العرض: ${profile.showcaseRankTier!.label}'
+                    : 'Showcase emblem: ${profile.showcaseRankTier!.label}',
+                style: const TextStyle(color: GameColors.textSoft, fontSize: 12, fontWeight: FontWeight.w700),
+              ),
+            ],
+            const SizedBox(height: GameSpacing.sm),
+            Text(
+              '${l10n.levelWithValue(profile.level)} • ${l10n.rpWithValue(profile.rankPoints)}',
+              style: const TextStyle(color: GameColors.muted, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendaryHistoryLine extends StatelessWidget {
+  const _LegendaryHistoryLine({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.history_edu_rounded, size: 16, color: GameColors.rewardGold),
+        const SizedBox(width: 5),
+        Text(
+          ar
+              ? 'وصل إلى الأسطوري في $count ${count == 1 ? 'موسم' : 'مواسم'}'
+              : 'Legendary in $count ${count == 1 ? 'season' : 'seasons'}',
+          style: const TextStyle(color: GameColors.textSoft, fontSize: 12, fontWeight: FontWeight.w700),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.title, required this.color});
   final IconData icon;
   final String title;
   final Color color;
@@ -164,141 +292,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _HeroIdentity extends StatelessWidget {
-  const _HeroIdentity({required this.profile, required this.tier});
-  final PlayerProfile profile;
-  final RankTier tier;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    return CosmicPanel(
-      glow: true,
-      padding: const EdgeInsets.all(GameSpacing.lg),
-      child: Column(
-        children: [
-          Container(
-            width: 108,
-            height: 108,
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: GameColors.cosmicGradient,
-              boxShadow: GameShadows.primaryGlow,
-            ),
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: GameColors.surface,
-              ),
-              child: Icon(Icons.person_rounded, size: 58),
-            ),
-          ),
-          const SizedBox(height: GameSpacing.md),
-          Text(
-            profile.gameName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          if (profile.selectedTitleId != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              profile.selectedTitleId!,
-              style: const TextStyle(
-                color: GameColors.rewardGold,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-          const SizedBox(height: GameSpacing.sm),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: GameSpacing.sm,
-            runSpacing: GameSpacing.xs,
-            children: [
-              RankBadge(
-                tier: tier,
-                legendarySeasons: profile.legendarySeasons,
-              ),
-              SeasonStarBadge(stars: profile.stars),
-            ],
-          ),
-          if (profile.legendarySeasons > 0) ...[
-            const SizedBox(height: GameSpacing.sm),
-            _LegendaryHistoryLine(count: profile.legendarySeasons),
-          ],
-          if (profile.showcaseRankTier != null) ...[
-            const SizedBox(height: GameSpacing.sm),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.shield_outlined,
-                  size: 16,
-                  color: GameColors.violet,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  Localizations.localeOf(context).languageCode == 'ar'
-                      ? 'شارة العرض: ${profile.showcaseRankTier!.label}'
-                      : 'Showcase emblem: ${profile.showcaseRankTier!.label}',
-                  style: const TextStyle(
-                    color: GameColors.textSoft,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: GameSpacing.sm),
-          Text(
-            '${l10n.levelWithValue(profile.level)} • ${l10n.rpWithValue(profile.rankPoints)}',
-            style: const TextStyle(
-              color: GameColors.muted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LegendaryHistoryLine extends StatelessWidget {
-  const _LegendaryHistoryLine({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(
-          Icons.history_edu_rounded,
-          size: 16,
-          color: GameColors.rewardGold,
-        ),
-        const SizedBox(width: 5),
-        Text(
-          ar
-              ? 'وصل إلى الأسطوري في $count ${count == 1 ? 'موسم' : 'مواسم'}'
-              : 'Legendary in $count ${count == 1 ? 'season' : 'seasons'}',
-          style: const TextStyle(
-            color: GameColors.textSoft,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _StatsGrid extends StatelessWidget {
   const _StatsGrid({required this.profile});
   final PlayerProfile profile;
@@ -307,105 +300,46 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final ar = Localizations.localeOf(context).languageCode == 'ar';
-    return GridView.count(
-      crossAxisCount: 2,
+    final stats = <({IconData icon, String label, String value, Color color})>[
+      (icon: Icons.emoji_events_rounded, label: l10n.wins, value: '${profile.wins}', color: GameColors.rewardGold),
+      (icon: Icons.sports_esports_rounded, label: l10n.matches, value: '${profile.gamesPlayed}', color: GameColors.accentBright),
+      (icon: Icons.percent_rounded, label: ar ? 'نسبة الفوز' : 'Win rate', value: '${(profile.winRate * 100).toStringAsFixed(1)}%', color: GameColors.success),
+      (icon: Icons.local_fire_department_rounded, label: ar ? 'أفضل سلسلة' : 'Best streak', value: '${profile.bestWinStreak}', color: GameColors.violet),
+      if (profile.legendarySeasons > 0)
+        (icon: Icons.military_tech_rounded, label: ar ? 'مواسم أسطورية' : 'Legendary seasons', value: '×${profile.legendarySeasons}', color: GameColors.rankLegend),
+    ];
+    return GridView.builder(
+      itemCount: stats.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: GameSpacing.sm,
+        mainAxisSpacing: GameSpacing.sm,
+        childAspectRatio: 2.25,
+      ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: GameSpacing.sm,
-      mainAxisSpacing: GameSpacing.sm,
-      childAspectRatio: 2.25,
-      children: [
-        _StatCard(
-          icon: Icons.emoji_events_rounded,
-          label: l10n.wins,
-          value: '${profile.wins}',
-          color: GameColors.rewardGold,
-        ),
-        _StatCard(
-          icon: Icons.sports_esports_rounded,
-          label: l10n.matches,
-          value: '${profile.gamesPlayed}',
-          color: GameColors.accentBright,
-        ),
-        _StatCard(
-          icon: Icons.percent_rounded,
-          label: ar ? 'نسبة الفوز' : 'Win rate',
-          value: '${(profile.winRate * 100).toStringAsFixed(1)}%',
-          color: GameColors.success,
-        ),
-        _StatCard(
-          icon: Icons.local_fire_department_rounded,
-          label: ar ? 'أفضل سلسلة' : 'Best streak',
-          value: '${profile.bestWinStreak}',
-          color: GameColors.violet,
-        ),
-        if (profile.legendarySeasons > 0)
-          _StatCard(
-            icon: Icons.military_tech_rounded,
-            label: ar ? 'مواسم أسطورية' : 'Legendary seasons',
-            value: '×${profile.legendarySeasons}',
-            color: GameColors.rankLegend,
-          ),
-      ],
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return CosmicPanel(
-      padding: const EdgeInsets.all(GameSpacing.sm),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 21),
-          ),
-          const SizedBox(width: GameSpacing.sm),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
+      itemBuilder: (context, index) {
+        final stat = stats[index];
+        return CosmicPanel(
+          padding: const EdgeInsets.all(GameSpacing.sm),
+          child: Row(
+            children: [
+              Icon(stat.icon, color: stat.color),
+              const SizedBox(width: GameSpacing.sm),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(stat.value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                    Text(stat.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: GameColors.muted, fontSize: 11)),
+                  ],
                 ),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: GameColors.muted,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -428,7 +362,6 @@ class _AchievementShowcase extends StatelessWidget {
         ),
       );
     }
-
     return Row(
       children: [
         for (var i = 0; i < ids.length; i++) ...[
@@ -438,28 +371,18 @@ class _AchievementShowcase extends StatelessWidget {
               decoration: BoxDecoration(
                 color: GameColors.rewardGold.withValues(alpha: .08),
                 borderRadius: BorderRadius.circular(GameRadii.card),
-                border: Border.all(
-                  color: GameColors.rewardGold.withValues(alpha: .28),
-                ),
+                border: Border.all(color: GameColors.rewardGold.withValues(alpha: .28)),
               ),
               child: Column(
                 children: [
-                  const Icon(
-                    Icons.emoji_events_rounded,
-                    color: GameColors.rewardGold,
-                  ),
+                  const Icon(Icons.emoji_events_rounded, color: GameColors.rewardGold),
                   const SizedBox(height: 6),
                   Text(
-                    copy.achievement(
-                      AchievementCatalog.byId(ids[i])?.id ?? ids[i],
-                    ),
+                    copy.achievement(AchievementCatalog.byId(ids[i])?.id ?? ids[i]),
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
                   ),
                 ],
               ),
@@ -479,6 +402,7 @@ class _EquippedShowcase extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ids = <String?>[
+      inventory?.equippedAvatarId,
       inventory?.equippedAvatarFrameId,
       inventory?.equippedBadgeId,
       inventory?.equippedProfileBackgroundId,
@@ -494,8 +418,8 @@ class _EquippedShowcase extends StatelessWidget {
       return CosmicPanel(
         child: Text(
           Localizations.localeOf(context).languageCode == 'ar'
-              ? 'جهز عناصر من المتجر لتظهر هنا.'
-              : 'Equip shop cosmetics to display them here.',
+              ? 'جهز عناصر من المتجر لتظهر هنا وفي أماكن استخدامها الفعلية.'
+              : 'Equip shop cosmetics to see them here and in their real gameplay surfaces.',
           style: const TextStyle(color: GameColors.muted),
         ),
       );
@@ -508,21 +432,16 @@ class _EquippedShowcase extends StatelessWidget {
         children: [
           for (final id in ids)
             if (CosmeticCatalog.byId(id) case final CosmeticItem item)
-              CosmeticPreview(
-                item: item,
-                rarityColor: _rarityColor(item.rarity),
-                size: 66,
+              Tooltip(
+                message: item.name,
+                child: CosmeticPreview(
+                  item: item,
+                  rarityColor: cosmeticRarityColor(item.rarity),
+                  size: 66,
+                ),
               ),
         ],
       ),
     );
   }
-
-  Color _rarityColor(CosmeticRarity rarity) => switch (rarity) {
-        CosmeticRarity.common => GameColors.rarityCommon,
-        CosmeticRarity.rare => GameColors.rarityRare,
-        CosmeticRarity.epic => GameColors.rarityEpic,
-        CosmeticRarity.legendary => GameColors.rarityLegendary,
-        CosmeticRarity.mythic => GameColors.rarityMythic,
-      };
 }
