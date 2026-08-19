@@ -62,6 +62,129 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
     }
   }
 
+  Future<void> _preview(RankTier tier) async {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final unlocked = widget.profile.isRankEmblemUnlocked(tier);
+    final band = RankPolicy.bands.firstWhere((item) => item.tier == tier);
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final selected = _selectedTier == tier;
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.all(GameSpacing.sm),
+            padding: const EdgeInsets.all(GameSpacing.lg),
+            decoration: BoxDecoration(
+              color: GameColors.surface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: GameColors.surfaceStrong),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x66000000),
+                  blurRadius: 30,
+                  offset: Offset(0, -8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: GameColors.surfaceStrong,
+                    borderRadius: BorderRadius.circular(GameRadii.pill),
+                  ),
+                ),
+                const SizedBox(height: GameSpacing.lg),
+                RankEmblem(tier: tier, size: 156),
+                const SizedBox(height: GameSpacing.md),
+                Text(
+                  tier.label,
+                  style: const TextStyle(
+                    color: GameColors.textStrong,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (tier == RankTier.legend && widget.profile.legendarySeasons > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Legendary ×${widget.profile.legendarySeasons}',
+                    style: const TextStyle(
+                      color: GameColors.rewardGold,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: GameSpacing.sm),
+                Wrap(
+                  spacing: GameSpacing.sm,
+                  runSpacing: GameSpacing.xs,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _PreviewPill(
+                      icon: unlocked ? Icons.lock_open_rounded : Icons.lock_rounded,
+                      text: unlocked
+                          ? (ar ? 'تم اكتسابها' : 'Earned')
+                          : (ar ? 'غير مكتسبة بعد' : 'Not earned yet'),
+                    ),
+                    _PreviewPill(
+                      icon: Icons.bolt_rounded,
+                      text: '${band.minimumRp} RP',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: GameSpacing.md),
+                Text(
+                  unlocked
+                      ? (ar
+                          ? 'هذه الشارة أصبحت جزءًا دائمًا من سجل رتبك ويمكنك تجهيزها للعرض دون تغيير رتبتك الحالية.'
+                          : 'This emblem is permanently part of your rank legacy and can be equipped without changing your current rank.')
+                      : (ar
+                          ? 'معاينة فقط. ارفع تصنيفك إلى ${band.minimumRp} RP للوصول إلى ${tier.label} وفتح هذه الشارة نهائيًا.'
+                          : 'Preview only. Reach ${band.minimumRp} RP and ${tier.label} to permanently unlock this emblem.'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: GameColors.textSoft,
+                    height: 1.45,
+                  ),
+                ),
+                if (unlocked) ...[
+                  const SizedBox(height: GameSpacing.lg),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: selected || !_selectionEnabled
+                          ? null
+                          : () async {
+                              Navigator.of(sheetContext).pop();
+                              await _select(tier);
+                            },
+                      icon: Icon(selected ? Icons.check_circle_rounded : Icons.shield_rounded),
+                      label: Text(
+                        selected
+                            ? (ar ? 'مجهّزة حاليًا' : 'Currently equipped')
+                            : _selectionEnabled
+                                ? (ar ? 'تجهيز للعرض' : 'Equip for showcase')
+                                : (ar ? 'التجهيز يحتاج الخادم الآمن' : 'Equipping requires secure server'),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ar = Localizations.localeOf(context).languageCode == 'ar';
@@ -94,10 +217,7 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(
-                          Icons.shield_rounded,
-                          color: GameColors.accentBright,
-                        ),
+                        const Icon(Icons.shield_rounded, color: GameColors.accentBright),
                         const SizedBox(width: GameSpacing.sm),
                         Expanded(
                           child: Text(
@@ -110,22 +230,16 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
                     const SizedBox(height: GameSpacing.sm),
                     Text(
                       ar
-                          ? 'كل رتبة تصل إليها تُفتح نهائيًا للعرض. اختيار شارة قديمة لا يغيّر رتبتك التنافسية الحالية.'
-                          : 'Every tier you reach is permanently unlocked for display. Equipping an older emblem never changes your current competitive rank.',
-                      style: const TextStyle(
-                        color: GameColors.textSoft,
-                        height: 1.45,
-                      ),
+                          ? 'اضغط على أي شارة لمعاينتها، حتى إن لم تفتحها بعد. كل رتبة تصل إليها تُفتح نهائيًا للعرض.'
+                          : 'Tap any emblem to preview it, even before earning it. Every tier you reach is permanently unlocked for display.',
+                      style: const TextStyle(color: GameColors.textSoft, height: 1.45),
                     ),
                     const SizedBox(height: GameSpacing.md),
                     Row(
                       children: [
                         Text(
                           ar ? 'رتبتك الحالية' : 'Current rank',
-                          style: const TextStyle(
-                            color: GameColors.muted,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: const TextStyle(color: GameColors.muted, fontWeight: FontWeight.w700),
                         ),
                         const Spacer(),
                         RankBadge(
@@ -145,29 +259,19 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
                   decoration: BoxDecoration(
                     color: GameColors.accentSoft,
                     borderRadius: BorderRadius.circular(GameRadii.card),
-                    border: Border.all(
-                      color: GameColors.accentBright.withValues(alpha: 0.24),
-                    ),
+                    border: Border.all(color: GameColors.accentBright.withValues(alpha: 0.24)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.visibility_rounded,
-                        color: GameColors.accentBright,
-                        size: 20,
-                      ),
+                      const Icon(Icons.visibility_rounded, color: GameColors.accentBright, size: 20),
                       const SizedBox(width: GameSpacing.sm),
                       Expanded(
                         child: Text(
                           ar
-                              ? 'يمكنك الآن مشاهدة جميع الشارات التي كسبتها. تجهيز شارة تاريخية للعرض العام يتفعّل بعد تشغيل خادم المنافسة الآمن؛ لا يتم إرسال أي اختيار من هذه الشاشة أثناء وضع Spark.'
-                              : 'You can view every emblem you have earned now. Equipping a historical emblem for public display activates with the secure competition server; this screen sends no selection while Spark mode is active.',
-                          style: const TextStyle(
-                            color: GameColors.textSoft,
-                            height: 1.4,
-                            fontSize: 12,
-                          ),
+                              ? 'المعاينة متاحة الآن لجميع الرتب. تجهيز شارة تاريخية للعرض العام يتفعّل بعد تشغيل خادم المنافسة الآمن.'
+                              : 'Preview is available for every rank now. Equipping a historical emblem for public display activates with the secure competition server.',
+                          style: const TextStyle(color: GameColors.textSoft, height: 1.4, fontSize: 12),
                         ),
                       ),
                     ],
@@ -176,11 +280,7 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
               ],
               if (_error != null) ...[
                 const SizedBox(height: GameSpacing.sm),
-                Text(
-                  _error!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: GameColors.danger),
-                ),
+                Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
               ],
               const SizedBox(height: GameSpacing.lg),
               GridView.builder(
@@ -203,9 +303,8 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
                     unlocked: unlocked,
                     selected: selected,
                     saving: saving,
-                    selectionEnabled: _selectionEnabled,
                     legendarySeasons: widget.profile.legendarySeasons,
-                    onTap: unlocked && _selectionEnabled ? () => _select(tier) : null,
+                    onTap: () => _preview(tier),
                   );
                 },
               ),
@@ -223,7 +322,6 @@ class _RankEmblemCard extends StatelessWidget {
     required this.unlocked,
     required this.selected,
     required this.saving,
-    required this.selectionEnabled,
     required this.legendarySeasons,
     required this.onTap,
   });
@@ -232,9 +330,8 @@ class _RankEmblemCard extends StatelessWidget {
   final bool unlocked;
   final bool selected;
   final bool saving;
-  final bool selectionEnabled;
   final int legendarySeasons;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   Color get _rankColor => switch (tier) {
         RankTier.bronze => GameColors.rankBronze,
@@ -272,12 +369,7 @@ class _RankEmblemCard extends StatelessWidget {
             width: selected ? 1.8 : 1,
           ),
           boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.24),
-                    blurRadius: 24,
-                  ),
-                ]
+              ? [BoxShadow(color: color.withValues(alpha: 0.24), blurRadius: 24)]
               : const [],
         ),
         child: Column(
@@ -287,21 +379,15 @@ class _RankEmblemCard extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 Opacity(
-                  opacity: unlocked ? 1 : 0.22,
+                  opacity: unlocked ? 1 : 0.55,
                   child: RankEmblem(tier: tier, size: 82),
                 ),
                 if (!unlocked)
                   Container(
-                    width: 38,
-                    height: 38,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: GameColors.surfaceGlass,
-                    ),
-                    child: const Icon(
-                      Icons.lock_rounded,
-                      color: GameColors.muted,
-                    ),
+                    width: 34,
+                    height: 34,
+                    decoration: const BoxDecoration(shape: BoxShape.circle, color: GameColors.surfaceGlass),
+                    child: const Icon(Icons.visibility_rounded, color: GameColors.textSoft, size: 19),
                   ),
                 if (saving)
                   const SizedBox.square(
@@ -315,7 +401,7 @@ class _RankEmblemCard extends StatelessWidget {
               tier.label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: unlocked ? color : GameColors.muted,
+                color: unlocked ? color : GameColors.textSoft,
                 fontWeight: FontWeight.w900,
                 fontSize: 14,
               ),
@@ -324,11 +410,7 @@ class _RankEmblemCard extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 'Legendary ×$legendarySeasons',
-                style: const TextStyle(
-                  color: GameColors.rewardGold,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: const TextStyle(color: GameColors.rewardGold, fontSize: 11, fontWeight: FontWeight.w900),
               ),
             ],
             const SizedBox(height: 5),
@@ -336,10 +418,8 @@ class _RankEmblemCard extends StatelessWidget {
               selected
                   ? (ar ? 'مجهّزة للعرض' : 'Equipped')
                   : unlocked
-                      ? selectionEnabled
-                          ? (ar ? 'اضغط للتجهيز' : 'Tap to equip')
-                          : (ar ? 'مفتوحة للعرض' : 'Unlocked to view')
-                      : (ar ? 'غير مكتسبة' : 'Locked'),
+                      ? (ar ? 'اضغط للمعاينة' : 'Tap to preview')
+                      : (ar ? 'معاينة قبل الفتح' : 'Preview locked'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: selected ? color : GameColors.muted,
@@ -349,6 +429,34 @@ class _RankEmblemCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PreviewPill extends StatelessWidget {
+  const _PreviewPill({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: GameColors.accentSoft,
+        borderRadius: BorderRadius.circular(GameRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: GameColors.accentBright),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: const TextStyle(color: GameColors.textSoft, fontSize: 11, fontWeight: FontWeight.w800),
+          ),
+        ],
       ),
     );
   }
