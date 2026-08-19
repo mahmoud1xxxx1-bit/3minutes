@@ -7,7 +7,7 @@ import {
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { COLLECTIONS, intValue } from "./firestore.js";
+import { COLLECTIONS, intValue, stringValue } from "./firestore.js";
 import { rewardFor, type RankedResult } from "./policy.js";
 
 const CALLABLE_OPTIONS = {
@@ -33,6 +33,14 @@ type MissionState = {
   progress: number;
   completed: boolean;
   claimedAt: Timestamp | null;
+};
+
+export type SeasonScopedPassState = {
+  seasonId: string;
+  seasonXp: number;
+  premiumUnlocked: boolean;
+  claimedFreeLevels: number[];
+  claimedPremiumLevels: number[];
 };
 
 const ACHIEVEMENTS = {
@@ -74,6 +82,36 @@ function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object"
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function intArray(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is number => typeof item === "number")
+    .map((item) => Math.trunc(item))
+    .filter((item) => item >= 1 && item <= 30))].sort((a, b) => a - b);
+}
+
+export function seasonScopedPassState(
+  raw: unknown,
+  seasonId: string,
+): SeasonScopedPassState {
+  const data = record(raw);
+  if (stringValue(data.seasonId) !== seasonId) {
+    return {
+      seasonId,
+      seasonXp: 0,
+      premiumUnlocked: false,
+      claimedFreeLevels: [],
+      claimedPremiumLevels: [],
+    };
+  }
+  return {
+    seasonId,
+    seasonXp: Math.max(0, intValue(data.seasonXp)),
+    premiumUnlocked: data.premiumUnlocked === true,
+    claimedFreeLevels: intArray(data.claimedFreeLevels),
+    claimedPremiumLevels: intArray(data.claimedPremiumLevels),
+  };
 }
 
 function dayId(now: Date): string {
@@ -193,6 +231,8 @@ export const onRankedSettlementProgression = onDocumentCreated(
     if (!settlement) return;
     const payload = record(settlement.payload);
     const matchId = event.params.matchId;
+    const seasonId = stringValue(payload.seasonId);
+    if (!seasonId) return;
     const db = getFirestore();
     const now = new Date();
 
@@ -230,11 +270,16 @@ export const onRankedSettlementProgression = onDocumentCreated(
           currentWinStreak,
           bestWinStreak,
         };
+        const existingMissionStates =
+          stringValue(missions.data()?.seasonId) === seasonId
+            ? missions.data()?.states
+            : {};
 
         transaction.set(
           missionsRef,
           {
-            states: rankedMissionStates(missions.data()?.states, now, result),
+            seasonId,
+            states: rankedMissionStates(existingMissionStates, now, result),
             updatedAt: FieldValue.serverTimestamp(),
           },
           { merge: true },
@@ -255,6 +300,7 @@ export const onRankedSettlementProgression = onDocumentCreated(
         transaction.create(markerRef, {
           uid,
           matchId,
+          seasonId,
           type: "rankedSettlement",
           createdAt: FieldValue.serverTimestamp(),
         });
@@ -266,25 +312,34 @@ export const onRankedSettlementProgression = onDocumentCreated(
 export const claimMissionReward = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const missionId = requireString(request.data?.missionId, "missionId") as MissionId;
+  const seasonId = requireString(request.data?.seasonId, "seasonId");
   const definition = MISSIONS[missionId];
   if (!definition) throw new HttpsError("not-found", "Unknown mission.");
 
   const db = getFirestore();
+  const seasonRef = db.collection(COLLECTIONS.seasons).doc(seasonId);
   const missionsRef = db.collection(COLLECTIONS.playerMissions).doc(uid);
   const inventoryRef = db.collection(COLLECTIONS.inventories).doc(uid);
   const passRef = db.collection(COLLECTIONS.seasonPass).doc(uid);
   const now = new Date();
   const ledgerRef = db.collection(COLLECTIONS.coinTransactions)
-    .doc(`mission_${missionId}_${windowId(definition, now)}_${uid}`);
+    .doc(`mission_${seasonId}_${missionId}_${windowId(definition, now)}_${uid}`);
 
   return db.runTransaction(async (transaction) => {
-    const [missions, inventory, pass, ledger] = await Promise.all([
+    const [season, missions, inventory, pass, ledger] = await Promise.all([
+      transaction.get(seasonRef),
       transaction.get(missionsRef),
       transaction.get(inventoryRef),
       transaction.get(passRef),
       transaction.get(ledgerRef),
     ]);
+    if (!season.exists || season.data()?.active !== true) {
+      throw new HttpsError("failed-precondition", "Season is not active.");
+    }
     if (ledger.exists) throw new HttpsError("already-exists", "Mission reward already claimed.");
+    if (stringValue(missions.data()?.seasonId) !== seasonId) {
+      throw new HttpsError("failed-precondition", "Mission belongs to a different season.");
+    }
 
     const states = { ...record(missions.data()?.states) };
     const state = missionState(states[missionId], definition, now);
@@ -292,18 +347,24 @@ export const claimMissionReward = onCall(CALLABLE_OPTIONS, async (request) => {
     if (state.claimedAt) throw new HttpsError("already-exists", "Mission reward already claimed.");
 
     const nextCoins = Math.max(0, intValue(inventory.data()?.coins)) + definition.coins;
-    const nextSeasonXp = Math.max(0, intValue(pass.data()?.seasonXp)) + definition.seasonXp;
+    const passState = seasonScopedPassState(pass.data(), seasonId);
+    const nextSeasonXp = passState.seasonXp + definition.seasonXp;
     states[missionId] = { ...state, claimedAt: Timestamp.fromDate(now) };
 
-    transaction.set(missionsRef, { states, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    transaction.set(
+      missionsRef,
+      { seasonId, states, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
     transaction.set(inventoryRef, { coins: nextCoins, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     transaction.set(
       passRef,
       {
+        seasonId,
         seasonXp: nextSeasonXp,
-        premiumUnlocked: pass.data()?.premiumUnlocked === true,
-        claimedFreeLevels: Array.isArray(pass.data()?.claimedFreeLevels) ? pass.data()?.claimedFreeLevels : [],
-        claimedPremiumLevels: Array.isArray(pass.data()?.claimedPremiumLevels) ? pass.data()?.claimedPremiumLevels : [],
+        premiumUnlocked: passState.premiumUnlocked,
+        claimedFreeLevels: passState.claimedFreeLevels,
+        claimedPremiumLevels: passState.claimedPremiumLevels,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
@@ -311,15 +372,18 @@ export const claimMissionReward = onCall(CALLABLE_OPTIONS, async (request) => {
     transaction.create(ledgerRef, {
       transactionId: ledgerRef.id,
       uid,
+      seasonId,
       missionId,
       reason: "missionReward",
       amount: definition.coins,
       balanceAfter: nextCoins,
+      seasonXpAwarded: definition.seasonXp,
       createdAt: Timestamp.fromDate(now),
     });
 
     return {
       missionId,
+      seasonId,
       coinsAwarded: definition.coins,
       seasonXpAwarded: definition.seasonXp,
       balanceAfter: nextCoins,
@@ -386,6 +450,7 @@ export function premiumPassCoins(level: number): number {
 
 export const claimSeasonPassReward = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
+  const seasonId = requireString(request.data?.seasonId, "seasonId");
   const level = Math.trunc(Number(request.data?.level));
   const track = requireString(request.data?.track, "track");
   if (level < 1 || level > 30) throw new HttpsError("invalid-argument", "Invalid season pass level.");
@@ -394,42 +459,59 @@ export const claimSeasonPassReward = onCall(CALLABLE_OPTIONS, async (request) =>
   }
 
   const db = getFirestore();
+  const seasonRef = db.collection(COLLECTIONS.seasons).doc(seasonId);
   const passRef = db.collection(COLLECTIONS.seasonPass).doc(uid);
   const inventoryRef = db.collection(COLLECTIONS.inventories).doc(uid);
-  const ledgerRef = db.collection(COLLECTIONS.coinTransactions).doc(`seasonPass_${track}_${level}_${uid}`);
+  const ledgerRef = db.collection(COLLECTIONS.coinTransactions)
+    .doc(`seasonPass_${seasonId}_${track}_${level}_${uid}`);
   const now = new Date();
 
   return db.runTransaction(async (transaction) => {
-    const [pass, inventory, ledger] = await Promise.all([
+    const [season, pass, inventory, ledger] = await Promise.all([
+      transaction.get(seasonRef),
       transaction.get(passRef),
       transaction.get(inventoryRef),
       transaction.get(ledgerRef),
     ]);
+    if (!season.exists || season.data()?.active !== true) {
+      throw new HttpsError("failed-precondition", "Season is not active.");
+    }
     if (ledger.exists) throw new HttpsError("already-exists", "Season pass reward already claimed.");
 
-    const data = pass.data() ?? {};
-    if (level > seasonPassLevelForXp(intValue(data.seasonXp))) {
+    const state = seasonScopedPassState(pass.data(), seasonId);
+    if (stringValue(pass.data()?.seasonId) !== seasonId) {
+      throw new HttpsError("failed-precondition", "Season pass has no progress for this season yet.");
+    }
+    if (level > seasonPassLevelForXp(state.seasonXp)) {
       throw new HttpsError("failed-precondition", "Season pass level is locked.");
     }
-    if (track === "premium" && data.premiumUnlocked !== true) {
+    if (track === "premium" && !state.premiumUnlocked) {
       throw new HttpsError("failed-precondition", "Premium season pass is locked.");
     }
 
-    const claimedField = track === "free" ? "claimedFreeLevels" : "claimedPremiumLevels";
-    const claimed = Array.isArray(data[claimedField])
-      ? data[claimedField].filter((value): value is number => typeof value === "number")
-      : [];
+    const claimed = track === "free" ? state.claimedFreeLevels : state.claimedPremiumLevels;
     if (claimed.includes(level)) throw new HttpsError("already-exists", "Season pass reward already claimed.");
 
     const rewardCoins = track === "free" ? freePassCoins(level) : premiumPassCoins(level);
     const nextCoins = Math.max(0, intValue(inventory.data()?.coins)) + rewardCoins;
     const nextClaimed = [...claimed, level].sort((a, b) => a - b);
 
-    transaction.set(passRef, { [claimedField]: nextClaimed, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    transaction.set(
+      passRef,
+      {
+        seasonId,
+        ...(track === "free"
+          ? { claimedFreeLevels: nextClaimed }
+          : { claimedPremiumLevels: nextClaimed }),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
     transaction.set(inventoryRef, { coins: nextCoins, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     transaction.create(ledgerRef, {
       transactionId: ledgerRef.id,
       uid,
+      seasonId,
       level,
       track,
       reason: "seasonPassReward",
@@ -438,6 +520,6 @@ export const claimSeasonPassReward = onCall(CALLABLE_OPTIONS, async (request) =>
       createdAt: Timestamp.fromDate(now),
     });
 
-    return { level, track, coinsAwarded: rewardCoins, balanceAfter: nextCoins };
+    return { seasonId, level, track, coinsAwarded: rewardCoins, balanceAfter: nextCoins };
   });
 });
