@@ -1,0 +1,1 @@
+No prototype in Game Lab is production-approved until the user explicitly approves it after direct browser testing.
