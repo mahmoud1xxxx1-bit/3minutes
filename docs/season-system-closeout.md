@@ -1,8 +1,8 @@
 # Season System Closeout
 
-Status: IN PROGRESS — final validation and scale hardening pending.
+Status: IN PROGRESS — scale hardening and final APK validation pending.
 
-This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Final validation evidence will be appended after the dedicated No-APK run and later final APK validation.
+This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Exact season-boundary correctness is now validated; the remaining open item in this subsystem is production-scale rollover architecture plus the final whole-app APK validation later in the project.
 
 ## Work in this batch
 
@@ -20,7 +20,7 @@ This document is updated continuously with the current Season / Soft Reset / Pre
 
 ## Exact season-boundary policy
 
-The previous release gate around a match still running at the exact season boundary is now protected by a central server policy in `functions/src/season_boundary.ts`.
+The previous release gate around a match still running at the exact season boundary is protected by a central server policy in `functions/src/season_boundary.ts`.
 
 The policy is intentionally stricter than `now < endsAt`:
 
@@ -42,12 +42,30 @@ Prestige Stars remain permanent account history and are never spent. Season clos
 
 Current reward and reset tables are unchanged in this hardening batch. Rebalancing requires an explicit product decision.
 
-## Validation added
+## Validation evidence
 
-- Firestore emulator tests enforce owner-only Season History and deny client writes.
-- Flutter policy tests verify ties contribute to season match count and that Peak Rank, not current rank, controls projected Stars and Soft Reset.
-- Cloud Functions policy tests protect seasonal W/L/T accounting and the Stars/Soft Reset tables.
-- `season_boundary.test.ts` locks the exact final legal admission millisecond and verifies rollover cannot start until the complete five-minute settlement grace has elapsed.
+The exact boundary implementation passed the dedicated No-APK validation on GitHub Actions run `32220593908` via temporary PR #62. The PR was closed **without merge** after validation.
+
+Validated successfully:
+
+- Cloud Functions TypeScript build;
+- Cloud Functions policy/unit tests, including exact boundary tests;
+- Firestore emulator security tests;
+- Flutter dependency resolution;
+- `flutter analyze`;
+- full `flutter test` suite.
+
+A previous validation attempt correctly failed on a TypeScript snapshot typing error in `season.ts`; that error was fixed and the full validation was rerun from the beginning until green. No APK was built in this validation cycle.
+
+Additional policy coverage includes:
+
+- owner-only Season History and denied client writes;
+- ties contributing to season match count;
+- Peak Rank, not current rank, controlling projected Stars and Soft Reset;
+- server W/L/T accounting;
+- server Stars/Soft Reset tables;
+- exact final legal Ranked-admission millisecond;
+- full five-minute settlement grace before rollover can acquire the season lock.
 
 ## Scale gate still open
 
@@ -61,4 +79,4 @@ Before final production readiness, season rollover must be redesigned or distrib
 - next-season availability is not blocked for an unacceptable duration;
 - Firestore reads/writes and Cloud Functions invocations are bounded and measurable.
 
-This scalability item is explicitly tracked for the later million-player cost/capacity audit and must be resolved before the project is declared fully production-ready.
+This scalability item is explicitly tracked for the million-player cost/capacity audit and must be resolved before the project is declared fully production-ready.
