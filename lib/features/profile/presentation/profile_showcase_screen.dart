@@ -5,6 +5,7 @@ import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/rank_badge.dart';
+import '../../competition/presentation/rank_legacy_showcase.dart';
 import '../../competition/presentation/season_star_badge.dart';
 import '../../economy/data/cosmetic_catalog.dart';
 import '../../economy/data/economy_backend.dart';
@@ -232,12 +233,7 @@ class _HeroIdentity extends StatelessWidget {
             ],
             if (profile.showcaseRankTier != null) ...[
               const SizedBox(height: GameSpacing.sm),
-              Text(
-                Localizations.localeOf(context).languageCode == 'ar'
-                    ? 'شارة العرض: ${profile.showcaseRankTier!.label}'
-                    : 'Showcase emblem: ${profile.showcaseRankTier!.label}',
-                style: const TextStyle(color: GameColors.textSoft, fontSize: 12, fontWeight: FontWeight.w700),
-              ),
+              RankLegacyShowcase(tier: profile.showcaseRankTier!),
             ],
             const SizedBox(height: GameSpacing.sm),
             Text(
