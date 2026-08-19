@@ -1,8 +1,8 @@
 # Season System Closeout
 
-Status: IN PROGRESS — distributed rollover source/CI validated; Season Pass hardening and final APK acceptance remain.
+Status: IN PROGRESS — distributed rollover source/CI validated; season-scoped Missions/Pass validation and final APK acceptance remain.
 
-This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Exact season-boundary correctness and the distributed rollover architecture are now validated at source/CI level. Production deployment still requires Blaze, Cloud Tasks/IAM readiness, the tracked Firestore index, and final APK/device acceptance.
+This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Exact season-boundary correctness and the distributed rollover architecture are validated at source/CI level. Production deployment still requires Blaze, Cloud Tasks/IAM readiness, the tracked Firestore index, and final APK/device acceptance.
 
 ## Work in this batch
 
@@ -74,6 +74,30 @@ The required leaderboard index is tracked in source for:
 
 This index is a production deployment requirement before the distributed rollover worker runs against live Firestore.
 
+## Season-scoped Missions and Season Pass
+
+The progression audit found a real correctness defect: the previous `seasonPass/{uid}` document had no explicit `seasonId`. This meant Season XP and claimed pass levels could accidentally behave as lifetime state, and the old global claim receipt IDs could prevent the same valid tier from being claimed in a later season.
+
+The source now enforces these invariants:
+
+- `seasonPass/{uid}` stores the season it belongs to in `seasonId`.
+- If stored pass state belongs to another season, the effective current-season state is zero XP, no claimed tiers, and no Premium entitlement assumption.
+- Mission state documents also carry `seasonId`.
+- Ranked mission progress uses the exact `seasonId` already embedded in the authoritative ranked settlement payload.
+- When Ranked progression sees mission state from an older season, it starts a fresh current-season mission-state map rather than carrying progress forward.
+- Social matches only advance seasonal missions when exactly one active season exists and the settlement time is within that season's actual start/end window.
+- A social match can still settle and award its ordinary social Coins/achievements when no mission season is available; seasonal mission progress is simply not fabricated during a rollover gap.
+- `claimMissionReward` now requires `seasonId`, verifies the season is active, verifies the stored mission state belongs to that same season, and uses a season-scoped ledger ID.
+- Old-season mission completion therefore cannot inject Season XP into a new season.
+- Mission reward Coins remain permanent account Coins; the Season XP portion goes only into the matching season-scoped pass state.
+- `claimSeasonPassReward` now requires `seasonId` and its receipt ID includes that season.
+- The same level can therefore be legitimately earned and claimed again in a later season without colliding with an old receipt.
+- Flutter progression reads are season-aware: if the stored mission/pass document belongs to an older season, the current UI displays fresh zero progress rather than stale values.
+- `SeasonHubScreen` supplies the live season ID to the progression UI, so rollover automatically changes the visible mission/pass scope.
+- The Premium pass track is **not silently granted or made permanent** by this fix. It is treated as unlocked only when authoritative state explicitly says it is unlocked for the current stored season. No new paid-product policy was invented.
+
+A new server contract test `progression_season_scope.test.ts` protects the reset semantics and confirms that the existing Season Pass XP-level and Coin reward curves were not accidentally altered by the scoping repair.
+
 ## Locked economy/prestige policy
 
 Prestige Stars remain permanent account history and are never spent. Season close awards and the next-season Soft Reset are both based on the highest tier reached during that season (Peak Rank), not the player's final-day tier.
@@ -108,7 +132,7 @@ GitHub Actions run `32221542284`, job `95972796567`, temporary PR #63, closed wi
 
 This proves source/CI compatibility of the distributed Cloud Tasks implementation. It does **not** prove production Cloud Tasks/IAM/index deployment because the project remains in the controlled Spark/pre-Blaze phase.
 
-Additional policy coverage includes:
+Additional validated policy coverage includes:
 
 - owner-only Season History and denied client writes;
 - ties contributing to season match count;
@@ -118,11 +142,9 @@ Additional policy coverage includes:
 - exact final legal Ranked-admission millisecond;
 - full five-minute settlement grace before rollover can acquire the season lock.
 
-## Current open work discovered by the economy audit
+## Current validation gate
 
-The Season Pass implementation is currently being hardened. The previous state lived at `seasonPass/{uid}` without an explicit `seasonId`, so Season XP and claimed tier arrays could behave as lifetime state rather than one 30-day season. Claim receipt IDs were also not season-scoped. This is being treated as a real correctness defect, not deferred documentation.
-
-The required invariant is that Season XP, pass tier progress and tier claims belong to one explicit season, while permanent account progression remains separate. Old-season completed mission rewards must not be able to inject Season XP into a new season.
+The new Season-scoped Mission/Pass changes are implemented and documented but still need a fresh No-APK validation after the interface changes. That run must pass Functions build/tests, Firestore security, Flutter Analyze and full Flutter Tests before this document marks them validated.
 
 ## Remaining production-scale considerations for the final owner report
 
