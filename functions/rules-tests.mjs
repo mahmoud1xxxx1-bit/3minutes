@@ -110,6 +110,24 @@ try {
       countdownStartedAt: serverTimestamp(),
       createdAt: serverTimestamp(),
     });
+    await setDoc(doc(adminDb, 'quickMatchmaking', 'alice'), {
+      uid: 'alice',
+      status: 'waiting',
+      matchId: null,
+      authorityVersion: 1,
+    });
+    await setDoc(doc(adminDb, 'quickSettlements', 'quick-match-1'), {
+      matchId: 'quick-match-1',
+      mode: 'quick',
+    });
+    await setDoc(doc(adminDb, 'quickEvidence', 'quick-match-1', 'players', 'alice'), {
+      uid: 'alice',
+      evidence: [],
+    });
+    await setDoc(doc(adminDb, 'quickPairUsage', '2026-08-19_alice_bob'), {
+      participantUids: ['alice', 'bob'],
+      matches: 1,
+    });
   });
 
   await assertSucceeds(
@@ -124,6 +142,22 @@ try {
       seasonNumber: 999,
       peakTier: 'legend',
       starsAwarded: 999,
+    }),
+  );
+
+  // Quick authority state is deliberately invisible and immutable to clients.
+  // Players receive only their own sanitized queue ticket through getQuickTicket.
+  await assertFails(getDoc(doc(aliceDb, 'quickMatchmaking', 'alice')));
+  await assertFails(getDoc(doc(aliceDb, 'quickSettlements', 'quick-match-1')));
+  await assertFails(
+    getDoc(doc(aliceDb, 'quickEvidence', 'quick-match-1', 'players', 'alice')),
+  );
+  await assertFails(getDoc(doc(aliceDb, 'quickPairUsage', '2026-08-19_alice_bob')));
+  await assertFails(
+    setDoc(doc(aliceDb, 'quickMatchmaking', 'forged'), {
+      uid: 'alice',
+      status: 'matched',
+      matchId: 'forged',
     }),
   );
 
@@ -169,7 +203,7 @@ try {
     }),
   );
 
-  console.log('Firestore rules, season history privacy, and cosmetic security tests passed.');
+  console.log('Firestore rules, Quick authority privacy, season history privacy, and cosmetic security tests passed.');
 } finally {
   await testEnv.cleanup();
 }
