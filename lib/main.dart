@@ -9,6 +9,8 @@ import 'features/auth/data/auth_service.dart';
 import 'features/auth/presentation/auth_gate.dart';
 import 'features/competition/data/competition_backend.dart';
 import 'features/competition/data/firestore_competition_backend.dart';
+import 'features/competition/presentation/rank_promotion_events.dart';
+import 'features/competition/presentation/rank_promotion_overlay_host.dart';
 import 'features/economy/data/cloud_functions_economy_backend.dart';
 import 'features/economy/data/economy_backend.dart';
 import 'features/economy/data/firestore_economy_backend.dart';
@@ -40,8 +42,9 @@ Future<void> main() async {
   final blaze = AppConfig.backendPhase == BackendPhase.blaze;
   final EconomyBackend economyBackend =
       blaze ? CloudFunctionsEconomyBackend() : FirestoreEconomyBackend();
-  final MatchBackend matchBackend =
-      blaze ? CloudFunctionsMatchBackend() : FirestoreMatchBackend();
+  final MatchBackend matchBackend = blaze
+      ? CloudFunctionsMatchBackend(onSettlement: RankPromotionEvents.publish)
+      : FirestoreMatchBackend();
 
   runApp(
     ThreeMinutesApp(
@@ -90,6 +93,9 @@ class ThreeMinutesApp extends StatelessWidget {
       theme: AppTheme.dark,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) => RankPromotionOverlayHost(
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: AuthGate(
         authService: authService,
         profileRepository: profileRepository,
