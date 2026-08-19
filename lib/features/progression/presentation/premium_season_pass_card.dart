@@ -86,7 +86,7 @@ class _PremiumSeasonPassCardState extends State<PremiumSeasonPassCard> {
   Widget build(BuildContext context) {
     final snapshot = _snapshot;
     final price = snapshot?.localizedPrice ?? r'$30.00';
-    final serverReady = AppConfig.backendPhase == BackendPhase.blaze;
+    final purchaseAvailable = AppConfig.backendPhase == BackendPhase.blaze;
 
     return CosmicPanel(
       glow: true,
@@ -173,13 +173,20 @@ class _PremiumSeasonPassCardState extends State<PremiumSeasonPassCard> {
                 style: const TextStyle(color: GameColors.success, fontWeight: FontWeight.w800),
               ),
             )
-          else if (!serverReady)
-            Text(
-              _isArabic
-                  ? 'الشراء سيُفعّل عند تشغيل خادم Blaze وتهيئة منتج Google Play للإصدار الإنتاجي.'
-                  : 'Purchase activates after Blaze authority and the Google Play product are configured for production.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: GameColors.muted, fontSize: 12),
+          else if (!purchaseAvailable)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: GameColors.surfaceRaised,
+                borderRadius: BorderRadius.circular(GameRadii.button),
+              ),
+              child: Text(
+                _isArabic
+                    ? 'الشراء غير متاح في هذه النسخة التجريبية. يمكنك استعراض جميع مزايا المسار والمكافآت الآن.'
+                    : 'Purchasing is unavailable in this test build. You can still preview the full track and its rewards.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: GameColors.muted, fontSize: 12),
+              ),
             )
           else ...[
             FilledButton.icon(
@@ -225,11 +232,11 @@ class _PremiumSeasonPassCardState extends State<PremiumSeasonPassCard> {
       'season_pass_purchase_pending' =>
         _isArabic ? 'عملية الشراء قيد المعالجة.' : 'Purchase is pending.',
       'season_pass_store_unavailable' =>
-        _isArabic ? 'Google Play غير متاح الآن.' : 'Google Play is unavailable.',
+        _isArabic ? 'المتجر غير متاح الآن.' : 'The store is unavailable right now.',
       'season_pass_product_unavailable' =>
-        _isArabic ? 'منتج Premium غير مهيأ في Google Play.' : 'Premium product is not configured in Google Play.',
+        _isArabic ? 'Premium غير متاح للشراء الآن.' : 'Premium is not available for purchase right now.',
       'season_pass_verification_failed' =>
-        _isArabic ? 'تعذر التحقق من الشراء من الخادم.' : 'Server verification failed.',
+        _isArabic ? 'تعذر التحقق من الشراء.' : 'Purchase verification failed.',
       _ => _isArabic ? 'تعذر إكمال العملية الآن.' : 'The operation could not be completed right now.',
     };
   }
