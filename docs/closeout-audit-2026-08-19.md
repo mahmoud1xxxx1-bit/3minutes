@@ -6,20 +6,20 @@ Package: `com.threeminutes.game`
 Firebase project: `minutes-d7dfc`
 Primary region: `me-central2`
 
-This is the permanent evidence ledger for the closeout work. It records the verified source state, user-facing features, server authority, security boundaries, automated validation, APK provenance, and deployment-only dependencies. It must be updated whenever the closeout state changes.
+This is the permanent evidence ledger for the final closeout work. It records verified source state, user-facing options, server authority, security boundaries, automated validation, APK provenance, and deployment-only dependencies.
 
-## 1. Product invariants
+## 1. Core product contract
 
 - Match duration: exactly 3 minutes.
-- Mini-games per competitive match: exactly 8.
-- Approved mini-game library: exactly 10 games; no Game #11 is present.
-- Deterministic per-game seed remains `matchSeed ^ ((gameIndex + 1) * 0x45d9f3b)`.
-- Ranked is 1v1 only.
-- Private Room and Party support only 2, 4, or 6 players.
-- Prestige Stars are permanent status thresholds; unlocking Star cosmetics does not spend Stars.
-- Paid cosmetics never grant gameplay/ranking advantage.
+- Competitive match game count: exactly 8.
+- Approved mini-game library: exactly 10; no Game #11 exists.
+- Deterministic game seed: `matchSeed ^ ((gameIndex + 1) * 0x45d9f3b)`.
+- Ranked: 1v1 only.
+- Private Room / Party: only 2, 4, or 6 players.
+- Prestige Stars are permanent status thresholds and are never spent by Star unlocks.
+- Paid cosmetics never grant competitive advantage.
 
-## 2. Approved mini-game library
+## 2. Mini-games
 
 Registry version: 3.
 
@@ -34,112 +34,119 @@ Registry version: 3.
 9. `reaction_stop`
 10. `symbol_pair`
 
-The registry selects the requested 8-game sequence deterministically and covers the available gameplay categories. Automated registry/content policy tests protect the approved game count.
+The game registry deterministically selects the 8-game match sequence. Automated tests protect the approved library count and compatibility contract.
 
-## 3. Ranked mode
+## 3. Ranked
 
 - 1v1 only.
 - Ranked is the only multiplayer mode that awards RP.
-- Server-authority source exists for secure ranked settlement.
-- Rank ladder contains exactly eight tiers: Bronze, Silver, Gold, Platinum, Diamond, Master, Grand Master, Legendary.
-- RP thresholds: 0, 500, 1200, 2200, 3500, 5000, 7000, 10000.
-- Peak rank and historical showcase are server-controlled fields.
-- Legendary prestige is seasonal and repeatable once per distinct season; the historical count is permanent.
-- `Legendary ×N` is surfaced in profile/social rank presentation where supported.
+- Secure server-authority implementation exists for settlement.
+- Rank ladder: Bronze, Silver, Gold, Platinum, Diamond, Master, Grand Master, Legendary.
+- RP thresholds: 0 / 500 / 1200 / 2200 / 3500 / 5000 / 7000 / 10000.
+- Peak Rank and historical showcase are server-controlled.
+- Legendary prestige is repeatable once per distinct season and persists historically.
+- `Legendary ×N` is represented in the profile/social rank presentation where supported.
 
-Deployment note: production ranked authority remains gated while `AppConfig.backendPhase == BackendPhase.spark`. Source validation is not the same as deployed Cloud Functions.
+## 4. Rank emblem preview
 
-## 4. Quick Match
+- All rank emblems, including locked ones, are tappable for preview.
+- Preview shows large artwork, rank name, RP requirement, locked/earned state, and Legendary history where applicable.
+- Earned historical emblems can be equipped only when trusted Ranked authority is enabled.
+- Previewing a locked emblem never grants it.
+- Equipping an older emblem never changes current competitive rank.
 
-Quick Match has been completed as a separate 1v1 server-authoritative flow.
+## 5. Quick Match
 
-Verified behavior:
+Quick is implemented as a separate server-authoritative 1v1 mode.
 
 - Random 1v1 queue.
-- Uses the same 3-minute / 8-game deterministic match contract.
-- Awards XP and Coins.
-- Awards **zero RP**; settlement payload explicitly records `rpDelta: 0`.
-- Does not write Ranked leaderboard/peak-rank state.
-- Quick matches are excluded from Ranked match history; legacy matches without a `mode` field remain compatible as Ranked history.
-- Rematch flow creates a fresh Quick match.
-- Queue ticket recovery is exposed through an authenticated callable rather than opening the matchmaking collection to clients.
+- Same 3-minute / 8-game deterministic match contract.
+- XP + Coins rewards.
+- No RP; settlement explicitly returns `rpDelta: 0`.
+- No Ranked leaderboard or Peak Rank writes.
+- Quick matches are excluded from Ranked history while legacy no-`mode` records remain compatible.
+- Rematch produces a fresh Quick match.
+- Ticket recovery uses an authenticated callable rather than exposing matchmaking data to clients.
 
-Anti-farming policy:
+Anti-farming:
 
-- Pair usage is counted server-side per UTC day.
-- First 10 same-pair matches: full Quick rewards.
-- Matches 11–20: 25% reward multiplier.
-- After 20: zero farmable Quick reward for that pair/day.
-- Pair count and settlement happen transactionally to prevent concurrent bypass.
+- Same-pair usage counted server-side per UTC day.
+- Matches 1–10: 100% reward.
+- Matches 11–20: 25% reward.
+- After 20: 0% farmable reward for that pair/day.
+- Pair count and settlement are transactional so concurrent requests cannot bypass the policy.
 
-Quick authority collections are server-only: queue, evidence, settlements, and pair-usage data are explicitly covered by Firestore security tests so clients cannot directly read/write or forge them.
+Quick queue, evidence, settlement, and pair-usage collections are explicitly protected by Firestore security tests against normal client access/forgery.
 
-Deployment note: Quick UI/source exists but trusted production operation requires Blaze + deployed Functions; Spark keeps the secure authority path disabled rather than falling back to insecure client writes.
+## 6. Private Rooms / Party / invites
 
-## 5. Private Rooms and Party
-
-- Supported player counts are exactly 2, 4, and 6.
-- No 3-player or 5-player room configuration is permitted by domain policy.
+- Only 2, 4, or 6 players are accepted.
 - Five-character room codes are validated.
 - Host must be a participant.
 - Duplicate participants are rejected.
-- Readiness only applies to current room participants.
-- Private/Party modes do not award Ranked RP.
-- Invite links use `threeminutes://join/CODE`.
-- Android deep-link handling and the direct room-invite service are present.
-- The old clipboard-listener based invitation behavior was removed during cleanup; sharing is invoked intentionally from the room flow.
+- Readiness is restricted to current participants.
+- Private / Party do not award Ranked RP.
+- Invite URI contract: `threeminutes://join/CODE`.
+- Android deep-link handling is present.
+- Room sharing uses the direct invite service; the old clipboard-listener auto-share behavior was removed.
 
-## 6. Friends and social presentation
+## 7. Friends / social
 
-- Friend code/search/request/list/remove/block flows remain part of the social system.
-- Recent players and room/party flows remain separated from Ranked authority.
-- Friend player cards now propagate Legendary season count into the rank badge so prestige history is not silently lost in that presentation.
-- Social cosmetic loadout is display-only from the client perspective; server ownership verification controls public equipment mirrors.
+- Friend code/search/request/list/remove/block flows remain present.
+- Recent players, room, and party flows remain separate from Ranked authority.
+- Friend cards pass Legendary season count to the rank badge.
+- Public cosmetic loadout is a server-written display mirror; normal clients cannot forge ownership/equipment through direct Firestore writes.
 
-## 7. Season system
+## 8. Season system
 
-- Season duration policy remains approximately 30 days.
-- Peak Rank is retained for season reward calculation.
+- Season policy remains about 30 days.
+- Peak Rank is retained for season rewards.
 - Prestige Stars persist as lifetime account history.
-- Season history is private to the owner under Firestore rules.
-- Season rollover writes `finalStanding`, final RP/tier, peak tier, Stars, and Legendary-season history.
-- Rank reset uses the established season policy instead of client-provided values.
+- Season history is owner-private under Firestore rules.
+- Rollover records `finalStanding`, final RP/tier, Peak Rank, Stars, and Legendary-season history.
+- Rank reset follows server policy rather than client-provided values.
 
-### Season Missions UX
+## 9. Missions / progression
 
-The Season page contains a prominent Missions gateway, not merely a hidden icon. It describes Daily/Weekly missions and rewards and links into progression.
+The Season screen includes a prominent Missions gateway rather than hiding tasks behind a subtle action.
 
 Current mission catalog:
 
-- Daily: play 3, win 1, play 1 friend match.
-- Weekly: play 30, win 15, play 5 friend matches.
-- Mission rewards include Coins and Season XP according to the existing catalog.
+Daily:
+- Play 3 matches.
+- Win 1 match.
+- Play 1 friend match.
 
-Quick settlement advances the relevant play/win daily and weekly mission state when an active season exists.
+Weekly:
+- Play 30 matches.
+- Win 15 matches.
+- Play 5 friend matches.
 
-## 8. Premium Season Pass
+Mission rewards use the established Coins + Season XP catalog. Quick settlement advances relevant play/win daily and weekly mission state when an active season exists.
 
-- Premium Season Pass policy is documented separately in `docs/premium-season-pass-policy.md`.
-- Pass entitlement is season-bound; an entitlement cannot silently grant multiple seasons.
-- Google Play verification is performed by server-side premium authority before durable entitlement grant.
-- Premium restore flow exists in the client.
-- Production use requires configured Google Play products and deployed Functions.
+The achievement catalog remains active for long-term progression, including first win, wins milestones, match volume, streak, friend play, six-player wins, seasons, and Prestige Stars.
 
-## 9. Shop and universal preview
+## 10. Premium Season Pass
 
-The shop has a central preview flow. All catalog items are tappable for preview, including locked items.
+- Policy documented in `premium-season-pass-policy.md`.
+- Premium Pass entitlement is season-bound.
+- Google Play purchase must be server verified before durable entitlement grant.
+- Restore flow exists in the client.
+- Premium production use requires configured Play products and deployed trusted Functions.
 
-Preview exposes:
+## 11. Shop / universal preview
 
-- Large cosmetic rendering / representative runtime presentation.
+Every shop catalog item is tappable for preview, including locked items.
+
+Preview supplies:
+
+- Large/representative runtime rendering.
 - Name and description.
-- Acquisition method / price label.
-- Locked, Owned, or Equipped state.
-- Correct action path when authority is available.
+- Acquisition method / price.
+- Locked / Owned / Equipped state.
+- Correct acquisition/equip action when server authority is available.
 
-The shop explicitly tells players that locked items can be previewed.
-
-Supported cosmetic slots include:
+Supported cosmetic slots:
 
 - Avatar
 - Avatar Frame
@@ -152,21 +159,11 @@ Supported cosmetic slots include:
 - Emote
 - Room Theme
 
-Runtime components exist for profile/avatar/name/badge/aura/victory and the remaining cosmetic presentation slots used by the application.
+The UI explicitly informs the player that locked items can still be previewed.
 
-## 10. Rank emblem preview
+## 12. Avatar library — exactly 45
 
-Rank emblem browsing was corrected during this closeout pass:
-
-- Locked rank emblems are tappable for preview.
-- Preview shows a large emblem, rank name, RP requirement, earned/locked state, and Legendary history where applicable.
-- Earned emblems can be equipped from the preview when secure Ranked authority is enabled.
-- Previewing an unearned emblem never grants/equips it.
-- Historical emblem selection does not alter the player's current competitive rank.
-
-## 11. Avatar catalog — exactly 45
-
-Client and server catalogs are both guarded by automated tests that require exactly 45 avatar definitions with unique IDs and one acquisition path each.
+Both Flutter and Cloud Functions catalogs are guarded by automated tests requiring exactly 45 avatar IDs with one acquisition path each.
 
 Distribution:
 
@@ -176,9 +173,9 @@ Distribution:
 - 5 Prestige Star threshold unlocks.
 - 5 Achievement / seasonal exclusives.
 
-Artwork is not represented by names alone: the application ships avatar atlas artwork resources for Free, Coins, Premium, Stars, and Exclusive groups, and every approved avatar ID maps to artwork through `AvatarArtwork`.
+Avatar artwork is shipped in grouped atlas resources for Free, Coins, Premium, Stars, and Exclusive categories. Every approved avatar ID maps through `AvatarArtwork`; the catalog is not name-only metadata.
 
-Exclusive requirements:
+Exclusive unlock conditions:
 
 - Reach Legendary once.
 - Legendary ×3 seasons.
@@ -186,114 +183,152 @@ Exclusive requirements:
 - 100 Ranked wins.
 - Season Champion.
 
-`Season Champion` is verified server-side by searching the player's season history for `finalStanding == 1`; it is not a cosmetic that the client can self-claim.
+`Season Champion` is validated server-side by historical `finalStanding == 1` and cannot be self-awarded by the client.
 
-## 12. Ownership and purchase integrity
+## 13. Coins ownership integrity
 
-### Coins
+Coin cosmetic purchase is one server transaction:
 
-Coin cosmetic purchase is a single Firestore transaction under server authority:
+1. Load balance/ownership.
+2. Reject duplicate ownership.
+3. Reject insufficient balance.
+4. Deduct exact server-catalog price.
+5. Add ownership in the same transaction.
+6. Write ledger record and resulting balance.
 
-- Load balance and ownership.
-- Reject already-owned item.
-- Reject insufficient Coins.
-- Deduct exact server-catalog price.
-- Add ownership in the same transaction.
-- Write a ledger transaction with resulting balance.
+Therefore the approved transaction has no success state where Coins are deducted without ownership being granted.
 
-There is no valid success path where Coins are deducted without ownership being granted by that transaction.
+## 14. Prestige Star ownership integrity
 
-### Prestige Stars
-
-- Server reads lifetime Stars from the user profile.
+- Server reads lifetime Stars.
 - Requires the catalog threshold.
-- Does **not** subtract Stars.
-- Permanently adds ownership.
-- Writes a receipt recording `starsSpent: 0`.
+- Stars are not deducted.
+- Ownership becomes persistent.
+- Receipt records `starsSpent: 0`.
 
-### Premium Google Play items
+## 15. Premium purchase integrity
 
-- Client billing starts purchase/restore.
-- Server premium authority verifies purchase before durable grant.
-- Premium ownership is restored from verified purchase history rather than relying only on local state.
-- Real production product availability and localized price come from Google Play configuration.
+- Client integrates Google Play billing and restore.
+- Server premium authority verifies purchase before durable ownership.
+- Restore relies on verified purchase history, not local-only state.
+- Localized product availability/price ultimately comes from Google Play configuration.
 
-### Equip
+## 16. Equipment integrity
 
-Server verifies catalog item and ownership before equipment.
-Free items may be granted on first equip; non-free items cannot be equipped unless owned.
-The server writes the inventory equipped field and the public display-only loadout mirror together.
+- Server validates catalog item.
+- Non-free item must be owned before equip.
+- Free item may be granted on first equip.
+- Inventory equipped field and public loadout mirror are written under server authority.
+- Avatar equip updates the profile avatar mirror only after ownership validation.
 
-## 13. Firestore security boundaries
+## 17. Firestore / App Check security
 
-Automated emulator rules validation covers core privacy/security behavior, including:
+Automated emulator validation covers, among other things:
 
-- Inventory owner readability and other-user denial.
-- Season history owner-only access.
-- Forged season history writes rejected.
-- Cosmetic/security constraints in social matches.
-- Quick authority collections inaccessible to normal clients.
+- Own inventory read vs other-user denial.
+- Season-history owner privacy.
+- Rejection of forged season history.
+- Social cosmetic/emote constraints.
+- Quick authority collection privacy.
 
-Cloud Functions use App Check enforcement in the trusted callable paths reviewed during closeout.
+Reviewed trusted callable paths enforce App Check.
 
-## 14. Authentication / Android identity
+## 18. Android / authentication
 
-- Google Sign-In is wired through Firebase Auth.
-- Fixed Android application package remains `com.threeminutes.game`.
-- CI verifies the expected stable debug signing fingerprints.
-- APK validation also verifies generated Google OAuth resources and the APK certificate before artifact upload.
+- Firebase Auth + Google Sign-In are wired.
+- Package remains `com.threeminutes.game`.
+- Stable debug signing fingerprints are CI-enforced.
+- Final APK workflow verifies generated Google OAuth resources.
+- Final APK workflow verifies the embedded APK signing certificate after build.
 
-## 15. CI evidence before final APK run
+## 19. CI evidence
 
 No-APK validation run `32226618436`: PASS.
 
-After the final history/security corrections, No-APK validation run `32227173070`: PASS.
+Final no-APK validation after Quick history/security corrections: run `32227173070`: PASS.
 
-Verified stages in the latter run:
+Verified there:
 
-- Install Cloud Functions dependencies: PASS.
-- Build and test Cloud Functions: PASS.
-- Firestore rules and cosmetic/Quick security tests: PASS.
+- Cloud Functions build/tests: PASS.
+- Firestore rules/security tests: PASS.
 - Flutter dependency resolution: PASS.
 - `flutter analyze`: PASS.
 - `flutter test`: PASS.
 
-The temporary CI PRs were marker-only and closed without merge.
+Temporary validation PRs were marker-only and closed without merge.
 
-## 16. APK validation workflow
+## 20. Dedicated APK workflow
 
-The existing `flutter-ci.yml` intentionally builds the APK only for `workflow_dispatch`. Because the connected GitHub tool does not expose a workflow-dispatch action, an explicit `.github/workflows/apk-validation.yml` workflow was added.
+The original `flutter-ci.yml` builds APK only for `workflow_dispatch`. Since the connected GitHub integration does not provide a workflow-dispatch mutation, `.github/workflows/apk-validation.yml` was added as a controlled build path.
 
-Safety properties of this workflow:
+It triggers only from the dedicated `.ci-apk-trigger` PR marker and runs:
 
-- It only runs on pull requests that contain the `.ci-apk-trigger` path.
-- It repeats Functions tests, Firestore security validation, Flutter Analyze and Flutter Tests.
-- It restores the known stable debug signing key.
-- It builds `app-debug.apk`.
-- It verifies generated Google OAuth resources.
-- It verifies APK certificate SHA-1/SHA-256.
-- It uploads the validated APK as the `3minutes-debug-apk` artifact.
+- Functions build/tests.
+- Firestore rules/security tests.
+- Flutter Analyze.
+- Flutter Tests.
+- Android debug APK build.
+- Google OAuth resource verification.
+- APK certificate verification.
+- Artifact upload.
 
-Final APK Validation run currently tracked: `32227715972`.
+Final APK Validation:
 
-At the time of this ledger update, Functions tests, Firestore rules/security, Flutter setup, signing-key restoration, dependency resolution, Analyze, and Flutter Tests have already passed; `Build Android debug APK` is running. The final artifact metadata, file SHA-256, and certificate result will be appended only after the workflow completes successfully.
+- Workflow run: `32227715972`.
+- Job: `validate-apk`.
+- Result: **SUCCESS**.
+- Every required build/security/test/certificate/upload step passed.
+- Temporary PR #71 was closed without merge.
 
-## 17. Current deployment boundary
+## 21. Final artifact evidence
 
-`AppConfig.backendPhase` remains `spark` intentionally.
+Full provenance is recorded separately in `final-apk-validation-2026-08-19.md`.
 
-Therefore the repository contains and validates trusted source for Ranked authority, Quick, economy purchasing, premium verification, live leaderboard, and related server-only flows, but those production paths are not to be represented as live until all of the following external steps are completed:
+GitHub Artifact:
 
-1. Upgrade the Firebase project to Blaze.
-2. Deploy the reviewed Firestore Rules and Cloud Functions to `minutes-d7dfc` in `me-central2`.
-3. Configure/activate the intended Google Play Billing products and price/region data.
-4. Verify Play Integrity/App Check release configuration.
-5. Switch the reviewed backend phase only after deployment and smoke validation.
+- ID: `9356279815`.
+- Name: `3minutes-final-debug-apk`.
+- ZIP size: `80,523,495` bytes.
+- ZIP SHA-256: `5407a5714daa6205fe58a5200cf17f491b44b63e2e4c5b14632ddaa5ffbaa6ca`.
+- Expiry: 2026-08-26.
 
-This distinction is mandatory: **source complete / CI verified** does not mean **production backend deployed**.
+Extracted APK:
 
-## 18. Closeout status
+- Original artifact filename: `app-debug.apk`.
+- User delivery filename: `3minutes-final-2026-08-19-debug.apk`.
+- Size: `158,825,508` bytes.
+- APK SHA-256: `67361714d6d92bc93f4886ea6a546b5419c15322655ec6874d1235aa49871e02`.
 
-Source/logic closeout: PASS based on the latest No-APK validation and manual source audit recorded above.
+CI enforced debug certificate fingerprints:
 
-APK closeout: PENDING only until APK Validation run `32227715972` completes certificate verification and artifact upload. No older APK is to be labeled as the final build.
+- SHA-1: `9D:0C:AE:8A:CE:E4:97:46:EE:C8:1F:16:E6:B1:F1:7A:33:65:B9:EA`.
+- SHA-256: `4B:A2:BA:D2:AD:8F:B2:70:C0:F7:BA:B6:11:07:BA:6F:EE:33:2A:09:20:C9:50:39:CB:0E:83:BA:5D:FF:85:30`.
+
+## 22. Deployment boundary — still external
+
+`AppConfig.backendPhase` intentionally remains `spark`.
+
+The repository therefore contains and validates trusted source for Ranked authority, Quick, economy purchase authority, premium verification, live leaderboard, and other server-only features, but they must not be described as production-live until external deployment is completed:
+
+1. Upgrade Firebase to Blaze.
+2. Deploy reviewed Firestore Rules + Cloud Functions to `minutes-d7dfc` / `me-central2`.
+3. Configure/activate intended Google Play Billing products and regional prices.
+4. Verify release Play Integrity / App Check configuration.
+5. Switch reviewed backend phase only after deployment smoke testing.
+
+**Source complete / CI verified is not the same as production backend deployed.**
+
+## 23. Final closeout status
+
+- Source/logic audit: **PASS**.
+- Functions tests: **PASS**.
+- Firestore security tests: **PASS**.
+- Flutter Analyze: **PASS**.
+- Flutter Tests: **PASS**.
+- Android debug APK build: **PASS**.
+- Google OAuth resource validation: **PASS**.
+- APK certificate validation: **PASS**.
+- Artifact upload/download/hash verification: **PASS**.
+- Temporary final APK PR: **closed, not merged**.
+
+Final validated debug APK closeout: **COMPLETE**.
