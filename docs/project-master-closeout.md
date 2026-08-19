@@ -1063,3 +1063,101 @@ Before making substantial changes, a future developer/AI should:
 7. never invent a new game, rank, paid advantage, player-count mode, currency behavior, or season rule outside the locked product contract without explicit approval.
 
 This file should be updated whenever a major subsystem is closed or a locked product decision changes, so the project can be resumed accurately from a new conversation or by a new developer without reconstructing history from chat logs.
+
+---
+
+# 43. 2026-08-19 Field QA remediation and validated replacement APK
+
+A physical Android test of the previous debug APK exposed a device-facing quality batch that automated source validation had not proven: low-resolution avatar presentation/loading behavior, weak Premium/Missions discoverability, missing Settings/audio controls, missing sign-out confirmation, and player-facing infrastructure terminology.
+
+The current remediation batch addresses those findings in source while preserving the locked gameplay/economy contracts.
+
+## 43.1 Avatar runtime replacement
+
+The old avatar path used base64 WebP atlases whose Free atlas decoded to only 480×96 px, effectively about 96×96 px per portrait before enlargement. The runtime has been replaced with local deterministic vector portraits rendered through Flutter `CustomPainter`.
+
+The replacement:
+
+- preserves all 45 approved avatar IDs and ownership/equipment contracts;
+- removes Base64 decoding and atlas image waits;
+- removes the avatar `FutureBuilder` loading cycle;
+- is resolution-independent at card/profile/preview sizes;
+- keeps Free / Coins / Premium / Prestige Stars / Exclusive tier differentiation;
+- retains `AvatarArtwork.preloadAll()` as a compatibility no-op.
+
+`test/avatar_runtime_quality_test.dart` renders representative avatars from all five acquisition classes at a 220px preview size and rejects paint/widget exceptions.
+
+## 43.2 Settings, navigation and copy
+
+The remediation also includes:
+
+- player Settings accessible from the main menu;
+- persistent music volume, SFX volume and mute controls;
+- sound-effect preview;
+- explicit sign-out confirmation;
+- direct Premium Season Pass gateway from Season;
+- prominent Missions gateway;
+- bounded season resolution so Missions can open a safe preview state instead of waiting forever;
+- neutral unavailable-state language rather than internal infrastructure-plan terminology;
+- a source regression test preventing Spark/Blaze/Firebase/Firestore/Cloud Functions terminology from appearing in player-facing presentation/localization files;
+- removal of obsolete `default_01..04` avatar selection from the approved profile/economy flow.
+
+## 43.3 Audio across all modes
+
+`GameAudioController` now provides generated, license-independent:
+
+- menu ambience;
+- focused match music;
+- UI tap SFX;
+- reward SFX;
+- match-start SFX.
+
+Ranked and Quick use `AudioMatchPlayScreen`. Private/Party/Social use a public audio wrapper around the unchanged Social gameplay core. Entering gameplay plays the start cue and switches to match music; leaving restores menu ambience. Audio remains fail-soft and cannot affect timer, score, evidence, settlement or competitive state.
+
+## 43.4 Validation evidence
+
+An intermediate run `32241032040` failed only because the newly added avatar widget test used a Dart-unsupported `for` element inside a const widget tree. Commit `558b0bece2e8bf508499f5e2546174ede9df1918` corrected the test without changing product runtime.
+
+The corrected PR validation then passed Functions, Firestore, Analyze and full Flutter Tests.
+
+The replacement APK was produced by dedicated **APK Validation run `32241945555`** from runtime base commit **`558b0bece2e8bf508499f5e2546174ede9df1918`**. Every workflow stage passed:
+
+- Cloud Functions build/tests;
+- Firestore emulator/security regression;
+- Flutter dependency resolution;
+- stable debug signing fingerprint verification;
+- Flutter Analyze;
+- full Flutter Tests;
+- Android debug APK build;
+- Google OAuth resource verification;
+- APK certificate verification;
+- artifact upload.
+
+Validated artifact:
+
+- artifact name: `3minutes-final-debug-apk`;
+- artifact ID: `9361323419`;
+- ZIP size: `83,676,865` bytes;
+- artifact digest: `sha256:8df996fd30db25a15389072eb64543380a663d2de48e135d85ef0e3513b296a2`;
+- retention expiry: `2026-08-26T10:24:09Z`.
+
+Extracted APK:
+
+- size: `162,226,039` bytes;
+- SHA-256: `d38479bb2174f2cde13d1f220746ea4fa29ca4df9f7cdbce6314ef9b5581a14a`.
+
+Temporary validation PRs #73, #74, #75 and #76 were not merged. Failed/intermediate validation evidence is retained rather than rewritten as success.
+
+## 43.5 Current acceptance boundary
+
+For this Field-QA batch, source remediation and automated validation are complete. What remains is physical-device acceptance of the replacement APK, especially:
+
+- avatar visual quality across tiers;
+- absence of avatar loading delay/spinner while browsing;
+- Premium and Missions discoverability;
+- Settings persistence;
+- sign-out confirmation;
+- menu/match music and SFX behavior across Ranked, Quick, Private and Party;
+- volume/mute behavior on Android.
+
+This does **not** close the separate production-live gates for Blaze deployment, real Google Play purchase verification, or full two-device authoritative multiplayer acceptance.
