@@ -521,6 +521,57 @@ service cloud.firestore {
         return signedIn() && request.auth.uid in resource.data.participantOrder;
       }
 
+      function socialBefore() {
+        return resource.data.participants[request.auth.uid];
+      }
+
+      function socialAfter() {
+        return request.resource.data.participants[request.auth.uid];
+      }
+
+      function validSocialProgress(progress) {
+        return progress is map
+          && progress.keys().hasOnly([
+            'completedGames',
+            'totalScore',
+            'accuracyTotal',
+            'mistakes',
+            'elapsedMs',
+            'completedAt'
+          ])
+          && progress.completedGames is int
+          && progress.completedGames >= 0
+          && progress.completedGames <= 8
+          && progress.totalScore is int
+          && progress.totalScore >= 0
+          && progress.accuracyTotal is number
+          && progress.accuracyTotal >= 0
+          && progress.accuracyTotal <= 8
+          && progress.mistakes is int
+          && progress.mistakes >= 0
+          && progress.elapsedMs is int
+          && progress.elapsedMs >= 0
+          && progress.elapsedMs <= 180000
+          && (progress.completedAt == null || progress.completedAt is timestamp);
+      }
+
+      function socialProgressMovesForward() {
+        return validSocialProgress(socialBefore().progress)
+          && validSocialProgress(socialAfter().progress)
+          && socialAfter().progress.completedGames == socialBefore().progress.completedGames + 1
+          && socialAfter().progress.totalScore >= socialBefore().progress.totalScore
+          && socialAfter().progress.accuracyTotal >= socialBefore().progress.accuracyTotal
+          && socialAfter().progress.mistakes >= socialBefore().progress.mistakes
+          && socialAfter().progress.elapsedMs >= socialBefore().progress.elapsedMs
+          && socialAfter().progress.elapsedMs <= 180000;
+      }
+
+      function cosmeticEmoteEntitled() {
+        return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid))
+            .data.cosmeticLoadout.equippedEmoteId == 'emote_gg';
+      }
+
       allow read: if socialMemberBefore();
 
       allow create: if signedIn()
@@ -531,14 +582,52 @@ service cloud.firestore {
         && request.auth.uid in request.resource.data.participantOrder
         && request.resource.data.participants[request.auth.uid] is map;
 
-      // Each player may update only their own nested participant state
-      // (progress/connection). Match seed/order/config remain immutable.
+      // Spark fallback: a participant may change only their own connection state.
       allow update: if socialMemberBefore()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'participants'
-        ])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
         && request.resource.data.participants.diff(resource.data.participants)
-          .affectedKeys().hasOnly([request.auth.uid]);
+          .affectedKeys().hasOnly([request.auth.uid])
+        && socialAfter().diff(socialBefore()).affectedKeys().hasOnly(['connectionState'])
+        && socialAfter().connectionState in ['connected', 'reconnecting', 'disconnected'];
+
+      // Spark fallback: progress advances exactly one game and cannot alter
+      // identity, loadout/emote state, readiness, or another participant.
+      allow update: if socialMemberBefore()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
+        && request.resource.data.participants.diff(resource.data.participants)
+          .affectedKeys().hasOnly([request.auth.uid])
+        && socialAfter().diff(socialBefore()).affectedKeys().hasOnly([
+          'progress',
+          'finishedAt'
+        ])
+        && socialProgressMovesForward()
+        && (
+          (socialAfter().progress.completedGames < 8
+            && socialAfter().finishedAt == socialBefore().finishedAt)
+          || (socialAfter().progress.completedGames == 8
+            && socialAfter().finishedAt is timestamp)
+        );
+
+      // Spark fallback for the single shop emote. Ownership/equipment is read
+      // from the server-written public loadout; the client cannot forge it in
+      // /users because cosmeticLoadout is excluded from all client update paths.
+      allow update: if socialMemberBefore()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
+        && request.resource.data.participants.diff(resource.data.participants)
+          .affectedKeys().hasOnly([request.auth.uid])
+        && socialAfter().diff(socialBefore()).affectedKeys().hasOnly([
+          'latestEmoteId',
+          'latestEmoteAt'
+        ])
+        && cosmeticEmoteEntitled()
+        && socialAfter().latestEmoteId == 'emote_gg'
+        && socialAfter().latestEmoteAt is timestamp
+        && socialAfter().latestEmoteAt <= request.time
+        && socialAfter().latestEmoteAt >= request.time - duration.value(10, 's')
+        && (
+          socialBefore().latestEmoteAt == null
+          || socialBefore().latestEmoteAt + duration.value(2, 's') <= request.time
+        );
 
       allow delete: if false;
     }
