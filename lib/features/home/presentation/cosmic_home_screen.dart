@@ -35,6 +35,7 @@ class CosmicHomeScreen extends StatelessWidget {
     required this.authService,
     required this.profileRepository,
     required this.matchBackend,
+    required this.quickMatchBackend,
     required this.socialMatchBackend,
     required this.competitionBackend,
     required this.economyBackend,
@@ -46,6 +47,7 @@ class CosmicHomeScreen extends StatelessWidget {
   final AuthService authService;
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
+  final MatchBackend quickMatchBackend;
   final SocialMatchBackend socialMatchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
@@ -115,6 +117,11 @@ class CosmicHomeScreen extends StatelessWidget {
                 _RankedPlayButton(
                   profile: profile,
                   matchBackend: matchBackend,
+                ),
+                const SizedBox(height: GameSpacing.sm),
+                _QuickPlayButton(
+                  profile: profile,
+                  matchBackend: quickMatchBackend,
                 ),
                 const SizedBox(height: GameSpacing.sm),
                 OutlinedButton.icon(
@@ -358,6 +365,86 @@ class _RankedPlayButton extends StatelessWidget {
                 resumable ? l10n.resume : l10n.play,
                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _QuickPlayButton extends StatelessWidget {
+  const _QuickPlayButton({required this.profile, required this.matchBackend});
+
+  final PlayerProfile? profile;
+  final MatchBackend matchBackend;
+
+  bool _isArabic(BuildContext context) =>
+      Localizations.localeOf(context).languageCode == 'ar';
+
+  void _open(BuildContext context, PlayerProfile player, MatchTicket? ticket) {
+    final resumable = ticket?.status == MatchTicketStatus.matched && ticket?.matchId != null;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => resumable
+            ? MatchRoomScreen(
+                matchId: ticket!.matchId!,
+                uid: player.uid,
+                matchBackend: matchBackend,
+              )
+            : MatchmakingScreen(profile: player, matchBackend: matchBackend),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final player = profile;
+    final serverReady = AppConfig.backendPhase == BackendPhase.blaze;
+    final title = _isArabic(context) ? 'مباراة سريعة' : 'QUICK MATCH';
+    final subtitle = _isArabic(context)
+        ? '1 ضد 1 • بدون RP • مكافآت Coins وXP'
+        : '1v1 • No RP • Coins & XP rewards';
+
+    if (player == null || !serverReady) {
+      return OutlinedButton.icon(
+        onPressed: null,
+        icon: const Icon(Icons.flash_on_rounded),
+        label: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text(
+              serverReady
+                  ? subtitle
+                  : (_isArabic(context)
+                      ? 'يتطلب تشغيل الخادم الآمن'
+                      : 'Requires secure server'),
+              style: const TextStyle(fontSize: 10),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return StreamBuilder<MatchTicket?>(
+      stream: matchBackend.watchTicket(player.uid),
+      builder: (context, snapshot) {
+        final ticket = snapshot.data;
+        final resumable = ticket?.status == MatchTicketStatus.matched && ticket?.matchId != null;
+        return OutlinedButton.icon(
+          onPressed: () => _open(context, player, ticket),
+          icon: Icon(resumable ? Icons.play_circle_fill_rounded : Icons.flash_on_rounded),
+          label: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                resumable
+                    ? (_isArabic(context) ? 'استئناف المباراة السريعة' : 'RESUME QUICK')
+                    : title,
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+              Text(subtitle, style: const TextStyle(fontSize: 10)),
             ],
           ),
         );
