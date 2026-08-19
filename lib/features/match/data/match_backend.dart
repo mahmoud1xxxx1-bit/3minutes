@@ -1,3 +1,4 @@
+import '../../competition/domain/ranked_settlement_player.dart';
 import '../../profile/domain/player_profile.dart';
 import '../domain/match_progress.dart';
 import '../domain/match_session.dart';
@@ -35,6 +36,17 @@ abstract class MatchBackend {
     required String matchId,
     required String uid,
   });
+
+  /// Finalizes a ranked match and returns the authoritative settlement payload
+  /// when the active backend supports it. Spark fallback implementations may
+  /// safely return null after finalizing because they do not award Ranked RP.
+  Future<RankedSettlementPlayer?> finalizeMatchWithResult({
+    required String matchId,
+    required String uid,
+  }) async {
+    await finalizeMatch(matchId: matchId, uid: uid);
+    return null;
+  }
 
   Future<void> requestRematch({
     required String matchId,
