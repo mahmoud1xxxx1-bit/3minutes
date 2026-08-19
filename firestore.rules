@@ -638,9 +638,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    match /seasonHistory/{seasonId} {
-      allow read: if signedIn();
+    // Season history is private account history. Only trusted server authority
+    // writes it; a player may read only their own completed-season records.
+    match /seasonHistory/{uid} {
+      allow read: if isOwner(uid);
       allow write: if false;
+
+      match /seasons/{seasonId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
     }
 
     match /leaderboards/{seasonId}/entries/{uid} {
