@@ -42,6 +42,16 @@ function text(value: unknown, name: string): string {
   return value.trim();
 }
 
+function seasonAcceptsRanked(data: Record<string, unknown>, nowMs: number): boolean {
+  const startsAtMs = timestampMillis(data.startsAt);
+  const endsAtMs = timestampMillis(data.endsAt);
+  return data.active === true &&
+    startsAtMs !== null &&
+    endsAtMs !== null &&
+    nowMs >= startsAtMs &&
+    nowMs < endsAtMs;
+}
+
 function requireActiveSubmissionWindow(match: Record<string, unknown>): void {
   const countdownStartedAtMs = timestampMillis(match.countdownStartedAt);
   if (countdownStartedAtMs === null) {
@@ -60,6 +70,7 @@ function requireActiveSubmissionWindow(match: Record<string, unknown>): void {
 }
 
 function freshMatch(options: {
+  seasonId: string;
   playerAId: string;
   playerAName: string;
   playerAAvatarId: string;
@@ -218,11 +229,25 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
     };
     let newMatchId: string | null = null;
     if (nextA && nextB) {
+      const seasonId = stringValue(data.seasonId);
+      if (!seasonId) {
+        throw new HttpsError("failed-precondition", "Original ranked match has no season binding.");
+      }
+      const seasonRef = db.collection(COLLECTIONS.seasons).doc(seasonId);
+      const season = (await transaction.get(seasonRef)).data();
+      if (!season || !seasonAcceptsRanked(season, Date.now())) {
+        throw new HttpsError(
+          "failed-precondition",
+          "The ranked season ended. Start a new queue for the next season.",
+        );
+      }
+
       const newRef = db.collection(COLLECTIONS.matches).doc();
       newMatchId = newRef.id;
       transaction.create(
         newRef,
         freshMatch({
+          seasonId,
           playerAId: a,
           playerAName: stringValue(data.playerAName, "Player"),
           playerAAvatarId: stringValue(data.playerAAvatarId, "default_01"),
@@ -274,8 +299,10 @@ export const syncRankedTicket = onCall(OPTIONS, async (request) => {
       ticketRef,
       {
         uid,
+        seasonId: stringValue(match.seasonId),
         status: "matched",
         matchId,
+        authorityVersion: AUTHORITY_VERSION,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
