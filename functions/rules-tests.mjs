@@ -63,6 +63,19 @@ try {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+    await setDoc(doc(adminDb, 'seasonHistory', 'alice', 'seasons', 'season_1'), {
+      seasonId: 'season_1',
+      seasonNumber: 1,
+      peakTier: 'gold',
+      finalRankPoints: 1350,
+      finalStanding: 18,
+      wins: 4,
+      losses: 3,
+      ties: 1,
+      matches: 8,
+      starsAwarded: 4,
+      closedAt: serverTimestamp(),
+    });
     await setDoc(doc(adminDb, 'socialMatches', 'social-security'), {
       mode: 'privateRoom',
       hostUid: 'alice',
@@ -98,6 +111,21 @@ try {
       createdAt: serverTimestamp(),
     });
   });
+
+  await assertSucceeds(
+    getDoc(doc(aliceDb, 'seasonHistory', 'alice', 'seasons', 'season_1')),
+  );
+  await assertFails(
+    getDoc(doc(bobDb, 'seasonHistory', 'alice', 'seasons', 'season_1')),
+  );
+  await assertFails(
+    setDoc(doc(aliceDb, 'seasonHistory', 'alice', 'seasons', 'forged'), {
+      seasonId: 'forged',
+      seasonNumber: 999,
+      peakTier: 'legend',
+      starsAwarded: 999,
+    }),
+  );
 
   const socialRef = doc(aliceDb, 'socialMatches', 'social-security');
 
@@ -141,7 +169,7 @@ try {
     }),
   );
 
-  console.log('Firestore rules smoke and cosmetic security tests passed.');
+  console.log('Firestore rules, season history privacy, and cosmetic security tests passed.');
 } finally {
   await testEnv.cleanup();
 }
