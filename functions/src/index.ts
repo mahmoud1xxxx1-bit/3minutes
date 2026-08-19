@@ -16,6 +16,18 @@ export {
   syncRankedTicket,
   clearRankedTicket,
 } from "./ranked_client.js";
+export {
+  joinQuickQueue,
+  leaveQuickQueue,
+  clearQuickTicket,
+  syncQuickTicket,
+  markQuickReady,
+  cancelQuickMatch,
+  submitQuickGameResult,
+  requestQuickRematch,
+  cancelQuickRematch,
+  settleQuickMatch,
+} from "./quick.js";
 
 export { settleRankedMatch } from "./settlement.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
