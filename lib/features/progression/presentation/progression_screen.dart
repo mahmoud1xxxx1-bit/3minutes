@@ -9,6 +9,7 @@ import '../data/progression_backend.dart';
 import '../domain/achievement.dart';
 import '../domain/mission.dart';
 import '../domain/season_pass.dart';
+import 'premium_season_pass_card.dart';
 import 'progression_copy.dart';
 
 class ProgressionScreen extends StatelessWidget {
@@ -415,6 +416,12 @@ class _SeasonPassTab extends StatelessWidget {
             110,
           ),
           children: [
+            PremiumSeasonPassCard(
+              uid: uid,
+              seasonId: seasonId,
+              unlocked: state.premiumUnlocked,
+            ),
+            const SizedBox(height: GameSpacing.md),
             CosmicPanel(
               glow: true,
               child: Column(
@@ -508,6 +515,7 @@ class _SeasonTierRow extends StatelessWidget {
     final premiumClaimed = state.claimedPremiumLevels.contains(tier);
     final freeCoins = SeasonPassPolicy.freeCoinRewardForLevel(tier);
     final premiumCoins = SeasonPassPolicy.premiumCoinRewardForLevel(tier);
+    final premiumStars = SeasonPassPolicy.premiumStarRewardForLevel(tier);
 
     return CosmicPanel(
       padding: const EdgeInsets.all(GameSpacing.sm),
@@ -534,6 +542,7 @@ class _SeasonTierRow extends StatelessWidget {
             child: _TrackReward(
               label: copy.free,
               rewardCoins: freeCoins,
+              rewardStars: 0,
               unlocked: unlocked,
               claimed: freeClaimed,
               premium: false,
@@ -554,6 +563,7 @@ class _SeasonTierRow extends StatelessWidget {
             child: _TrackReward(
               label: copy.premium,
               rewardCoins: premiumCoins,
+              rewardStars: premiumStars,
               unlocked: unlocked && state.premiumUnlocked,
               claimed: premiumClaimed,
               premium: true,
@@ -580,6 +590,7 @@ class _TrackReward extends StatelessWidget {
   const _TrackReward({
     required this.label,
     required this.rewardCoins,
+    required this.rewardStars,
     required this.unlocked,
     required this.claimed,
     required this.premium,
@@ -587,6 +598,7 @@ class _TrackReward extends StatelessWidget {
   });
   final String label;
   final int rewardCoins;
+  final int rewardStars;
   final bool unlocked;
   final bool claimed;
   final bool premium;
@@ -645,6 +657,24 @@ class _TrackReward extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+          if (rewardStars > 0) ...[
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.star_rounded, size: 14, color: GameColors.rewardGold),
+                const SizedBox(width: 3),
+                Text(
+                  '+$rewardStars ${copy.isArabic ? 'نجمة هيبة' : 'Prestige Star'}',
+                  style: const TextStyle(
+                    color: GameColors.rewardGold,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ],
           if (unlocked) ...[
             const SizedBox(height: 4),
             SizedBox(
