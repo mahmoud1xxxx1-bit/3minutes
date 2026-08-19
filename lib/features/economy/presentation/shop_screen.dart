@@ -11,9 +11,11 @@ import '../data/economy_backend.dart';
 import '../data/premium_billing_service.dart';
 import '../domain/cosmetic_item.dart';
 import 'cosmetic_preview.dart';
+import 'cosmetic_preview_sheet.dart';
+import 'cosmetic_runtime.dart';
 import 'shop_copy.dart';
 
-enum _ShopSection { featured, coins, prestige, premium, owned }
+enum _ShopSection { featured, avatars, coins, prestige, premium, owned }
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({
@@ -43,6 +45,7 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   void initState() {
     super.initState();
+    CosmeticCatalog.validate();
     if (_purchasesEnabled) {
       final billing = PremiumBillingService(uid: widget.uid);
       _premiumBilling = billing;
@@ -52,8 +55,8 @@ class _ShopScreenState extends State<ShopScreen> {
         if (snapshot.message == 'premium_purchase_verified') {
           setState(() {
             _message = _isArabic
-                ? 'تم تأكيد عملية الشراء وإضافة العنصر إلى حسابك.'
-                : 'Purchase verified and added to your account.';
+                ? 'تم التحقق من الدفع وإضافة العنصر إلى ملكيتك الدائمة.'
+                : 'Payment verified. The item is now permanently owned.';
           });
         }
       });
@@ -78,8 +81,7 @@ class _ShopScreenState extends State<ShopScreen> {
       CosmeticSlot.avatar => inventory.equippedAvatarId == item.id,
       CosmeticSlot.avatarFrame => inventory.equippedAvatarFrameId == item.id,
       CosmeticSlot.badge => inventory.equippedBadgeId == item.id,
-      CosmeticSlot.profileBackground =>
-        inventory.equippedProfileBackgroundId == item.id,
+      CosmeticSlot.profileBackground => inventory.equippedProfileBackgroundId == item.id,
       CosmeticSlot.nameStyle => inventory.equippedNameStyleId == item.id,
       CosmeticSlot.matchIntro => inventory.equippedMatchIntroId == item.id,
       CosmeticSlot.victoryEffect => inventory.equippedVictoryEffectId == item.id,
@@ -97,6 +99,11 @@ class _ShopScreenState extends State<ShopScreen> {
     });
     try {
       switch (item.priceType) {
+        case CosmeticPriceType.free:
+          await widget.economyBackend.equipCosmetic(
+            uid: widget.uid,
+            cosmeticId: item.id,
+          );
         case CosmeticPriceType.coins:
           await widget.economyBackend.purchaseCosmetic(
             uid: widget.uid,
@@ -113,17 +120,23 @@ class _ShopScreenState extends State<ShopScreen> {
           await billing.buy(item);
         case CosmeticPriceType.achievement:
         case CosmeticPriceType.seasonalPlacement:
-          throw StateError('This cosmetic is earned, not purchased.');
+          await widget.economyBackend.claimEarnedCosmetic(
+            uid: widget.uid,
+            cosmeticId: item.id,
+          );
       }
       if (!mounted || item.priceType == CosmeticPriceType.premium) return;
-      final copy = ShopCopy.of(context);
-      setState(() => _message = '${copy.itemName(item)} ✓');
+      setState(() {
+        _message = _isArabic
+            ? '${ShopCopy.of(context).itemName(item)} أصبح في ملكيتك.'
+            : '${ShopCopy.of(context).itemName(item)} is now owned.';
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _message = _isArabic
-            ? 'تعذر إكمال العملية. تحقق من الرصيد أو شروط فتح العنصر وحاول مجددًا.'
-            : 'Could not complete this action. Check the balance or unlock requirement and try again.';
+            ? 'لم يتم منح العنصر. لم ينجح شرط الدفع/الرصيد/النجوم/الإنجاز.'
+            : 'The item was not granted. Its payment, balance, Stars, or achievement requirement was not satisfied.';
       });
     } finally {
       if (mounted) setState(() => _busyItemId = null);
@@ -142,9 +155,11 @@ class _ShopScreenState extends State<ShopScreen> {
         cosmeticId: item.id,
       );
       if (!mounted) return;
-      setState(
-        () => _message = _isArabic ? 'تم تجهيز العنصر.' : 'Item equipped.',
-      );
+      setState(() {
+        _message = _isArabic
+            ? 'تم تجهيز ${ShopCopy.of(context).itemName(item)}.'
+            : '${ShopCopy.of(context).itemName(item)} equipped.';
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() => _message = AppLocalizations.of(context).equipFailed);
@@ -162,8 +177,8 @@ class _ShopScreenState extends State<ShopScreen> {
       if (!mounted) return;
       setState(() {
         _message = _isArabic
-            ? 'جارٍ التحقق من مشترياتك السابقة.'
-            : 'Checking your previous purchases.';
+            ? 'جارٍ التحقق من مشتريات Google Play السابقة واستعادة الملكية.'
+            : 'Checking previous Google Play purchases and restoring ownership.';
       });
     } catch (_) {
       if (!mounted) return;
@@ -175,6 +190,100 @@ class _ShopScreenState extends State<ShopScreen> {
     }
   }
 
+  bool _canAcquire(PlayerInventory inventory, CosmeticItem item) {
+    return switch (item.priceType) {
+      CosmeticPriceType.free => true,
+      CosmeticPriceType.coins => inventory.coins >= item.coinPrice,
+      CosmeticPriceType.prestigeStars => inventory.prestigeStars >= item.starPrice,
+      CosmeticPriceType.premium => _premiumSnapshot?.products.containsKey(item.id) == true,
+      CosmeticPriceType.achievement => true,
+      CosmeticPriceType.seasonalPlacement => true,
+    };
+  }
+
+  String _priceLabel(CosmeticItem item) {
+    return switch (item.priceType) {
+      CosmeticPriceType.free => _isArabic ? 'مجاني' : 'Free',
+      CosmeticPriceType.coins => '${item.coinPrice} ${_isArabic ? 'كوينز' : 'Coins'}',
+      CosmeticPriceType.prestigeStars => '${item.starPrice} ★',
+      CosmeticPriceType.premium => _premiumSnapshot?.localizedPrice(item.id) ??
+          '${(item.premiumPriceCents / 100).toStringAsFixed(2)} SAR*',
+      CosmeticPriceType.achievement => _requirementLabel(item),
+      CosmeticPriceType.seasonalPlacement => _requirementLabel(item),
+    };
+  }
+
+  String _requirementLabel(CosmeticItem item) {
+    return switch (item.requiredAchievementId) {
+      'legendary_once' => _isArabic ? 'الوصول للأسطوري مرة' : 'Reach Legendary once',
+      'legendary_x3' => _isArabic ? 'الأسطوري ×3 مواسم' : 'Legendary ×3 seasons',
+      'legendary_x5' => _isArabic ? 'الأسطوري ×5 مواسم' : 'Legendary ×5 seasons',
+      'wins_100' => _isArabic ? '100 فوز Ranked' : '100 Ranked wins',
+      'season_champion' => _isArabic ? 'بطل موسم' : 'Season Champion',
+      _ => _isArabic ? 'إنجاز خاص' : 'Special achievement',
+    };
+  }
+
+  String _actionLabel({
+    required CosmeticItem item,
+    required bool owned,
+    required bool equipped,
+    required bool canAcquire,
+  }) {
+    if (equipped) return _isArabic ? 'مجهز' : 'Equipped';
+    if (owned) return _isArabic ? 'تجهيز' : 'Equip';
+    if (!_purchasesEnabled) return _isArabic ? 'معاينة فقط الآن' : 'Preview only for now';
+    if (!canAcquire && item.priceType != CosmeticPriceType.premium) {
+      return _isArabic ? 'المتطلب غير مكتمل' : 'Requirement not met';
+    }
+    return switch (item.priceType) {
+      CosmeticPriceType.free => _isArabic ? 'الحصول مجانًا' : 'Get free',
+      CosmeticPriceType.coins => _isArabic ? 'شراء بالكوينز' : 'Buy with Coins',
+      CosmeticPriceType.prestigeStars => _isArabic ? 'فتح بالنجوم' : 'Unlock with Stars',
+      CosmeticPriceType.premium => _isArabic ? 'شراء عبر Google Play' : 'Buy with Google Play',
+      CosmeticPriceType.achievement => _isArabic ? 'تحقق واستلام' : 'Verify & claim',
+      CosmeticPriceType.seasonalPlacement => _isArabic ? 'تحقق واستلام' : 'Verify & claim',
+    };
+  }
+
+  void _preview(
+    CosmeticItem item,
+    PlayerInventory inventory, {
+    required bool inventoryUnavailable,
+  }) {
+    final owned = inventory.ownedCosmeticIds.contains(item.id);
+    final equipped = _isEquipped(inventory, item);
+    final canAcquire = _canAcquire(inventory, item);
+    final actionLabel = _actionLabel(
+      item: item,
+      owned: owned,
+      equipped: equipped,
+      canAcquire: canAcquire,
+    );
+    showCosmeticPreviewSheet(
+      context: context,
+      item: item,
+      name: ShopCopy.of(context).itemName(item),
+      description: ShopCopy.of(context).itemDescription(item),
+      priceLabel: _priceLabel(item),
+      statusLabel: equipped
+          ? (_isArabic ? 'مجهز' : 'Equipped')
+          : owned
+              ? (_isArabic ? 'مملوك' : 'Owned')
+              : (_isArabic ? 'مقفل' : 'Locked'),
+      owned: owned,
+      equipped: equipped,
+      actionEnabled: _purchasesEnabled &&
+          !inventoryUnavailable &&
+          !equipped &&
+          (owned || canAcquire),
+      actionLabel: actionLabel,
+      onAction: equipped
+          ? null
+          : () => owned ? _equip(item) : _acquire(item),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -182,10 +291,7 @@ class _ShopScreenState extends State<ShopScreen> {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(
-          l10n.shop,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: Text(l10n.shop, style: const TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: CosmicBackground(
         child: SafeArea(
@@ -194,18 +300,10 @@ class _ShopScreenState extends State<ShopScreen> {
             stream: widget.economyBackend.watchInventory(widget.uid),
             builder: (context, snapshot) {
               final inventory = snapshot.data ??
-                  const PlayerInventory(
-                    coins: 0,
-                    ownedCosmeticIds: <String>{},
-                  );
-              final inventoryUnavailable = snapshot.hasError ||
-                  (snapshot.connectionState == ConnectionState.waiting &&
-                      !snapshot.hasData);
-              return _buildContent(
-                context,
-                inventory,
-                inventoryUnavailable: inventoryUnavailable,
-              );
+                  const PlayerInventory(coins: 0, ownedCosmeticIds: <String>{});
+              final unavailable = snapshot.hasError ||
+                  (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData);
+              return _buildContent(inventory, inventoryUnavailable: unavailable);
             },
           ),
         ),
@@ -214,59 +312,45 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   Widget _buildContent(
-    BuildContext context,
     PlayerInventory inventory, {
     required bool inventoryUnavailable,
   }) {
     final copy = ShopCopy.of(context);
     final items = _itemsForSection(inventory);
-    final heroItem = items.isNotEmpty
-        ? items.first
-        : CosmeticCatalog.featured.first;
-
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            GameSpacing.md,
-            GameSpacing.sm,
-            GameSpacing.md,
-            0,
-          ),
+          padding: const EdgeInsets.fromLTRB(GameSpacing.md, GameSpacing.sm, GameSpacing.md, 0),
           sliver: SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _WalletHeader(inventory: inventory),
-                if (inventoryUnavailable) ...[
+                const SizedBox(height: GameSpacing.sm),
+                _InfoBanner(
+                  text: _isArabic
+                      ? 'اضغط على أي عنصر — حتى المقفل — لمعاينته بالحجم الكبير كما سيظهر داخل اللعبة.'
+                      : 'Tap any item — even locked ones — to preview it at full size as it appears in-game.',
+                  emphasis: true,
+                ),
+                if (inventoryUnavailable || !_purchasesEnabled) ...[
                   const SizedBox(height: GameSpacing.sm),
                   _InfoBanner(
-                    text: _isArabic
-                        ? 'تعذر تحديث الرصيد الآن، لكن كتالوج المتجر متاح بالكامل للمعاينة.'
-                        : 'Balance could not be refreshed right now, but the full shop catalog remains available for preview.',
-                  ),
-                ],
-                if (!_purchasesEnabled) ...[
-                  const SizedBox(height: GameSpacing.sm),
-                  _InfoBanner(
-                    text: _isArabic
-                        ? 'المتجر جاهز للعرض. عمليات الشراء والتجهيز ستعمل عند تفعيل الخادم الآمن.'
-                        : 'The shop is available for preview. Purchases and equipping activate with the secure server.',
+                    text: !_purchasesEnabled
+                        ? (_isArabic
+                            ? 'المعاينة فعالة بالكامل. الشراء والتجهيز يبقيان مقفلين حتى تشغيل سلطة الخادم الآمنة.'
+                            : 'Full preview is active. Buying and equipping remain locked until secure server authority is enabled.')
+                        : (_isArabic
+                            ? 'تعذر تحديث الملكية الآن؛ المعاينة ما زالت متاحة.'
+                            : 'Ownership could not be refreshed; preview remains available.'),
                   ),
                 ],
                 const SizedBox(height: GameSpacing.md),
                 _SectionTabs(
                   selected: _section,
                   copy: copy,
+                  arabic: _isArabic,
                   onChanged: (section) => setState(() => _section = section),
-                ),
-                const SizedBox(height: GameSpacing.md),
-                _FeaturedHero(
-                  item: heroItem,
-                  name: copy.itemName(heroItem),
-                  description: copy.itemDescription(heroItem),
-                  copy: copy,
-                  premiumPrice: _premiumSnapshot?.localizedPrice(heroItem.id),
                 ),
                 if (_section == _ShopSection.premium && _purchasesEnabled) ...[
                   const SizedBox(height: GameSpacing.sm),
@@ -275,9 +359,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     child: TextButton.icon(
                       onPressed: _restorePremium,
                       icon: const Icon(Icons.restore_rounded),
-                      label: Text(
-                        _isArabic ? 'استعادة المشتريات' : 'Restore purchases',
-                      ),
+                      label: Text(_isArabic ? 'استعادة المشتريات' : 'Restore purchases'),
                     ),
                   ),
                 ],
@@ -286,15 +368,9 @@ class _ShopScreenState extends State<ShopScreen> {
                   _InfoBanner(text: _message!),
                 ],
                 const SizedBox(height: GameSpacing.lg),
-                Text(
-                  _sectionTitle(copy),
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  _sectionSubtitle(copy),
-                  style: const TextStyle(color: GameColors.muted),
-                ),
+                Text(_sectionTitle(copy), style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 4),
+                Text(_sectionSubtitle(copy), style: const TextStyle(color: GameColors.muted)),
                 const SizedBox(height: GameSpacing.sm),
               ],
             ),
@@ -303,56 +379,43 @@ class _ShopScreenState extends State<ShopScreen> {
         if (items.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(GameSpacing.xl),
-                child: Text(
-                  copy.noOwned,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: GameColors.muted),
-                ),
-              ),
-            ),
+            child: Center(child: Text(copy.noOwned, style: const TextStyle(color: GameColors.muted))),
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(
-              GameSpacing.md,
-              0,
-              GameSpacing.md,
-              110,
-            ),
+            padding: const EdgeInsets.fromLTRB(GameSpacing.md, 0, GameSpacing.md, 110),
             sliver: SliverList.separated(
               itemCount: items.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: GameSpacing.sm),
+              separatorBuilder: (_, __) => const SizedBox(height: GameSpacing.sm),
               itemBuilder: (context, index) {
                 final item = items[index];
                 final owned = inventory.ownedCosmeticIds.contains(item.id);
-                final canAfford = switch (item.priceType) {
-                  CosmeticPriceType.coins => inventory.coins >= item.coinPrice,
-                  CosmeticPriceType.prestigeStars =>
-                    inventory.prestigeStars >= item.starPrice,
-                  CosmeticPriceType.premium =>
-                    _premiumSnapshot?.products.containsKey(item.id) == true,
-                  CosmeticPriceType.achievement => false,
-                  CosmeticPriceType.seasonalPlacement => false,
-                };
+                final equipped = _isEquipped(inventory, item);
+                final canAcquire = _canAcquire(inventory, item);
                 return _CosmeticCard(
                   item: item,
-                  itemName: copy.itemName(item),
+                  name: copy.itemName(item),
                   description: copy.itemDescription(item),
-                  slotLabel: _slotLabel(item.slot),
-                  rarityLabel: _rarityLabel(item.rarity),
-                  premiumPrice: _premiumSnapshot?.localizedPrice(item.id),
-                  purchasesEnabled: _purchasesEnabled && !inventoryUnavailable,
+                  price: _priceLabel(item),
                   owned: owned,
-                  equipped: _isEquipped(inventory, item),
-                  canAcquire: canAfford,
-                  busy: _busyItemId == item.id ||
-                      _premiumSnapshot?.pendingProductId == item.id,
-                  onAcquire: () => _acquire(item),
-                  onEquip: () => _equip(item),
+                  equipped: equipped,
+                  busy: _busyItemId == item.id || _premiumSnapshot?.pendingProductId == item.id,
+                  actionLabel: _actionLabel(
+                    item: item,
+                    owned: owned,
+                    equipped: equipped,
+                    canAcquire: canAcquire,
+                  ),
+                  actionEnabled: _purchasesEnabled &&
+                      !inventoryUnavailable &&
+                      !equipped &&
+                      (owned || canAcquire),
+                  onPreview: () => _preview(
+                    item,
+                    inventory,
+                    inventoryUnavailable: inventoryUnavailable,
+                  ),
+                  onAction: () => owned ? _equip(item) : _acquire(item),
                 );
               },
             ),
@@ -361,15 +424,12 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  List<CosmeticItem> _itemsForSection(PlayerInventory inventory) =>
-      switch (_section) {
+  List<CosmeticItem> _itemsForSection(PlayerInventory inventory) => switch (_section) {
         _ShopSection.featured => CosmeticCatalog.featured,
-        _ShopSection.coins =>
-          CosmeticCatalog.forPriceType(CosmeticPriceType.coins),
-        _ShopSection.prestige =>
-          CosmeticCatalog.forPriceType(CosmeticPriceType.prestigeStars),
-        _ShopSection.premium =>
-          CosmeticCatalog.forPriceType(CosmeticPriceType.premium),
+        _ShopSection.avatars => CosmeticCatalog.avatars,
+        _ShopSection.coins => CosmeticCatalog.forPriceType(CosmeticPriceType.coins),
+        _ShopSection.prestige => CosmeticCatalog.forPriceType(CosmeticPriceType.prestigeStars),
+        _ShopSection.premium => CosmeticCatalog.forPriceType(CosmeticPriceType.premium),
         _ShopSection.owned => CosmeticCatalog.items
             .where((item) => inventory.ownedCosmeticIds.contains(item.id))
             .toList(growable: false),
@@ -377,6 +437,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   String _sectionTitle(ShopCopy copy) => switch (_section) {
         _ShopSection.featured => copy.featured,
+        _ShopSection.avatars => _isArabic ? 'الصور الرمزية' : 'Avatars',
         _ShopSection.coins => copy.coins,
         _ShopSection.prestige => copy.prestige,
         _ShopSection.premium => copy.premium,
@@ -385,32 +446,13 @@ class _ShopScreenState extends State<ShopScreen> {
 
   String _sectionSubtitle(ShopCopy copy) => switch (_section) {
         _ShopSection.featured => copy.featuredSubtitle,
+        _ShopSection.avatars => _isArabic
+            ? '45 شخصية: مجانية، كوينز، بريميوم، نجوم وإنجازات نادرة.'
+            : '45 characters: free, Coins, Premium, Stars, and rare achievements.',
         _ShopSection.coins => copy.coinSubtitle,
         _ShopSection.prestige => copy.prestigeSubtitle,
         _ShopSection.premium => copy.premiumSubtitle,
         _ShopSection.owned => copy.ownedSubtitle,
-      };
-
-  String _slotLabel(CosmeticSlot slot) => switch (slot) {
-        CosmeticSlot.avatar => _isArabic ? 'أفاتار' : 'Avatar',
-        CosmeticSlot.avatarFrame => _isArabic ? 'إطار' : 'Frame',
-        CosmeticSlot.badge => _isArabic ? 'شارة' : 'Badge',
-        CosmeticSlot.profileBackground => _isArabic ? 'خلفية' : 'Background',
-        CosmeticSlot.nameStyle => _isArabic ? 'نمط الاسم' : 'Name style',
-        CosmeticSlot.matchIntro => _isArabic ? 'دخول المباراة' : 'Match intro',
-        CosmeticSlot.victoryEffect =>
-          _isArabic ? 'تأثير الفوز' : 'Victory effect',
-        CosmeticSlot.rankAura => _isArabic ? 'هالة الرتبة' : 'Rank aura',
-        CosmeticSlot.emote => _isArabic ? 'إيموت' : 'Emote',
-        CosmeticSlot.roomTheme => _isArabic ? 'ثيم الغرفة' : 'Room theme',
-      };
-
-  String _rarityLabel(CosmeticRarity rarity) => switch (rarity) {
-        CosmeticRarity.common => _isArabic ? 'عادي' : 'Common',
-        CosmeticRarity.rare => _isArabic ? 'نادر' : 'Rare',
-        CosmeticRarity.epic => _isArabic ? 'ملحمي' : 'Epic',
-        CosmeticRarity.legendary => _isArabic ? 'أسطوري' : 'Legendary',
-        CosmeticRarity.mythic => _isArabic ? 'خرافي' : 'Mythic',
       };
 }
 
@@ -446,12 +488,7 @@ class _WalletHeader extends StatelessWidget {
 }
 
 class _BalancePill extends StatelessWidget {
-  const _BalancePill({
-    required this.icon,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
+  const _BalancePill({required this.icon, required this.value, required this.label, required this.color});
   final IconData icon;
   final String value;
   final String label;
@@ -460,20 +497,17 @@ class _BalancePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: GameSpacing.sm,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: color.withValues(alpha: .08),
         borderRadius: BorderRadius.circular(GameRadii.card),
-        border: Border.all(color: color.withValues(alpha: .26)),
+        border: Border.all(color: color.withValues(alpha: .25)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 18, color: color),
-          const SizedBox(width: GameSpacing.xs),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               '$value ${label.toUpperCase()}',
@@ -491,16 +525,19 @@ class _SectionTabs extends StatelessWidget {
   const _SectionTabs({
     required this.selected,
     required this.copy,
+    required this.arabic,
     required this.onChanged,
   });
   final _ShopSection selected;
   final ShopCopy copy;
+  final bool arabic;
   final ValueChanged<_ShopSection> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final labels = <_ShopSection, String>{
       _ShopSection.featured: copy.featured,
+      _ShopSection.avatars: arabic ? 'الشخصيات' : 'Avatars',
       _ShopSection.coins: copy.coins,
       _ShopSection.prestige: copy.prestige,
       _ShopSection.premium: copy.premium,
@@ -516,84 +553,8 @@ class _SectionTabs extends StatelessWidget {
               onSelected: (_) => onChanged(section),
               label: Text(labels[section]!),
             ),
-            const SizedBox(width: GameSpacing.xs),
+            const SizedBox(width: 6),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _FeaturedHero extends StatelessWidget {
-  const _FeaturedHero({
-    required this.item,
-    required this.name,
-    required this.description,
-    required this.copy,
-    this.premiumPrice,
-  });
-  final CosmeticItem item;
-  final String name;
-  final String description;
-  final ShopCopy copy;
-  final String? premiumPrice;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _rarityColor(item.rarity);
-    return Container(
-      padding: const EdgeInsets.all(GameSpacing.lg),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(GameRadii.panel),
-        gradient: LinearGradient(
-          colors: [
-            color.withValues(alpha: .18),
-            GameColors.surfaceGlass,
-            GameColors.background.withValues(alpha: .85),
-          ],
-        ),
-        border: Border.all(color: color.withValues(alpha: .5)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: .1),
-            blurRadius: 24,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CosmeticPreview(item: item, rarityColor: color, size: 105),
-          const SizedBox(width: GameSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: GameSpacing.xs,
-                  children: [
-                    _Tag(label: copy.exclusive, color: color),
-                    if (item.isAnimated)
-                      _Tag(label: copy.animated, color: GameColors.accentBright),
-                  ],
-                ),
-                const SizedBox(height: GameSpacing.sm),
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: const TextStyle(color: GameColors.muted),
-                ),
-                const SizedBox(height: GameSpacing.sm),
-                _PriceLine(item: item, premiumPrice: premiumPrice),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -603,132 +564,164 @@ class _FeaturedHero extends StatelessWidget {
 class _CosmeticCard extends StatelessWidget {
   const _CosmeticCard({
     required this.item,
-    required this.itemName,
+    required this.name,
     required this.description,
-    required this.slotLabel,
-    required this.rarityLabel,
-    required this.purchasesEnabled,
+    required this.price,
     required this.owned,
     required this.equipped,
-    required this.canAcquire,
     required this.busy,
-    required this.onAcquire,
-    required this.onEquip,
-    this.premiumPrice,
+    required this.actionLabel,
+    required this.actionEnabled,
+    required this.onPreview,
+    required this.onAction,
   });
 
   final CosmeticItem item;
-  final String itemName;
+  final String name;
   final String description;
-  final String slotLabel;
-  final String rarityLabel;
-  final String? premiumPrice;
-  final bool purchasesEnabled;
+  final String price;
   final bool owned;
   final bool equipped;
-  final bool canAcquire;
   final bool busy;
-  final VoidCallback onAcquire;
-  final VoidCallback onEquip;
+  final String actionLabel;
+  final bool actionEnabled;
+  final VoidCallback onPreview;
+  final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final color = _rarityColor(item.rarity);
+    final color = cosmeticRarityColor(item.rarity);
     final ar = Localizations.localeOf(context).languageCode == 'ar';
-    final earnedOnly = item.priceType == CosmeticPriceType.achievement ||
-        item.priceType == CosmeticPriceType.seasonalPlacement;
-
-    String actionLabel() {
-      if (owned) return l10n.equip;
-      if (earnedOnly) return ar ? 'يُكتسب بالإنجاز' : 'Earn by achievement';
-      if (!purchasesEnabled) return l10n.locked;
-      if (!canAcquire && item.priceType != CosmeticPriceType.premium) {
-        return ar ? 'لم تصل للمتطلب بعد' : 'Requirement not met';
-      }
-      return switch (item.priceType) {
-        CosmeticPriceType.coins => ar ? 'شراء بالكوينز' : 'Buy with Coins',
-        CosmeticPriceType.prestigeStars =>
-          ar ? 'فتح بالنجوم' : 'Unlock with Stars',
-        CosmeticPriceType.premium => ar ? 'شراء' : 'Buy',
-        CosmeticPriceType.achievement => '',
-        CosmeticPriceType.seasonalPlacement => '',
-      };
-    }
-
     return CosmicPanel(
-      padding: const EdgeInsets.all(GameSpacing.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CosmeticPreview(item: item, rarityColor: color, size: 74),
-          const SizedBox(width: GameSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  itemName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: GameColors.muted,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: GameSpacing.sm,
-                  runSpacing: 4,
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: onPreview,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        child: Padding(
+          padding: const EdgeInsets.all(GameSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Hero(
+                tag: 'shop-${item.id}',
+                child: CosmeticPreview(item: item, rarityColor: color, size: 82),
+              ),
+              const SizedBox(width: GameSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      slotLabel,
-                      style: const TextStyle(
-                        color: GameColors.muted,
-                        fontSize: 11,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                        ),
+                        const Icon(Icons.zoom_in_rounded, size: 19, color: GameColors.accentBright),
+                      ],
                     ),
+                    const SizedBox(height: 3),
                     Text(
-                      rarityLabel,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                      ),
+                      description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: GameColors.muted, fontSize: 12),
                     ),
-                    _PriceLine(item: item, premiumPrice: premiumPrice),
+                    const SizedBox(height: 7),
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 5,
+                      children: [
+                        _MiniTag(text: price, color: color),
+                        _MiniTag(
+                          text: equipped
+                              ? (ar ? 'مجهز' : 'Equipped')
+                              : owned
+                                  ? (ar ? 'مملوك' : 'Owned')
+                                  : (ar ? 'قابل للمعاينة' : 'Previewable'),
+                          color: equipped || owned ? GameColors.success : GameColors.accentBright,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: onPreview,
+                            icon: const Icon(Icons.visibility_rounded, size: 17),
+                            label: Text(ar ? 'معاينة' : 'Preview'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: busy || !actionEnabled ? null : onAction,
+                            child: busy
+                                ? const SizedBox.square(
+                                    dimension: 15,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : Text(actionLabel, textAlign: TextAlign.center, maxLines: 2),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: GameSpacing.sm),
-                if (equipped)
-                  _Status(label: l10n.equipped, color: GameColors.success)
-                else
-                  SizedBox(
-                    height: 38,
-                    child: OutlinedButton(
-                      onPressed: busy ||
-                              earnedOnly ||
-                              !purchasesEnabled ||
-                              (!owned && !canAcquire)
-                          ? null
-                          : (owned ? onEquip : onAcquire),
-                      child: busy
-                          ? const SizedBox.square(
-                              dimension: 15,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(actionLabel()),
-                    ),
-                  ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniTag extends StatelessWidget {
+  const _MiniTag({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(GameRadii.pill),
+        border: Border.all(color: color.withValues(alpha: .22)),
+      ),
+      child: Text(text, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+    );
+  }
+}
+
+class _InfoBanner extends StatelessWidget {
+  const _InfoBanner({required this.text, this.emphasis = false});
+  final String text;
+  final bool emphasis;
+
+  @override
+  Widget build(BuildContext context) {
+    return CosmicPanel(
+      padding: const EdgeInsets.all(GameSpacing.sm),
+      glow: emphasis,
+      child: Row(
+        children: [
+          Icon(
+            emphasis ? Icons.visibility_rounded : Icons.info_outline_rounded,
+            color: emphasis ? GameColors.accentBright : GameColors.muted,
+            size: 19,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: emphasis ? GameColors.textSoft : GameColors.muted,
+                fontSize: 12,
+                height: 1.35,
+              ),
             ),
           ),
         ],
@@ -736,150 +729,3 @@ class _CosmeticCard extends StatelessWidget {
     );
   }
 }
-
-class _PriceLine extends StatelessWidget {
-  const _PriceLine({required this.item, this.premiumPrice});
-  final CosmeticItem item;
-  final String? premiumPrice;
-
-  @override
-  Widget build(BuildContext context) {
-    return switch (item.priceType) {
-      CosmeticPriceType.coins => _Price(
-          icon: Icons.monetization_on_rounded,
-          value: '${item.coinPrice}',
-          color: GameColors.rewardGold,
-        ),
-      CosmeticPriceType.prestigeStars => _Price(
-          icon: Icons.star_rounded,
-          value: '${item.starPrice}',
-          color: GameColors.rankLegend,
-        ),
-      CosmeticPriceType.premium => _Price(
-          icon: Icons.workspace_premium_rounded,
-          value: premiumPrice ??
-              '\$${(item.premiumPriceCents / 100).toStringAsFixed(2)}',
-          color: GameColors.rarityEpic,
-        ),
-      CosmeticPriceType.achievement => const _Price(
-          icon: Icons.emoji_events_rounded,
-          value: 'Achievement',
-          color: GameColors.success,
-        ),
-      CosmeticPriceType.seasonalPlacement => const _Price(
-          icon: Icons.leaderboard_rounded,
-          value: 'Season',
-          color: GameColors.rankLegend,
-        ),
-    };
-  }
-}
-
-class _Price extends StatelessWidget {
-  const _Price({
-    required this.icon,
-    required this.value,
-    required this.color,
-  });
-  final IconData icon;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 15, color: color),
-        const SizedBox(width: 3),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag({required this.label, required this.color});
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .1),
-        borderRadius: BorderRadius.circular(GameRadii.pill),
-        border: Border.all(color: color.withValues(alpha: .28)),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 9,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
-class _Status extends StatelessWidget {
-  const _Status({required this.label, required this.color});
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: .1),
-        borderRadius: BorderRadius.circular(GameRadii.pill),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return CosmicPanel(
-      padding: const EdgeInsets.all(GameSpacing.sm),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: GameColors.muted,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-}
-
-Color _rarityColor(CosmeticRarity rarity) => switch (rarity) {
-      CosmeticRarity.common => GameColors.rarityCommon,
-      CosmeticRarity.rare => GameColors.rarityRare,
-      CosmeticRarity.epic => GameColors.rarityEpic,
-      CosmeticRarity.legendary => GameColors.rarityLegendary,
-      CosmeticRarity.mythic => GameColors.rarityMythic,
-    };
