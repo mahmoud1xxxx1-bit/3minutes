@@ -1,0 +1,1 @@
+Game Lab must visually match the production 3 Minutes identity before user approval. This file is intentionally minimal and will be refined after reading the app design tokens.
