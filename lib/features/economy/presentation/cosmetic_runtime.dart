@@ -1060,7 +1060,7 @@ class _ConfettiPainter extends CustomPainter {
       canvas.save();
       canvas.translate(x, y);
       canvas.rotate(phase * math.pi * 2 + i * .3);
-      canvas.drawRect(const Rect.fromCenter(center: Offset.zero, width: 5, height: 10), paint);
+      canvas.drawRect(Rect.fromCenter(center: Offset.zero, width: 5, height: 10), paint);
       canvas.restore();
     }
   }
