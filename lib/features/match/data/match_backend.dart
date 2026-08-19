@@ -37,17 +37,6 @@ abstract class MatchBackend {
     required String uid,
   });
 
-  /// Finalizes a ranked match and returns the authoritative settlement payload
-  /// when the active backend supports it. Spark fallback implementations may
-  /// safely return null after finalizing because they do not award Ranked RP.
-  Future<RankedSettlementPlayer?> finalizeMatchWithResult({
-    required String matchId,
-    required String uid,
-  }) async {
-    await finalizeMatch(matchId: matchId, uid: uid);
-    return null;
-  }
-
   Future<void> requestRematch({
     required String matchId,
     required String uid,
@@ -63,5 +52,15 @@ abstract class MatchBackend {
     required String uid,
     required MatchProgress progress,
     required int gameCount,
+  });
+}
+
+/// Optional capability implemented only by ranked backends that can return the
+/// server-authoritative settlement receipt. Spark fallbacks intentionally do
+/// not implement this interface because they do not award Ranked RP.
+abstract interface class RankedSettlementResultBackend {
+  Future<RankedSettlementPlayer?> finalizeMatchWithResult({
+    required String matchId,
+    required String uid,
   });
 }
