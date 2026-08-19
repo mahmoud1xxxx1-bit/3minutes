@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../domain/rank_tier.dart';
 import '../domain/ranked_settlement_player.dart';
 import 'rank_emblem.dart';
 
@@ -114,7 +115,7 @@ class _RankPromotionRevealState extends State<RankPromotionReveal>
                     ),
                   ),
                   RankEmblem(tier: settlement.nextTier, size: 104),
-                  Positioned(
+                  const Positioned(
                     top: -8,
                     right: 0,
                     child: Icon(
@@ -162,14 +163,14 @@ class _RankPromotionRevealState extends State<RankPromotionReveal>
     );
   }
 
-  Color _rankColor(tier) => switch (tier) {
-        var t when t.name == 'bronze' => GameColors.rankBronze,
-        var t when t.name == 'silver' => GameColors.rankSilver,
-        var t when t.name == 'gold' => GameColors.rankGold,
-        var t when t.name == 'platinum' => GameColors.rankPlatinum,
-        var t when t.name == 'diamond' => GameColors.rankDiamond,
-        var t when t.name == 'master' => GameColors.rankMaster,
-        var t when t.name == 'grandmaster' => GameColors.rankGrandmaster,
-        _ => GameColors.rankLegend,
+  Color _rankColor(RankTier tier) => switch (tier) {
+        RankTier.bronze => GameColors.rankBronze,
+        RankTier.silver => GameColors.rankSilver,
+        RankTier.gold => GameColors.rankGold,
+        RankTier.platinum => GameColors.rankPlatinum,
+        RankTier.diamond => GameColors.rankDiamond,
+        RankTier.master => GameColors.rankMaster,
+        RankTier.grandmaster => GameColors.rankGrandmaster,
+        RankTier.legend => GameColors.rankLegend,
       };
 }
