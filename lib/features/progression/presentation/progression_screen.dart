@@ -15,10 +15,12 @@ class ProgressionScreen extends StatelessWidget {
   const ProgressionScreen({
     super.key,
     required this.uid,
+    required this.seasonId,
     required this.backend,
   });
 
   final String uid;
+  final String seasonId;
   final ProgressionBackend backend;
 
   @override
@@ -50,9 +52,9 @@ class ProgressionScreen extends StatelessWidget {
             top: false,
             child: TabBarView(
               children: [
-                _MissionsTab(uid: uid, backend: backend),
+                _MissionsTab(uid: uid, seasonId: seasonId, backend: backend),
                 _AchievementsTab(uid: uid, backend: backend),
-                _SeasonPassTab(uid: uid, backend: backend),
+                _SeasonPassTab(uid: uid, seasonId: seasonId, backend: backend),
               ],
             ),
           ),
@@ -82,15 +84,20 @@ Future<void> _claim(
 }
 
 class _MissionsTab extends StatelessWidget {
-  const _MissionsTab({required this.uid, required this.backend});
+  const _MissionsTab({
+    required this.uid,
+    required this.seasonId,
+    required this.backend,
+  });
   final String uid;
+  final String seasonId;
   final ProgressionBackend backend;
 
   @override
   Widget build(BuildContext context) {
     final copy = ProgressionCopy.of(context);
     return StreamBuilder<Map<String, PlayerMissionState>>(
-      stream: backend.watchMissions(uid),
+      stream: backend.watchMissions(uid, seasonId: seasonId),
       builder: (context, snapshot) {
         final states = snapshot.data ?? const <String, PlayerMissionState>{};
         return ListView(
@@ -129,6 +136,7 @@ class _MissionsTab extends StatelessWidget {
                   state: states[definition.id],
                   copy: copy,
                   backend: backend,
+                  seasonId: seasonId,
                 ),
                 const SizedBox(height: GameSpacing.sm),
               ],
@@ -147,11 +155,13 @@ class _MissionCard extends StatelessWidget {
     required this.state,
     required this.copy,
     required this.backend,
+    required this.seasonId,
   });
   final MissionDefinition definition;
   final PlayerMissionState? state;
   final ProgressionCopy copy;
   final ProgressionBackend backend;
+  final String seasonId;
 
   @override
   Widget build(BuildContext context) {
@@ -232,7 +242,10 @@ class _MissionCard extends StatelessWidget {
                 onPressed: !claimed && authorityReady
                     ? () => _claim(
                           context,
-                          () => backend.claimMissionReward(definition.id),
+                          () => backend.claimMissionReward(
+                            missionId: definition.id,
+                            seasonId: seasonId,
+                          ),
                         )
                     : null,
                 icon: Icon(
@@ -368,22 +381,28 @@ class _AchievementsTab extends StatelessWidget {
 }
 
 class _SeasonPassTab extends StatelessWidget {
-  const _SeasonPassTab({required this.uid, required this.backend});
+  const _SeasonPassTab({
+    required this.uid,
+    required this.seasonId,
+    required this.backend,
+  });
   final String uid;
+  final String seasonId;
   final ProgressionBackend backend;
 
   @override
   Widget build(BuildContext context) {
     final copy = ProgressionCopy.of(context);
     return StreamBuilder<PlayerSeasonPassState>(
-      stream: backend.watchSeasonPass(uid),
+      stream: backend.watchSeasonPass(uid, seasonId: seasonId),
       builder: (context, snapshot) {
         final state = snapshot.data ??
-            const PlayerSeasonPassState(
+            PlayerSeasonPassState(
+              seasonId: seasonId,
               seasonXp: 0,
               premiumUnlocked: false,
-              claimedFreeLevels: <int>{},
-              claimedPremiumLevels: <int>{},
+              claimedFreeLevels: const <int>{},
+              claimedPremiumLevels: const <int>{},
             );
         final level = SeasonPassPolicy.levelForXp(state.seasonXp);
         final fraction = SeasonPassPolicy.progressFraction(state.seasonXp);
@@ -522,6 +541,7 @@ class _SeasonTierRow extends StatelessWidget {
                   ? () => _claim(
                         context,
                         () => backend.claimSeasonPassReward(
+                          seasonId: state.seasonId,
                           level: tier,
                           track: SeasonPassClaimTrack.free,
                         ),
@@ -542,6 +562,7 @@ class _SeasonTierRow extends StatelessWidget {
                       ? () => _claim(
                             context,
                             () => backend.claimSeasonPassReward(
+                              seasonId: state.seasonId,
                               level: tier,
                               track: SeasonPassClaimTrack.premium,
                             ),
