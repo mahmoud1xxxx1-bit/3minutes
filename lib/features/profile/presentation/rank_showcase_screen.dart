@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../competition/domain/rank_tier.dart';
@@ -27,6 +28,8 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
   RankTier? _savingTier;
   String? _error;
 
+  bool get _selectionEnabled => AppConfig.rankedAuthorityEnabled;
+
   @override
   void initState() {
     super.initState();
@@ -34,7 +37,9 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
   }
 
   Future<void> _select(RankTier tier) async {
-    if (_savingTier != null || !widget.profile.isRankEmblemUnlocked(tier)) {
+    if (!_selectionEnabled ||
+        _savingTier != null ||
+        !widget.profile.isRankEmblemUnlocked(tier)) {
       return;
     }
     setState(() {
@@ -133,6 +138,42 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
                   ],
                 ),
               ),
+              if (!_selectionEnabled) ...[
+                const SizedBox(height: GameSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.all(GameSpacing.md),
+                  decoration: BoxDecoration(
+                    color: GameColors.accentSoft,
+                    borderRadius: BorderRadius.circular(GameRadii.card),
+                    border: Border.all(
+                      color: GameColors.accentBright.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.visibility_rounded,
+                        color: GameColors.accentBright,
+                        size: 20,
+                      ),
+                      const SizedBox(width: GameSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          ar
+                              ? 'يمكنك الآن مشاهدة جميع الشارات التي كسبتها. تجهيز شارة تاريخية للعرض العام يتفعّل بعد تشغيل خادم المنافسة الآمن؛ لا يتم إرسال أي اختيار من هذه الشاشة أثناء وضع Spark.'
+                              : 'You can view every emblem you have earned now. Equipping a historical emblem for public display activates with the secure competition server; this screen sends no selection while Spark mode is active.',
+                          style: const TextStyle(
+                            color: GameColors.textSoft,
+                            height: 1.4,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: GameSpacing.sm),
                 Text(
@@ -162,8 +203,9 @@ class _RankShowcaseScreenState extends State<RankShowcaseScreen> {
                     unlocked: unlocked,
                     selected: selected,
                     saving: saving,
+                    selectionEnabled: _selectionEnabled,
                     legendarySeasons: widget.profile.legendarySeasons,
-                    onTap: unlocked ? () => _select(tier) : null,
+                    onTap: unlocked && _selectionEnabled ? () => _select(tier) : null,
                   );
                 },
               ),
@@ -181,6 +223,7 @@ class _RankEmblemCard extends StatelessWidget {
     required this.unlocked,
     required this.selected,
     required this.saving,
+    required this.selectionEnabled,
     required this.legendarySeasons,
     required this.onTap,
   });
@@ -189,6 +232,7 @@ class _RankEmblemCard extends StatelessWidget {
   final bool unlocked;
   final bool selected;
   final bool saving;
+  final bool selectionEnabled;
   final int legendarySeasons;
   final VoidCallback? onTap;
 
@@ -292,7 +336,9 @@ class _RankEmblemCard extends StatelessWidget {
               selected
                   ? (ar ? 'مجهّزة للعرض' : 'Equipped')
                   : unlocked
-                      ? (ar ? 'اضغط للتجهيز' : 'Tap to equip')
+                      ? selectionEnabled
+                          ? (ar ? 'اضغط للتجهيز' : 'Tap to equip')
+                          : (ar ? 'مفتوحة للعرض' : 'Unlocked to view')
                       : (ar ? 'غير مكتسبة' : 'Locked'),
               textAlign: TextAlign.center,
               style: TextStyle(
