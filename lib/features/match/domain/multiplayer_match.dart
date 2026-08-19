@@ -22,6 +22,8 @@ class MatchParticipant {
     this.isReady = false,
     this.connectionState = ParticipantConnectionState.connected,
     this.finishedAt,
+    this.latestEmoteId,
+    this.latestEmoteAt,
   });
 
   final String uid;
@@ -32,7 +34,16 @@ class MatchParticipant {
   final MatchProgress progress;
   final DateTime? finishedAt;
 
+  /// Social-only expression. It never affects score, timing, ranking or rewards.
+  final String? latestEmoteId;
+  final DateTime? latestEmoteAt;
+
   bool get isFinished => finishedAt != null;
+
+  bool emoteIsVisible(DateTime now) =>
+      latestEmoteId != null &&
+      latestEmoteAt != null &&
+      now.difference(latestEmoteAt!).inSeconds.abs() <= 4;
 }
 
 class MultiplayerMatch {
