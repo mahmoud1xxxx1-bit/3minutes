@@ -1,8 +1,8 @@
 # Season System Closeout
 
-Status: IN PROGRESS — distributed rollover validation and final APK validation pending.
+Status: IN PROGRESS — distributed rollover source/CI validated; Season Pass hardening and final APK acceptance remain.
 
-This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Exact season-boundary correctness is validated. The former single-invocation million-player rollover bottleneck has now been replaced in source by a distributed Cloud Tasks page pipeline and is awaiting dedicated validation before this subsystem is marked closed.
+This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Exact season-boundary correctness and the distributed rollover architecture are now validated at source/CI level. Production deployment still requires Blaze, Cloud Tasks/IAM readiness, the tracked Firestore index, and final APK/device acceptance.
 
 ## Work in this batch
 
@@ -41,14 +41,14 @@ The previous implementation loaded the complete leaderboard and iterated every p
 
 The source now uses a distributed page pipeline:
 
-- `rolloverRankedSeason` is now only the coordinator/lock owner.
-- The coordinator runs every five minutes instead of hourly so post-season downtime is bounded more tightly.
+- `rolloverRankedSeason` is only the coordinator/lock owner.
+- The coordinator runs every five minutes instead of hourly so post-season scheduling delay is bounded more tightly.
 - It atomically freezes the ended season, initializes rollover counters, and enqueues page 0.
 - `processSeasonRolloverPage` is a Firebase task-queue function in `me-central2`.
 - Leaderboard traversal is server-index ordered by `rankPoints DESC`, `wins DESC`, `losses ASC`, then document ID ASC for a deterministic total order.
 - Each task reads at most 200 leaderboard entries.
-- Each page enqueues its deterministic next page immediately after discovering its cursor, allowing the queue pipeline to overlap work instead of forcing one long serial invocation.
-- Task IDs use `season_<seasonId>_page_<offset>`, so a retry cannot create an uncontrolled duplicate task tree.
+- Each page enqueues its deterministic next page after discovering its cursor, so rollover does not depend on one long invocation holding the whole leaderboard.
+- Task IDs use `season_<seasonId>_page_<offset>` so enqueue retries cannot create an uncontrolled duplicate task tree.
 - Cloud Tasks retry policy is bounded and backs off on transient failures.
 - Queue dispatch is rate-limited to protect Firestore and Functions from an uncontrolled rollover spike.
 - Within a page, player grants are processed with bounded concurrency rather than 200 unbounded simultaneous transactions.
@@ -57,22 +57,22 @@ The source now uses a distributed page pipeline:
 - The last discovered page sets `rolloverExpectedEntries`.
 - Finalization occurs only when `rolloverCompletedEntries >= rolloverExpectedEntries`.
 - The final transaction closes the old season and activates the next season exactly once.
-- An empty leaderboard is also valid: page 0 records an expected count of zero and finalizes safely.
+- An empty leaderboard is valid: page 0 records an expected count of zero and finalizes safely.
 
-This architecture removes the requirement to hold the full season leaderboard in memory or finish one million grants in one 540-second Function invocation.
+This removes the previous full-leaderboard memory requirement and the requirement to finish one million grants in one 540-second Function invocation.
 
 ## Firestore indexing for rollover
 
-The repository now tracks `firestore.indexes.json` and `firebase.json` references it alongside the rules file.
+The repository tracks `firestore.indexes.json` and `firebase.json` references it alongside the rules file.
 
-The required manual leaderboard index is tracked in source for:
+The required leaderboard index is tracked in source for:
 
 - `rankPoints DESC`
 - `wins DESC`
 - `losses ASC`
-- Firestore's final document-name ordering provides the deterministic UID tie-break direction used by the query.
+- Firestore document-name ordering is the deterministic UID tie-break used by the query.
 
-This index is a production deployment requirement before the distributed rollover worker can run against live Firestore.
+This index is a production deployment requirement before the distributed rollover worker runs against live Firestore.
 
 ## Locked economy/prestige policy
 
@@ -80,20 +80,33 @@ Prestige Stars remain permanent account history and are never spent. Season clos
 
 Current reward and reset tables are unchanged in this hardening batch. Rebalancing requires an explicit product decision.
 
-## Validation evidence already completed
+## Validation evidence
 
-The exact boundary implementation passed dedicated No-APK validation on GitHub Actions run `32220593908` via temporary PR #62. The PR was closed **without merge** after validation.
+### Exact-boundary validation
 
-Validated successfully in that run:
+GitHub Actions run `32220593908`, temporary PR #62, closed without merge:
 
-- Cloud Functions TypeScript build;
-- Cloud Functions policy/unit tests, including exact boundary tests;
-- Firestore emulator security tests;
-- Flutter dependency resolution;
-- `flutter analyze`;
-- full `flutter test` suite.
+- Cloud Functions TypeScript build ✅
+- Cloud Functions policy/unit tests ✅
+- Firestore emulator security tests ✅
+- Flutter dependency resolution ✅
+- `flutter analyze` ✅
+- full `flutter test` ✅
+- APK build: not run
 
-A previous validation attempt correctly failed on a TypeScript snapshot typing error in `season.ts`; that error was fixed and the full validation was rerun from the beginning until green. No APK was built in that validation cycle.
+### Distributed-rollover validation
+
+GitHub Actions run `32221542284`, job `95972796567`, temporary PR #63, closed without merge:
+
+- Cloud Functions dependencies ✅
+- Cloud Functions TypeScript build and tests, including task-queue source ✅
+- Firestore emulator rules/security tests ✅
+- Flutter setup/dependencies ✅
+- `flutter analyze` ✅
+- full `flutter test` ✅
+- APK build: not run
+
+This proves source/CI compatibility of the distributed Cloud Tasks implementation. It does **not** prove production Cloud Tasks/IAM/index deployment because the project remains in the controlled Spark/pre-Blaze phase.
 
 Additional policy coverage includes:
 
@@ -105,17 +118,11 @@ Additional policy coverage includes:
 - exact final legal Ranked-admission millisecond;
 - full five-minute settlement grace before rollover can acquire the season lock.
 
-## Current validation gate
+## Current open work discovered by the economy audit
 
-The new distributed rollover source is **not yet declared validated** merely because it has been written. It still must pass a fresh dedicated No-APK run covering:
+The Season Pass implementation is currently being hardened. The previous state lived at `seasonPass/{uid}` without an explicit `seasonId`, so Season XP and claimed tier arrays could behave as lifetime state rather than one 30-day season. Claim receipt IDs were also not season-scoped. This is being treated as a real correctness defect, not deferred documentation.
 
-- TypeScript build with `firebase-admin/functions` and task-queue APIs;
-- Functions tests;
-- Firestore emulator rules tests;
-- Flutter analyze/tests to prove no cross-project breakage;
-- source contract tests for page IDs, page size, completion accounting and deterministic ordering where practical.
-
-After that run is green, this document will be updated again with the exact run ID and the scale gate will move from implementation to deployment/capacity testing.
+The required invariant is that Season XP, pass tier progress and tier claims belong to one explicit season, while permanent account progression remains separate. Old-season completed mission rewards must not be able to inject Season XP into a new season.
 
 ## Remaining production-scale considerations for the final owner report
 
@@ -125,11 +132,11 @@ The distributed design removes the single-function memory/timeout bottleneck, bu
 - page-query reads;
 - task count (`ceil(entries / 200)` at current page size);
 - Cloud Tasks cost;
-- Functions compute duration at the configured queue concurrency;
-- expected time until the next season becomes active at 100K / 1M players;
-- whether player rollover transactions should later be further reduced or denormalized;
+- Functions compute duration at configured queue limits;
+- expected end-to-end rollover time at 100K / 1M players;
+- whether player rollover transactions should be further reduced or denormalized;
 - operational alarms for a season stuck in `processing`;
 - deployment of the required Firestore composite index;
 - Blaze/IAM requirements for Cloud Tasks enqueue/invoke permissions.
 
-These points are intentionally retained for the final financial/capacity report rather than hidden behind a generic “scales automatically” claim.
+These points remain explicitly tracked for the final financial/capacity report rather than hidden behind a generic “scales automatically” claim.
