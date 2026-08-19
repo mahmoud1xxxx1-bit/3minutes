@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,15 +16,36 @@ class AvatarArtwork extends StatelessWidget {
   final double size;
   final double borderRadius;
 
-  static final Map<String, Future<Uint8List>> _bytesCache = {};
+  static const _atlasPaths = <String>[
+    'assets/avatars/free_atlas.webp.b64',
+    'assets/avatars/coins_atlas.webp.b64',
+    'assets/avatars/premium_atlas.webp.b64',
+    'assets/avatars/stars_atlas.webp.b64',
+    'assets/avatars/exclusive_atlas.webp.b64',
+  ];
+
+  static final Map<String, Uint8List> _resolvedBytes = <String, Uint8List>{};
+  static final Map<String, Future<Uint8List>> _pendingLoads = <String, Future<Uint8List>>{};
 
   static bool supports(String id) => _specFor(id) != null;
 
-  static Future<Uint8List> _load(String assetPath) =>
-      _bytesCache.putIfAbsent(assetPath, () async {
-        final encoded = (await rootBundle.loadString(assetPath)).trim();
-        return base64Decode(encoded);
-      });
+  /// Warms all approved avatar atlases before the player enters the main shell.
+  /// This removes repeated base64 decode spinners while browsing Shop/Profile.
+  static Future<void> preloadAll() async {
+    await Future.wait(_atlasPaths.map(_load));
+  }
+
+  static Future<Uint8List> _load(String assetPath) {
+    final ready = _resolvedBytes[assetPath];
+    if (ready != null) return Future<Uint8List>.value(ready);
+    return _pendingLoads.putIfAbsent(assetPath, () async {
+      final encoded = (await rootBundle.loadString(assetPath)).trim();
+      final bytes = base64Decode(encoded);
+      _resolvedBytes[assetPath] = bytes;
+      _pendingLoads.remove(assetPath);
+      return bytes;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,45 +57,57 @@ class AvatarArtwork extends StatelessWidget {
       );
     }
 
+    final ready = _resolvedBytes[spec.assetPath];
+    if (ready != null) return _render(spec, ready);
+
     return FutureBuilder<Uint8List>(
       future: _load(spec.assetPath),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return SizedBox.square(
             dimension: size,
-            child: const Center(
-              child: SizedBox.square(
-                dimension: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: const Color(0xFF11182D),
+                borderRadius: BorderRadius.circular(borderRadius),
+              ),
+              child: const Center(
+                child: Icon(Icons.person_rounded, color: Color(0x668CD9FF)),
               ),
             ),
           );
         }
-
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
-          child: SizedBox.square(
-            dimension: size,
-            child: Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                Positioned(
-                  left: -spec.column * size,
-                  top: -spec.row * size,
-                  width: spec.columns * size,
-                  height: spec.rows * size,
-                  child: Image.memory(
-                    snapshot.data!,
-                    fit: BoxFit.fill,
-                    gaplessPlayback: true,
-                    filterQuality: FilterQuality.high,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        return _render(spec, snapshot.data!);
       },
+    );
+  }
+
+  Widget _render(_AvatarAtlasSpec spec, Uint8List bytes) {
+    return RepaintBoundary(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: SizedBox.square(
+          dimension: size,
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              Positioned(
+                left: -spec.column * size,
+                top: -spec.row * size,
+                width: spec.columns * size,
+                height: spec.rows * size,
+                child: Image.memory(
+                  bytes,
+                  fit: BoxFit.fill,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.high,
+                  isAntiAlias: true,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
