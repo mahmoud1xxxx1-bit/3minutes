@@ -28,6 +28,7 @@ class SeasonHubScreen extends StatelessWidget {
     }
 
     return SeasonScreen(
+      uid: uid,
       competitionBackend: competitionBackend,
       onOpenMissions: openProgression,
     );
