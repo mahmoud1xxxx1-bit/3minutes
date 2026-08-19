@@ -36,15 +36,15 @@ class SeasonPlayerProgressPanel extends StatelessWidget {
             const SizedBox(height: GameSpacing.sm),
             Text(
               ar
-                  ? 'عند تفعيل Ranked الخادمي سيظهر هنا Peak Rank الحقيقي، سجل الفوز/الخسارة/التعادل، نجوم الهيبة التي ستكسبها عند نهاية الموسم، وRP البداية بعد Soft Reset. لن نعرض أرقامًا وهمية أثناء وضع Spark.'
-                  : 'When server-authoritative Ranked is activated, this panel shows your real Peak Rank, W/L/T record, Prestige Stars earned at season close, and next-season RP after Soft Reset. Spark never invents fake values.',
+                  ? 'إحصاءات الموسم المباشرة غير متاحة في هذه النسخة التجريبية. عند توفر المنافسات الكاملة سيظهر هنا Peak Rank الحقيقي وسجل الفوز والخسارة والتعادل وتوقع مكافآت نهاية الموسم.'
+                  : 'Live season statistics are unavailable in this test build. The full competitive version shows your real Peak Rank, W/L/T record, and projected season rewards here.',
               style: const TextStyle(color: GameColors.muted, height: 1.45),
             ),
             const SizedBox(height: GameSpacing.sm),
             Text(
               ar
-                  ? 'نجوم Prestige دائمة ولا تُستهلك. المكافأة وإعادة الضبط يعتمدان على أعلى رتبة وصلت إليها خلال الموسم، وليس رتبتك في آخر يوم.'
-                  : 'Prestige Stars are permanent and never spent. Rewards and Soft Reset use your highest tier reached during the season, not your final-day tier.',
+                  ? 'نجوم الهيبة دائمة ولا تُستهلك. مكافأة نهاية الموسم وإعادة ضبط RP تعتمدان على أعلى رتبة تصل إليها خلال الموسم.'
+                  : 'Prestige Stars are permanent and never spent. Season rewards and RP reset use the highest tier you reach during the season.',
               style: const TextStyle(
                 color: GameColors.rewardGold,
                 fontWeight: FontWeight.w700,
