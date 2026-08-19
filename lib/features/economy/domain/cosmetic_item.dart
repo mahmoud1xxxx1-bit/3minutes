@@ -20,6 +20,7 @@ enum CosmeticRarity {
 }
 
 enum CosmeticPriceType {
+  free,
   coins,
   prestigeStars,
   premium,
@@ -37,6 +38,7 @@ class CosmeticItem {
     this.premiumPriceCents = 0,
     this.rarity = CosmeticRarity.common,
     this.isPremium = false,
+    this.isFree = false,
     this.isSeasonLimited = false,
     this.requiredAchievementId,
     this.collection = 'core',
@@ -53,6 +55,7 @@ class CosmeticItem {
   final int premiumPriceCents;
   final CosmeticRarity rarity;
   final bool isPremium;
+  final bool isFree;
   final bool isSeasonLimited;
   final String? requiredAchievementId;
   final String collection;
@@ -61,7 +64,12 @@ class CosmeticItem {
   final int sortPriority;
 
   CosmeticPriceType get priceType {
-    if (requiredAchievementId != null) return CosmeticPriceType.achievement;
+    if (isFree) return CosmeticPriceType.free;
+    if (requiredAchievementId != null) {
+      return isSeasonLimited
+          ? CosmeticPriceType.seasonalPlacement
+          : CosmeticPriceType.achievement;
+    }
     if (starPrice > 0) return CosmeticPriceType.prestigeStars;
     if (isPremium || premiumPriceCents > 0) return CosmeticPriceType.premium;
     return CosmeticPriceType.coins;
