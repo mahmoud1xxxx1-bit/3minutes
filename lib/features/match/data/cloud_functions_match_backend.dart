@@ -11,16 +11,23 @@ import '../domain/match_ticket.dart';
 import 'firestore_match_backend.dart';
 import 'match_backend.dart';
 
+typedef RankedSettlementListener = void Function(
+  String matchId,
+  RankedSettlementPlayer settlement,
+);
+
 class CloudFunctionsMatchBackend
     implements MatchBackend, RankedSettlementResultBackend {
   CloudFunctionsMatchBackend({
     FirebaseFunctions? functions,
     FirestoreMatchBackend? readBackend,
+    this.onSettlement,
   })  : _functions = functions ?? FirebaseFunctions.instanceFor(region: 'me-central2'),
         _readBackend = readBackend ?? FirestoreMatchBackend();
 
   final FirebaseFunctions _functions;
   final FirestoreMatchBackend _readBackend;
+  final RankedSettlementListener? onSettlement;
 
   Future<void> _call(String name, Map<String, Object?> data) async {
     await _functions.httpsCallable(name).call<void>(data);
@@ -61,7 +68,8 @@ class CloudFunctionsMatchBackend
 
   @override
   Future<void> finalizeMatch({required String matchId, required String uid}) async {
-    await finalizeMatchWithResult(matchId: matchId, uid: uid);
+    final settlement = await finalizeMatchWithResult(matchId: matchId, uid: uid);
+    if (settlement != null) onSettlement?.call(matchId, settlement);
   }
 
   @override
