@@ -230,9 +230,18 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
     if (emoteId != 'emote_gg') {
       throw ArgumentError('Unsupported social emote.');
     }
-    // The equipped public loadout is written only by server authority after
-    // ownership verification. Reading it here prevents a client from sending
-    // a shop emote it does not own/equip.
+
+    if (AppConfig.backendPhase == BackendPhase.blaze) {
+      await _functions.httpsCallable('sendSocialEmote').call<void>({
+        'matchId': matchId,
+        'emoteId': emoteId,
+      });
+      return;
+    }
+
+    // Spark keeps the same entitlement check client-side, while Firestore
+    // rules constrain the write surface. Blaze upgrades this path to the
+    // server-authoritative callable above.
     final userSnap = await _firestore
         .collection(ServerCollections.users)
         .doc(uid)
