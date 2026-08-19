@@ -44,13 +44,19 @@ class FirestoreProgressionBackend implements ProgressionBackend {
   }
 
   @override
-  Stream<Map<String, PlayerMissionState>> watchMissions(String uid) {
+  Stream<Map<String, PlayerMissionState>> watchMissions(
+    String uid, {
+    required String seasonId,
+  }) {
     return _firestore
         .collection(ServerCollections.playerMissions)
         .doc(uid)
         .snapshots()
         .map((doc) {
       final data = doc.data() ?? const <String, dynamic>{};
+      if (data['seasonId'] != seasonId) {
+        return const <String, PlayerMissionState>{};
+      }
       final raw = data['states'];
       if (raw is! Map<String, dynamic>) return const <String, PlayerMissionState>{};
       final result = <String, PlayerMissionState>{};
@@ -70,14 +76,27 @@ class FirestoreProgressionBackend implements ProgressionBackend {
   }
 
   @override
-  Stream<PlayerSeasonPassState> watchSeasonPass(String uid) {
+  Stream<PlayerSeasonPassState> watchSeasonPass(
+    String uid, {
+    required String seasonId,
+  }) {
     return _firestore
         .collection(ServerCollections.seasonPass)
         .doc(uid)
         .snapshots()
         .map((doc) {
       final data = doc.data() ?? const <String, dynamic>{};
+      if (data['seasonId'] != seasonId) {
+        return PlayerSeasonPassState(
+          seasonId: seasonId,
+          seasonXp: 0,
+          premiumUnlocked: false,
+          claimedFreeLevels: const <int>{},
+          claimedPremiumLevels: const <int>{},
+        );
+      }
       return PlayerSeasonPassState(
+        seasonId: seasonId,
         seasonXp: (data['seasonXp'] as num?)?.toInt() ?? 0,
         premiumUnlocked: data['premiumUnlocked'] == true,
         claimedFreeLevels: _intSet(data['claimedFreeLevels']),
@@ -87,10 +106,14 @@ class FirestoreProgressionBackend implements ProgressionBackend {
   }
 
   @override
-  Future<void> claimMissionReward(String missionId) async {
+  Future<void> claimMissionReward({
+    required String missionId,
+    required String seasonId,
+  }) async {
     _requireAuthority();
     await _functions.httpsCallable('claimMissionReward').call<void>({
       'missionId': missionId,
+      'seasonId': seasonId,
     });
   }
 
@@ -104,11 +127,13 @@ class FirestoreProgressionBackend implements ProgressionBackend {
 
   @override
   Future<void> claimSeasonPassReward({
+    required String seasonId,
     required int level,
     required SeasonPassClaimTrack track,
   }) async {
     _requireAuthority();
     await _functions.httpsCallable('claimSeasonPassReward').call<void>({
+      'seasonId': seasonId,
       'level': level,
       'track': track.name,
     });
