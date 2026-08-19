@@ -17,23 +17,37 @@ class SeasonScreen extends StatelessWidget {
   const SeasonScreen({
     super.key,
     required this.competitionBackend,
+    this.onOpenMissions,
   });
 
   final CompetitionBackend competitionBackend;
+  final VoidCallback? onOpenMissions;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final liveEnabled = AppConfig.liveLeaderboardEnabled;
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(
-          l10n.season,
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
+        title: Text(l10n.season, style: const TextStyle(fontWeight: FontWeight.w900)),
+        actions: [
+          if (onOpenMissions != null)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: TextButton.icon(
+                onPressed: onOpenMissions,
+                icon: const Icon(Icons.task_alt_rounded, color: GameColors.rewardGold),
+                label: Text(
+                  ar ? 'المهام' : 'Missions',
+                  style: const TextStyle(color: GameColors.rewardGold, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+        ],
       ),
       body: CosmicBackground(
         child: SafeArea(
@@ -61,26 +75,16 @@ class SeasonScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(18),
                             boxShadow: GameShadows.primaryGlow,
                           ),
-                          child: const Icon(
-                            Icons.auto_awesome_rounded,
-                            color: Colors.white,
-                            size: 29,
-                          ),
+                          child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 29),
                         ),
                         const SizedBox(width: GameSpacing.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                l10n.seasonCompetition,
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
+                              Text(l10n.seasonCompetition, style: Theme.of(context).textTheme.titleLarge),
                               const SizedBox(height: 3),
-                              Text(
-                                l10n.seasonDuration(SeasonPolicy.duration.inDays),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
+                              Text(l10n.seasonDuration(SeasonPolicy.duration.inDays), style: Theme.of(context).textTheme.bodySmall),
                             ],
                           ),
                         ),
@@ -89,14 +93,15 @@ class SeasonScreen extends StatelessWidget {
                     const SizedBox(height: GameSpacing.md),
                     Text(
                       l10n.seasonStarsExplanation,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: GameColors.muted,
-                            height: 1.45,
-                          ),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: GameColors.muted, height: 1.45),
                     ),
                   ],
                 ),
               ),
+              if (onOpenMissions != null) ...[
+                const SizedBox(height: GameSpacing.md),
+                _MissionsGateway(onTap: onOpenMissions!),
+              ],
               const SizedBox(height: GameSpacing.md),
               if (liveEnabled)
                 _LiveSeasonCard(competitionBackend: competitionBackend)
@@ -111,18 +116,10 @@ class SeasonScreen extends StatelessWidget {
                           color: GameColors.accentSoft,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Icon(
-                          Icons.lock_clock_rounded,
-                          color: GameColors.accentBright,
-                        ),
+                        child: const Icon(Icons.lock_clock_rounded, color: GameColors.accentBright),
                       ),
                       const SizedBox(width: GameSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          l10n.liveStandingsLocked,
-                          style: const TextStyle(color: GameColors.muted),
-                        ),
-                      ),
+                      Expanded(child: Text(l10n.liveStandingsLocked, style: const TextStyle(color: GameColors.muted))),
                     ],
                   ),
                 ),
@@ -133,9 +130,7 @@ class SeasonScreen extends StatelessWidget {
                   const SizedBox(width: GameSpacing.sm),
                   Text(
                     l10n.rankLadder,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
                   ),
                 ],
               ),
@@ -152,9 +147,118 @@ class SeasonScreen extends StatelessWidget {
   }
 }
 
+class _MissionsGateway extends StatelessWidget {
+  const _MissionsGateway({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GameRadii.panel),
+        child: Ink(
+          padding: const EdgeInsets.all(GameSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GameRadii.panel),
+            gradient: const LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [Color(0xFF2D245F), Color(0xFF12344D), Color(0xFF10162C)],
+            ),
+            border: Border.all(color: GameColors.rewardGold.withValues(alpha: .42)),
+            boxShadow: [
+              BoxShadow(color: GameColors.rewardGold.withValues(alpha: .10), blurRadius: 24),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: GameColors.rewardGold.withValues(alpha: .12),
+                  borderRadius: BorderRadius.circular(19),
+                  border: Border.all(color: GameColors.rewardGold.withValues(alpha: .35)),
+                ),
+                child: const Icon(Icons.task_alt_rounded, color: GameColors.rewardGold, size: 32),
+              ),
+              const SizedBox(width: GameSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            ar ? 'مهام الموسم' : 'SEASON MISSIONS',
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: GameColors.rewardGold.withValues(alpha: .12),
+                            borderRadius: BorderRadius.circular(GameRadii.pill),
+                          ),
+                          child: Text(
+                            ar ? 'مكافآت' : 'REWARDS',
+                            style: const TextStyle(color: GameColors.rewardGold, fontSize: 10, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      ar
+                          ? 'المهام اليومية والأسبوعية والإنجازات وSeason Pass — تابع تقدمك واستلم مكافآتك من هنا.'
+                          : 'Daily and weekly missions, achievements, and Season Pass — track progress and claim rewards here.',
+                      style: const TextStyle(color: GameColors.textSoft, fontSize: 12, height: 1.4),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _MissionPill(icon: Icons.today_rounded, text: ar ? 'يومية' : 'Daily'),
+                        const SizedBox(width: 6),
+                        _MissionPill(icon: Icons.date_range_rounded, text: ar ? 'أسبوعية' : 'Weekly'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.arrow_forward_ios_rounded, color: GameColors.rewardGold, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MissionPill extends StatelessWidget {
+  const _MissionPill({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: GameColors.accentBright),
+        const SizedBox(width: 3),
+        Text(text, style: const TextStyle(color: GameColors.muted, fontSize: 10, fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+}
+
 class _LiveSeasonCard extends StatefulWidget {
   const _LiveSeasonCard({required this.competitionBackend});
-
   final CompetitionBackend competitionBackend;
 
   @override
@@ -182,60 +286,36 @@ class _LiveSeasonCardState extends State<_LiveSeasonCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
     return StreamBuilder<Season?>(
       stream: widget.competitionBackend.watchCurrentSeason(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError) {
-          return _MessageCard(message: l10n.couldNotLoadSeason);
-        }
+        if (snapshot.hasError) return _MessageCard(message: l10n.couldNotLoadSeason);
         final season = snapshot.data;
-        if (season == null) {
-          return _MessageCard(message: l10n.noActiveSeason);
-        }
-
+        if (season == null) return _MessageCard(message: l10n.noActiveSeason);
         final clock = SeasonClockPolicy.at(season: season, now: _now);
         final remaining = clock.remaining;
-
         return CosmicPanel(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      l10n.seasonNumber(season.number),
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
+                  Expanded(child: Text(l10n.seasonNumber(season.number), style: const TextStyle(fontWeight: FontWeight.w900))),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: GameSpacing.sm,
-                      vertical: GameSpacing.xs,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: GameSpacing.sm, vertical: GameSpacing.xs),
                     decoration: BoxDecoration(
-                      color: GameColors.rewardGold.withValues(alpha: 0.10),
+                      color: GameColors.rewardGold.withValues(alpha: .10),
                       borderRadius: BorderRadius.circular(GameRadii.pill),
-                      border: Border.all(
-                        color: GameColors.rewardGold.withValues(alpha: 0.22),
-                      ),
+                      border: Border.all(color: GameColors.rewardGold.withValues(alpha: .22)),
                     ),
                     child: Text(
                       clock.active
-                          ? l10n.seasonRemaining(
-                              remaining.inDays,
-                              remaining.inHours.remainder(24),
-                            )
+                          ? l10n.seasonRemaining(remaining.inDays, remaining.inHours.remainder(24))
                           : l10n.seasonClosed,
-                      style: const TextStyle(
-                        color: GameColors.rewardGold,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: GameColors.rewardGold, fontWeight: FontWeight.w800, fontSize: 12),
                     ),
                   ),
                 ],
@@ -243,10 +323,7 @@ class _LiveSeasonCardState extends State<_LiveSeasonCard> {
               const SizedBox(height: GameSpacing.md),
               ClipRRect(
                 borderRadius: BorderRadius.circular(GameRadii.pill),
-                child: LinearProgressIndicator(
-                  value: clock.progress,
-                  minHeight: 9,
-                ),
+                child: LinearProgressIndicator(value: clock.progress, minHeight: 9),
               ),
             ],
           ),
@@ -258,47 +335,29 @@ class _LiveSeasonCardState extends State<_LiveSeasonCard> {
 
 class _SeasonRewardCard extends StatelessWidget {
   const _SeasonRewardCard({required this.band});
-
   final RankBand band;
 
   @override
   Widget build(BuildContext context) {
     final stars = SeasonRewardPolicy.starsForPeakTier(band.tier);
-
     return CosmicPanel(
-      padding: const EdgeInsets.symmetric(
-        horizontal: GameSpacing.md,
-        vertical: GameSpacing.sm,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: GameSpacing.md, vertical: GameSpacing.sm),
       child: Row(
         children: [
           RankBadge(tier: band.tier),
           const Spacer(),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: GameSpacing.sm,
-              vertical: GameSpacing.xs,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: GameSpacing.sm, vertical: GameSpacing.xs),
             decoration: BoxDecoration(
-              color: GameColors.rewardGold.withValues(alpha: 0.10),
+              color: GameColors.rewardGold.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(GameRadii.pill),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.star_rounded,
-                  color: GameColors.rewardGold,
-                  size: 20,
-                ),
+                const Icon(Icons.star_rounded, color: GameColors.rewardGold, size: 20),
                 const SizedBox(width: 4),
-                Text(
-                  '$stars',
-                  style: const TextStyle(
-                    color: GameColors.rewardGold,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                Text('$stars', style: const TextStyle(color: GameColors.rewardGold, fontWeight: FontWeight.w900)),
               ],
             ),
           ),
@@ -310,13 +369,8 @@ class _SeasonRewardCard extends StatelessWidget {
 
 class _MessageCard extends StatelessWidget {
   const _MessageCard({required this.message});
-
   final String message;
 
   @override
-  Widget build(BuildContext context) {
-    return CosmicPanel(
-      child: Text(message, textAlign: TextAlign.center),
-    );
-  }
+  Widget build(BuildContext context) => CosmicPanel(child: Text(message, textAlign: TextAlign.center));
 }
