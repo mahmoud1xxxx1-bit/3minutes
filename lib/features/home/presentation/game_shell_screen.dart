@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/audio/game_audio_controller.dart';
 import '../../../core/platform/room_invite_service.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
@@ -66,6 +67,7 @@ class _GameShellScreenState extends State<GameShellScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(GameAudioController.instance.playMenuMusic());
     _inviteSubscription = RoomInviteService.roomCodes.listen(_queueInvite);
     unawaited(
       RoomInviteService.takeInitialRoomCode().then((code) {
@@ -77,6 +79,7 @@ class _GameShellScreenState extends State<GameShellScreen> {
   @override
   void dispose() {
     unawaited(_inviteSubscription?.cancel());
+    unawaited(GameAudioController.instance.stopMusic());
     super.dispose();
   }
 
@@ -182,7 +185,10 @@ class _GameShellScreenState extends State<GameShellScreen> {
               clipBehavior: Clip.antiAlias,
               child: NavigationBar(
                 selectedIndex: _index,
-                onDestinationSelected: (value) => setState(() => _index = value),
+                onDestinationSelected: (value) {
+                  unawaited(GameAudioController.instance.playSfx(GameSfx.tap));
+                  setState(() => _index = value);
+                },
                 backgroundColor: Colors.transparent,
                 indicatorColor: GameColors.accentSoft,
                 destinations: [
