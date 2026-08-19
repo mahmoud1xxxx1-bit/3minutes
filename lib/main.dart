@@ -44,8 +44,9 @@ Future<void> main() async {
   final authService = AuthService();
   await authService.initialize();
 
-  // Warm first-run experience before entering the game shell. Avatar atlases are
-  // decoded once here so Shop/Profile browsing does not flash loading spinners.
+  // Resolve persistent experience settings before entering the game shell.
+  // AvatarArtwork is now local vector art, so its preload hook completes
+  // immediately and never blocks first-run UI on image decoding.
   await Future.wait([
     GameSettingsController.instance.load(),
     AvatarArtwork.preloadAll(),
