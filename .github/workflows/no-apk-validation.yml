@@ -1,0 +1,51 @@
+name: No APK Validation
+
+on:
+  push:
+    branches:
+      - validation/no-apk-shop
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package.json
+
+      - name: Install Cloud Functions dependencies
+        run: npm install --prefix functions --no-audit --no-fund
+
+      - name: Build and test Cloud Functions
+        run: npm test --prefix functions
+
+      - name: Set up Java 21 for Firebase emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Validate Firestore rules and cosmetic security
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --only firestore --project demo-3minutes "npm run --prefix functions test:rules"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
