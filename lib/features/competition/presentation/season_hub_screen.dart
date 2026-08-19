@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/cosmic_background.dart';
 import '../../progression/data/progression_backend.dart';
+import '../../progression/presentation/premium_season_pass_screen.dart';
 import '../../progression/presentation/progression_screen.dart';
 import '../data/competition_backend.dart';
 import 'season_screen.dart';
@@ -18,38 +20,55 @@ class SeasonHubScreen extends StatelessWidget {
   final CompetitionBackend competitionBackend;
   final ProgressionBackend progressionBackend;
 
+  Future<String> _resolveSeasonId() async {
+    try {
+      final season = await competitionBackend
+          .watchCurrentSeason()
+          .firstWhere((value) => value != null)
+          .timeout(const Duration(seconds: 2));
+      return season?.id ?? 'preview_current';
+    } catch (_) {
+      // Preview state is intentional for test/offline builds. Claim buttons are
+      // already authority-gated, so there is no reason to block navigation.
+      return 'preview_current';
+    }
+  }
+
+  Future<void> _openMissions(BuildContext context) async {
+    final seasonId = await _resolveSeasonId();
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProgressionScreen(
+          uid: uid,
+          seasonId: seasonId,
+          backend: progressionBackend,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPremium(BuildContext context) async {
+    final seasonId = await _resolveSeasonId();
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PremiumSeasonPassScreen(
+          uid: uid,
+          seasonId: seasonId,
+          backend: progressionBackend,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    void openProgression() {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => StreamBuilder(
-            stream: competitionBackend.watchCurrentSeason(),
-            builder: (context, snapshot) {
-              final season = snapshot.data;
-              if (season == null) {
-                return const Scaffold(
-                  backgroundColor: Colors.transparent,
-                  body: CosmicBackground(
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                );
-              }
-              return ProgressionScreen(
-                uid: uid,
-                seasonId: season.id,
-                backend: progressionBackend,
-              );
-            },
-          ),
-        ),
-      );
-    }
-
     return SeasonScreen(
       uid: uid,
       competitionBackend: competitionBackend,
-      onOpenMissions: openProgression,
+      onOpenMissions: () => unawaited(_openMissions(context)),
+      onOpenPremium: () => unawaited(_openPremium(context)),
     );
   }
 }
