@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>3 Minutes — Game Lab</title>
+<style>
+:root{
+  --bg:#070b12;--surface:#0d1420;--surface2:#121d2b;--line:#203149;
+  --text:#f6f8fb;--muted:#8d9bb0;--cyan:#48e8ff;--cyan2:#0bbbd5;
+  --gold:#ffd05a;--danger:#ff5573;--ok:#64f7ac;--shadow:rgba(0,0,0,.42);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+body{margin:0;min-height:100svh;background:
+ radial-gradient(circle at 16% 12%,rgba(72,232,255,.10),transparent 28%),
+ radial-gradient(circle at 84% 20%,rgba(104,77,255,.12),transparent 30%),
+ radial-gradient(circle at 50% 100%,rgba(11,187,213,.08),transparent 34%),var(--bg);
+ color:var(--text);font-family:Inter,"Noto Sans Arabic",system-ui,-apple-system,Segoe UI,Arial,sans-serif;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.35;background-image:radial-gradient(#fff 0.7px,transparent 0.7px);background-size:24px 24px;mask-image:linear-gradient(to bottom,#000,transparent 88%)}
+.wrap{width:min(100%,520px);margin:auto;padding:14px 14px 28px;min-height:100svh;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 2px}
+.brand{display:flex;align-items:center;gap:10px}.mark{width:38px;height:38px;border-radius:13px;background:linear-gradient(145deg,var(--cyan),#826cff);display:grid;place-items:center;color:#061018;font-weight:1000;box-shadow:0 0 22px rgba(72,232,255,.18)}
+.brand b{display:block;font-size:15px;letter-spacing:.4px}.brand span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.live{font-size:11px;font-weight:900;color:var(--ok);border:1px solid rgba(100,247,172,.25);background:rgba(100,247,172,.06);padding:7px 10px;border-radius:99px}
+.panel{background:linear-gradient(180deg,rgba(18,29,43,.94),rgba(13,20,32,.95));border:1px solid var(--line);border-radius:22px;box-shadow:0 18px 45px var(--shadow)}
+.hud{padding:12px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.metric small{display:block;color:var(--muted);font-size:10px;font-weight:800;margin-bottom:3px}.metric strong{font-size:18px;letter-spacing:.3px}.metric.end{text-align:left}.game-title{text-align:center}.game-title b{font-size:15px}.game-title span{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.progress{height:4px;background:#101a28;border-radius:99px;overflow:hidden;margin:0 12px 12px}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),#806aff);transition:width .18s ease}
+.controls{display:flex;gap:8px;padding:10px;align-items:center;overflow:auto}.chip,.btn{border:1px solid var(--line);background:#0c1522;color:var(--muted);font-weight:900;border-radius:12px;padding:9px 11px;white-space:nowrap;cursor:pointer}.chip.active{color:#08121b;background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 20px rgba(72,232,255,.16)}.btn{margin-inline-start:auto;color:var(--text)}
+.stage{position:relative;flex:1;min-height:560px;padding:14px;overflow:hidden}
+.stage:after{content:"";position:absolute;inset:auto 8% 7% 8%;height:35%;background:radial-gradient(ellipse,rgba(72,232,255,.07),transparent 68%);pointer-events:none}
+.header{text-align:center;padding:8px 5px 2px;position:relative;z-index:3}.header h1{font-size:26px;margin:0 0 4px;letter-spacing:.3px}.header p{margin:0;color:var(--muted);font-size:12px}.objective{display:inline-flex;align-items:center;gap:7px;margin-top:8px;background:rgba(72,232,255,.07);border:1px solid rgba(72,232,255,.18);color:#b9f7ff;padding:6px 10px;border-radius:99px;font-size:11px;font-weight:900}
+.arena{position:relative;z-index:2;width:100%;max-width:430px;height:420px;margin:8px auto 0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:6px;padding:8px}
+.hole{position:relative;display:grid;place-items:end center;overflow:visible}.pit{position:absolute;bottom:12px;width:80%;height:24%;border-radius:50%;background:radial-gradient(ellipse at 50% 28%,#0b0f16 0 55%,#172234 58% 72%,transparent 74%);filter:drop-shadow(0 10px 8px rgba(0,0,0,.5))}
+.target{position:absolute;bottom:20px;width:68%;aspect-ratio:1/1.12;transform:translateY(72%);opacity:0;transition:transform .13s cubic-bezier(.2,.9,.2,1),opacity .08s;cursor:pointer;filter:drop-shadow(0 10px 10px rgba(0,0,0,.28));z-index:2}.target.up{transform:translateY(0);opacity:1}.target.hit{transform:translateY(-10%) scale(.86);opacity:.25}.target.decoy{filter:drop-shadow(0 10px 10px rgba(0,0,0,.28)) saturate(.7)}
+.ear{position:absolute;width:31%;height:30%;top:4%;background:#9e6843;border-radius:50%}.ear.e1{left:4%;transform:rotate(-20deg)}.ear.e2{right:4%;transform:rotate(20deg)}.head{position:absolute;inset:13% 7% 6%;background:linear-gradient(145deg,#b97b50,#805034);border-radius:48% 48% 43% 43%;border:2px solid rgba(255,255,255,.08)}.face{position:absolute;left:17%;right:17%;bottom:13%;height:49%;background:#dca879;border-radius:48%}.eye{position:absolute;top:29%;width:7px;height:9px;background:#101317;border-radius:50%}.eye.l{left:28%}.eye.r{right:28%}.nose{position:absolute;top:48%;left:50%;width:9px;height:7px;background:#221813;border-radius:50%;transform:translateX(-50%)}.stripe{position:absolute;top:12%;left:50%;width:16%;height:34%;background:rgba(62,35,24,.34);border-radius:50%;transform:translateX(-50%)}
+.target.decoy .head{background:linear-gradient(145deg,#704d77,#47314d)}.target.decoy .face{background:#b18bb8}.target.decoy:after{content:"!";position:absolute;top:31%;left:50%;transform:translateX(-50%);font-weight:1000;color:#fff;font-size:18px;text-shadow:0 2px 8px #000}
+.flash{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:10}.flash span{font-size:48px;font-weight:1000;opacity:0;transform:scale(.7);text-shadow:0 8px 30px #000}.flash.show span{animation:pop .42s ease}@keyframes pop{0%{opacity:0;transform:scale(.7)}35%{opacity:1;transform:scale(1.08)}100%{opacity:0;transform:scale(1.25)}}
+.toast{position:absolute;left:50%;bottom:12px;transform:translateX(-50%) translateY(10px);opacity:0;background:#0a121e;border:1px solid var(--line);border-radius:99px;padding:8px 13px;color:var(--muted);font-size:11px;font-weight:900;transition:.2s;z-index:11}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.overlay{position:absolute;inset:0;background:rgba(6,10,17,.78);backdrop-filter:blur(8px);z-index:20;display:grid;place-items:center;padding:22px}.card{text-align:center;max-width:330px}.card .kicker{font-size:11px;color:var(--cyan);font-weight:1000;letter-spacing:1.4px}.card h2{font-size:34px;margin:9px 0 5px}.card p{color:var(--muted);font-size:13px;line-height:1.7}.primary{border:0;border-radius:15px;background:linear-gradient(135deg,var(--cyan),#7d6cff);color:#07111a;font-size:14px;font-weight:1000;padding:13px 22px;cursor:pointer;min-width:160px;box-shadow:0 10px 30px rgba(72,232,255,.14)}
+.seedline{font:700 10px ui-monospace,SFMono-Regular,Consolas,monospace;color:#64748b;margin-top:10px}.hidden{display:none!important}
+@media(max-width:390px){.stage{min-height:530px}.arena{height:390px}.header h1{font-size:23px}.target{width:73%}}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <div class="brand"><div class="mark">3</div><div><b>3 MINUTES</b><span>GAME LAB • Prototype 01</span></div></div>
+    <div class="live">● LIVE LAB</div>
+  </div>
+
+  <section class="panel hud">
+    <div class="metric"><small>الإصابات الصحيحة</small><strong><span id="hits">0</span>/<span id="goal">7</span></strong></div>
+    <div class="game-title"><b>MOLE STRIKE</b><span id="difficultyLabel">NORMAL</span></div>
+    <div class="metric end"><small>الوقت</small><strong id="time">0.0s</strong></div>
+    <div class="progress" style="grid-column:1/-1"><div id="bar" class="bar"></div></div>
+  </section>
+
+  <section class="panel controls">
+    <button class="chip active" data-d="normal">Normal</button>
+    <button class="chip" data-d="hard">Hard</button>
+    <button class="chip" data-d="expert">Expert</button>
+    <button id="newSeed" class="btn">نسخة جديدة ↻</button>
+  </section>
+
+  <section class="panel stage">
+    <div class="header">
+      <h1>اضرب السنجاب!</h1>
+      <p>اضغط الهدف الحقيقي قبل أن يختفي. تجنب المخادع.</p>
+      <div class="objective">⚡ أسرع إكمال يفوز</div>
+    </div>
+    <div id="arena" class="arena"></div>
+    <div id="flash" class="flash"><span>+1</span></div>
+    <div id="toast" class="toast"></div>
+
+    <div id="overlay" class="overlay">
+      <div class="card">
+        <div class="kicker">3 MINUTES • GAME LAB</div>
+        <h2 id="overlayTitle">MOLE STRIKE</h2>
+        <p id="overlayText">اختبار سرعة الملاحظة ورد الفعل. نفس Seed ينتج نفس تسلسل الظهور بالكامل.</p>
+        <button id="start" class="primary">ابدأ التجربة</button>
+        <div class="seedline">SEED <span id="seedText"></span></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+class RNG{constructor(seed){this.s=seed>>>0}next(){this.s=(Math.imul(1664525,this.s)+1013904223)>>>0;return this.s}int(n){return this.next()%n}float(){return this.next()/4294967296}}
+const cfg={
+ normal:{goal:7,up:760,gap:[220,520],decoy:.05,double:.00,max:18},
+ hard:{goal:9,up:610,gap:[150,390],decoy:.18,double:.12,max:18},
+ expert:{goal:11,up:480,gap:[90,280],decoy:.30,double:.22,max:18}
+};
+let difficulty='normal',seed=0,rng,timer,startAt,ended=true,hits=0,mistakes=0,active=new Map(),spawnTimeouts=[],sequenceStep=0;
+const arena=document.getElementById('arena'),overlay=document.getElementById('overlay'),hitsEl=document.getElementById('hits'),goalEl=document.getElementById('goal'),timeEl=document.getElementById('time'),bar=document.getElementById('bar'),flash=document.getElementById('flash'),toast=document.getElementById('toast'),seedText=document.getElementById('seedText'),difficultyLabel=document.getElementById('difficultyLabel');
+function makeTarget(i){const hole=document.createElement('div');hole.className='hole';hole.innerHTML=`<div class="target" data-i="${i}"><i class="ear e1"></i><i class="ear e2"></i><i class="head"><i class="stripe"></i><i class="face"><i class="eye l"></i><i class="eye r"></i><i class="nose"></i></i></i></div><div class="pit"></div>`;arena.appendChild(hole);hole.querySelector('.target').addEventListener('pointerdown',hitTarget)}
+for(let i=0;i<9;i++)makeTarget(i);
+function randomSeed(){return (crypto.getRandomValues(new Uint32Array(1))[0]>>>0)}
+function reset(newSeed=true){cancel();if(newSeed)seed=randomSeed();rng=new RNG(seed);hits=0;mistakes=0;sequenceStep=0;ended=true;hitsEl.textContent='0';goalEl.textContent=cfg[difficulty].goal;timeEl.textContent='0.0s';bar.style.width='0%';seedText.textContent=seed;difficultyLabel.textContent=difficulty.toUpperCase();document.querySelectorAll('.target').forEach(t=>{t.classList.remove('up','decoy','hit')});active.clear()}
+function cancel(){if(timer)cancelAnimationFrame(timer);spawnTimeouts.forEach(clearTimeout);spawnTimeouts=[];active.clear()}
+function start(){reset(false);ended=false;overlay.classList.add('hidden');startAt=performance.now();scheduleNext();tick()}
+function tick(){if(ended)return;const e=(performance.now()-startAt)/1000;timeEl.textContent=e.toFixed(1)+'s';if(e>=cfg[difficulty].max){finish(false);return}timer=requestAnimationFrame(tick)}
+function scheduleNext(){if(ended)return;const c=cfg[difficulty];const delay=c.gap[0]+rng.int(c.gap[1]-c.gap[0]+1);spawnTimeouts.push(setTimeout(()=>{spawnOne();if(!ended)scheduleNext()},delay))}
+function availableHole(){let tries=0;while(tries++<20){const i=rng.int(9);if(!active.has(i))return i}return rng.int(9)}
+function spawnOne(){const c=cfg[difficulty],i=availableHole(),decoy=rng.float()<c.decoy;show(i,decoy,c.up);if(rng.float()<c.double){const j=availableHole();spawnTimeouts.push(setTimeout(()=>show(j,rng.float()<c.decoy,c.up*.9),70+rng.int(110)))}sequenceStep++}
+function show(i,decoy,upMs){const el=document.querySelector(`.target[data-i="${i}"]`);if(!el||ended)return;active.set(i,{decoy,step:sequenceStep});el.classList.toggle('decoy',decoy);el.classList.remove('hit');requestAnimationFrame(()=>el.classList.add('up'));spawnTimeouts.push(setTimeout(()=>{if(active.has(i)){active.delete(i);el.classList.remove('up');if(!decoy)showToast('فاتك الهدف')}},upMs))}
+function hitTarget(e){if(ended)return;const el=e.currentTarget,i=+el.dataset.i,data=active.get(i);if(!data)return;if(data.decoy){mistakes++;active.delete(i);el.classList.add('hit');showToast('هدف مخادع • +0.6s عقوبة');startAt-=600;setTimeout(()=>el.classList.remove('up'),90);return}active.delete(i);hits++;hitsEl.textContent=hits;bar.style.width=(hits/cfg[difficulty].goal*100)+'%';el.classList.add('hit');flash.classList.remove('show');void flash.offsetWidth;flash.classList.add('show');setTimeout(()=>el.classList.remove('up'),90);if(hits>=cfg[difficulty].goal)finish(true)}
+function showToast(t){toast.textContent=t;toast.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toast.classList.remove('show'),800)}
+function finish(success){if(ended)return;ended=true;cancel();const elapsed=(performance.now()-startAt)/1000;overlay.classList.remove('hidden');document.getElementById('overlayTitle').textContent=success?'CLEAR!':'انتهى الوقت';document.getElementById('overlayText').innerHTML=success?`أنهيت الجولة في <b>${elapsed.toFixed(2)} ثانية</b><br>الأخطاء: ${mistakes}`:`أصبت ${hits} من ${cfg[difficulty].goal}. جرّب نفس المستوى بنسخة جديدة.`;document.getElementById('start').textContent='إعادة نفس النسخة';seedText.textContent=seed}
+document.getElementById('start').onclick=()=>{rng=new RNG(seed);start()};
+document.getElementById('newSeed').onclick=()=>{reset(true);document.getElementById('overlayTitle').textContent='MOLE STRIKE';document.getElementById('overlayText').textContent='تم توليد نسخة جديدة. نفس Seed ينتج نفس تسلسل الظهور بالكامل.';document.getElementById('start').textContent='ابدأ النسخة الجديدة';overlay.classList.remove('hidden')};
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{difficulty=b.dataset.d;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));reset(true);document.getElementById('overlayTitle').textContent='MOLE STRIKE';document.getElementById('overlayText').textContent=`المستوى: ${difficulty.toUpperCase()} — جرّب عدة Seeds للحكم على التوازن.`;document.getElementById('start').textContent='ابدأ التجربة';overlay.classList.remove('hidden')});
+reset(true);
+</script>
+</body>
+</html>
