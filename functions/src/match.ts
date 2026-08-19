@@ -11,6 +11,7 @@ import {
   intValue,
   parseProgress,
   stringValue,
+  timestampMillis,
 } from "./firestore.js";
 import {
   MATCH_DURATION_MS,
@@ -39,7 +40,18 @@ function requireString(value: unknown, name: string): string {
   return value.trim();
 }
 
+function seasonAcceptsRanked(data: Record<string, unknown>, nowMs: number): boolean {
+  const startsAtMs = timestampMillis(data.startsAt);
+  const endsAtMs = timestampMillis(data.endsAt);
+  return data.active === true &&
+    startsAtMs !== null &&
+    endsAtMs !== null &&
+    nowMs >= startsAtMs &&
+    nowMs < endsAtMs;
+}
+
 function newMatchData(options: {
+  seasonId: string;
   playerAId: string;
   playerAName: string;
   playerAAvatarId: string;
@@ -77,10 +89,26 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
   const matches = db.collection(COLLECTIONS.matches);
   const ownRef = queue.doc(uid);
 
+  const activeSeasons = await db
+    .collection(COLLECTIONS.seasons)
+    .where("active", "==", true)
+    .limit(2)
+    .get();
+  if (activeSeasons.size !== 1) {
+    throw new HttpsError("failed-precondition", "Ranked season is unavailable.");
+  }
+  const seasonDoc = activeSeasons.docs[0]!;
+  const season = seasonDoc.data();
+  if (!seasonAcceptsRanked(season, Date.now())) {
+    throw new HttpsError("failed-precondition", "Ranked season is not accepting matches.");
+  }
+  const seasonId = seasonDoc.id;
+
   await ownRef.set({
     uid,
     gameName,
     avatarId,
+    seasonId,
     status: "waiting",
     matchId: null,
     authorityVersion: AUTHORITY_VERSION,
@@ -92,22 +120,31 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
 
   for (const candidate of candidates.docs) {
     if (candidate.id === uid) continue;
+    if (stringValue(candidate.data().seasonId) !== seasonId) continue;
     const matchRef = matches.doc();
 
     try {
       const matchId = await db.runTransaction(async (transaction) => {
-        const [ownSnap, candidateSnap] = await Promise.all([
+        const [seasonSnap, ownSnap, candidateSnap] = await Promise.all([
+          transaction.get(seasonDoc.ref),
           transaction.get(ownRef),
           transaction.get(candidate.ref),
         ]);
+        const liveSeason = seasonSnap.data();
         const own = ownSnap.data();
         const other = candidateSnap.data();
+        if (!liveSeason || !seasonAcceptsRanked(liveSeason, Date.now())) {
+          throw new HttpsError("failed-precondition", "Ranked season closed before match creation.");
+        }
         if (!own || !other) throw new Error("ticket_missing");
         if (own.status !== "waiting" || other.status !== "waiting") {
           throw new Error("ticket_claimed");
         }
         if (intValue(other.authorityVersion) !== AUTHORITY_VERSION) {
           throw new Error("legacy_ticket");
+        }
+        if (stringValue(own.seasonId) !== seasonId || stringValue(other.seasonId) !== seasonId) {
+          throw new Error("season_mismatch");
         }
 
         const otherUid = stringValue(other.uid, candidate.id);
@@ -116,6 +153,7 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
         transaction.create(
           matchRef,
           newMatchData({
+            seasonId,
             playerAId: otherUid,
             playerAName: stringValue(other.gameName, "Player"),
             playerAAvatarId: stringValue(other.avatarId, "default_01"),
