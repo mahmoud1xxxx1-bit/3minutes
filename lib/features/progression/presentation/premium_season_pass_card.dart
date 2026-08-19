@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../data/season_pass_billing_service.dart';
 import '../domain/season_pass.dart';
@@ -110,9 +111,9 @@ class _PremiumSeasonPassCardState extends State<PremiumSeasonPassCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _isArabic ? 'Premium Season Pass' : 'Premium Season Pass',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+                    const Text(
+                      'Premium Season Pass',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
                     ),
                     const SizedBox(height: 3),
                     Text(
