@@ -28,6 +28,10 @@ export {
 } from "./prestige.js";
 export { verifyPremiumPurchase } from "./premium.js";
 export {
+  verifyPremiumSeasonPass,
+  onPremiumSeasonPassReward,
+} from "./season_pass_premium.js";
+export {
   onRankedSettlementProgression,
   claimMissionReward,
   claimAchievementReward,
