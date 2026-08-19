@@ -5,6 +5,7 @@ import type { MatchProgress } from "./policy.js";
 export const COLLECTIONS = {
   users: "users",
   matchmaking: "matchmaking",
+  quickMatchmaking: "quickMatchmaking",
   matches: "matches",
   seasons: "seasons",
   seasonHistory: "seasonHistory",
@@ -13,6 +14,9 @@ export const COLLECTIONS = {
   inventories: "inventories",
   rankedSettlements: "rankedSettlements",
   rankedEvidence: "rankedEvidence",
+  quickSettlements: "quickSettlements",
+  quickEvidence: "quickEvidence",
+  quickPairUsage: "quickPairUsage",
   socialEvidence: "socialEvidence",
   socialSettlements: "socialSettlements",
   socialPairUsage: "socialPairUsage",
