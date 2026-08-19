@@ -179,6 +179,22 @@ function ensureEvidenceMatchesSavedProgress(
   return derived;
 }
 
+async function activeMissionSeasonId(now: Date): Promise<string | null> {
+  const snapshot = await getFirestore()
+    .collection(COLLECTIONS.seasons)
+    .where("active", "==", true)
+    .limit(2)
+    .get();
+  if (snapshot.size !== 1) return null;
+  const season = snapshot.docs[0]!;
+  const data = season.data();
+  const startsAt = data.startsAt instanceof Timestamp ? data.startsAt.toMillis() : null;
+  const endsAt = data.endsAt instanceof Timestamp ? data.endsAt.toMillis() : null;
+  if (startsAt === null || endsAt === null) return null;
+  const nowMs = now.getTime();
+  return nowMs >= startsAt && nowMs < endsAt ? season.id : null;
+}
+
 export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
   const callerUid = requireUid(request.auth?.uid);
   const matchId = requireMatchId(request.data?.matchId);
@@ -186,6 +202,7 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
   const matchRef = db.collection(COLLECTIONS.socialMatches).doc(matchId);
   const settlementRef = db.collection(COLLECTIONS.socialSettlements).doc(matchId);
   const now = new Date();
+  const missionSeasonId = await activeMissionSeasonId(now);
 
   return db.runTransaction(async (transaction) => {
     const [matchSnap, existingSettlement] = await Promise.all([
@@ -293,11 +310,16 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       const nextSixPlayerWins = Math.max(0, intValue(profile.sixPlayerWins)) +
         (maxPlayers === 6 && position === 1 ? 1 : 0);
 
-      const missionStates = { ...objectValue(missionSnaps[i]?.data()?.states) };
-      advanceMission(missionStates, "daily_play_3", 3, `D:${dayId(now)}`, 1);
-      advanceMission(missionStates, "daily_friend_1", 1, `D:${dayId(now)}`, 1);
-      advanceMission(missionStates, "weekly_play_30", 30, `W:${weekId(now)}`, 1);
-      advanceMission(missionStates, "weekly_friend_5", 5, `W:${weekId(now)}`, 1);
+      const missionData = missionSnaps[i]?.data() ?? {};
+      const missionStates = missionSeasonId !== null && stringValue(missionData.seasonId) === missionSeasonId
+        ? { ...objectValue(missionData.states) }
+        : {};
+      if (missionSeasonId !== null) {
+        advanceMission(missionStates, "daily_play_3", 3, `D:${dayId(now)}`, 1);
+        advanceMission(missionStates, "daily_friend_1", 1, `D:${dayId(now)}`, 1);
+        advanceMission(missionStates, "weekly_play_30", 30, `W:${weekId(now)}`, 1);
+        advanceMission(missionStates, "weekly_friend_5", 5, `W:${weekId(now)}`, 1);
+      }
 
       const achievementStates = { ...objectValue(achievementSnaps[i]?.data()?.states) };
       advanceAchievement(achievementStates, "friend_matches_50", 50, nextFriendMatches, now);
@@ -313,11 +335,17 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
         { coins: nextCoins, updatedAt: FieldValue.serverTimestamp() },
         { merge: true },
       );
-      transaction.set(
-        missionRefs[i]!,
-        { states: missionStates, updatedAt: FieldValue.serverTimestamp() },
-        { merge: true },
-      );
+      if (missionSeasonId !== null) {
+        transaction.set(
+          missionRefs[i]!,
+          {
+            seasonId: missionSeasonId,
+            states: missionStates,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
       transaction.set(
         achievementRefs[i]!,
         { states: achievementStates, updatedAt: FieldValue.serverTimestamp() },
@@ -372,6 +400,7 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const payload = {
       matchId,
       maxPlayers,
+      missionSeasonId,
       placements: ranked.map((uid, index) => ({ uid, position: index + 1 })),
       rewards,
       repeatedGroupMatchesBefore: matchesToday,
