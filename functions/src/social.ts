@@ -209,9 +209,6 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       transaction.get(matchRef),
       transaction.get(settlementRef),
     ]);
-    if (existingSettlement.exists) {
-      return existingSettlement.data()?.payload ?? { matchId, alreadySettled: true };
-    }
     const match = matchSnap.data();
     if (!match) throw new HttpsError("not-found", "Social match not found.");
 
@@ -225,6 +222,9 @@ export const settleSocialMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       : Object.keys(participantMap);
     if (participantOrder.length !== maxPlayers || !participantOrder.includes(callerUid)) {
       throw new HttpsError("permission-denied", "Not a valid social match participant.");
+    }
+    if (existingSettlement.exists) {
+      return existingSettlement.data()?.payload ?? { matchId, alreadySettled: true };
     }
 
     const countdown = match.countdownStartedAt instanceof Timestamp
