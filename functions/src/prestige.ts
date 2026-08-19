@@ -49,10 +49,6 @@ function storedPeakTier(value: unknown, rankPoints: number): RankTier {
     : tierFor(Math.max(0, rankPoints));
 }
 
-// Historical rank emblems are earned through Ranked play, never purchased.
-// The server verifies the requested showcase tier is no higher than the
-// lifetime peak tier written by ranked settlement authority. Existing players
-// created before peakRankTier existed fall back to their current server RP.
 export const selectRankShowcase = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const requestedTier = requireRankTier(request.data?.rankTier);
@@ -81,8 +77,8 @@ export const selectRankShowcase = onCall(CALLABLE_OPTIONS, async (request) => {
   return { rankTier: requestedTier, peakRankTier: peakTier };
 });
 
-// Prestige Stars are permanent account history. Unlocking a prestige cosmetic
-// checks the lifetime star threshold but never subtracts stars.
+// Prestige Stars are permanent account history. Unlocking checks the lifetime
+// threshold but never subtracts Stars.
 export const unlockPrestigeCosmetic = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const cosmeticId = requireCosmeticId(request.data?.cosmeticId);
@@ -153,5 +149,107 @@ export const unlockPrestigeCosmetic = onCall(CALLABLE_OPTIONS, async (request) =
       lifetimeStars,
       alreadyOwned: false,
     };
+  });
+});
+
+function earnedRequirementSatisfied(options: {
+  requirement: string;
+  legendarySeasons: number;
+  wins: number;
+  peakTier: RankTier;
+  seasonChampion: boolean;
+}): boolean {
+  const { requirement, legendarySeasons, wins, peakTier, seasonChampion } = options;
+  switch (requirement) {
+    case "legendary_once":
+      return peakTier === "legend" || legendarySeasons >= 1;
+    case "legendary_x3":
+      return legendarySeasons >= 3;
+    case "legendary_x5":
+      return legendarySeasons >= 5;
+    case "wins_100":
+      return wins >= 100;
+    case "season_champion":
+      return seasonChampion;
+    default:
+      return false;
+  }
+}
+
+// Exclusive avatars are earned, never purchased. The callable re-checks the
+// server-owned achievement/season data before permanently granting ownership.
+export const claimEarnedCosmetic = onCall(CALLABLE_OPTIONS, async (request) => {
+  const uid = requireUid(request.auth?.uid);
+  const cosmeticId = requireCosmeticId(request.data?.cosmeticId);
+  const cosmetic = cosmeticById(cosmeticId);
+  if (!cosmetic || cosmetic.priceType !== "earned" || !cosmetic.earnedRequirement) {
+    throw new HttpsError("failed-precondition", "This is not an earned cosmetic.");
+  }
+
+  const db = getFirestore();
+  const userRef = db.collection(COLLECTIONS.users).doc(uid);
+  const inventoryRef = db.collection(COLLECTIONS.inventories).doc(uid);
+  const [userSnap, championSnap] = await Promise.all([
+    userRef.get(),
+    db
+      .collection(COLLECTIONS.seasonHistory)
+      .doc(uid)
+      .collection("seasons")
+      .where("finalStanding", "==", 1)
+      .limit(1)
+      .get(),
+  ]);
+  const user = userSnap.data();
+  if (!user) throw new HttpsError("failed-precondition", "Player profile does not exist.");
+
+  const legendarySeasons = Math.max(0, intValue(user.legendarySeasons));
+  const wins = Math.max(0, intValue(user.wins));
+  const peakTier = storedPeakTier(user.peakRankTier, intValue(user.rankPoints));
+  const eligible = earnedRequirementSatisfied({
+    requirement: cosmetic.earnedRequirement,
+    legendarySeasons,
+    wins,
+    peakTier,
+    seasonChampion: !championSnap.empty,
+  });
+  if (!eligible) {
+    throw new HttpsError("failed-precondition", "The unlock requirement is not completed yet.");
+  }
+
+  const receiptId = randomUUID();
+  const receiptRef = db.collection(COLLECTIONS.purchaseReceipts).doc(receiptId);
+  return db.runTransaction(async (transaction) => {
+    const inventorySnap = await transaction.get(inventoryRef);
+    const inventory = inventorySnap.data() ?? {};
+    const owned = Array.isArray(inventory.ownedCosmeticIds)
+      ? inventory.ownedCosmeticIds.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+    if (owned.includes(cosmeticId)) {
+      return { cosmeticId, alreadyOwned: true };
+    }
+
+    transaction.set(
+      inventoryRef,
+      {
+        ownedCosmeticIds: [...owned, cosmeticId],
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    transaction.create(receiptRef, {
+      receiptId,
+      uid,
+      cosmeticId,
+      unlockType: "earnedRequirement",
+      requirement: cosmetic.earnedRequirement,
+      legendarySeasons,
+      wins,
+      peakTier,
+      seasonChampion: !championSnap.empty,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { cosmeticId, alreadyOwned: false };
   });
 });
