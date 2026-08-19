@@ -33,4 +33,4 @@ export {
   claimAchievementReward,
   claimSeasonPassReward,
 } from "./progression.js";
-export { rolloverRankedSeason } from "./season.js";
+export { rolloverRankedSeason, processSeasonRolloverPage } from "./season.js";
