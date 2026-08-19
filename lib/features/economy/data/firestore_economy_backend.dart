@@ -47,10 +47,6 @@ class FirestoreEconomyBackend implements EconomyBackend {
         );
       }
     } on FirebaseException {
-      // The Spark preview must never become a dead loading/error screen just
-      // because an inventory document is not available yet. The catalog is
-      // local and remains fully previewable; secure writes stay disabled until
-      // Blaze authority is active.
       yield null;
     }
   }
@@ -72,6 +68,13 @@ class FirestoreEconomyBackend implements EconomyBackend {
 
   @override
   Future<void> unlockPrestigeCosmetic({
+    required String uid,
+    required String cosmeticId,
+  }) async =>
+      _requiresBlaze();
+
+  @override
+  Future<void> claimEarnedCosmetic({
     required String uid,
     required String cosmeticId,
   }) async =>
