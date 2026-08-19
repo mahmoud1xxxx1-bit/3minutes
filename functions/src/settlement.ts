@@ -77,37 +77,32 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
   const callerUid = requireUid(request.auth?.uid);
   const matchId = requireMatchId(request.data?.matchId);
   const db = getFirestore();
-
-  const activeSeasonQuery = await db
-    .collection(COLLECTIONS.seasons)
-    .where("active", "==", true)
-    .limit(1)
-    .get();
-  if (activeSeasonQuery.empty) {
-    throw new HttpsError("failed-precondition", "No active ranked season.");
-  }
-  const seasonRef = activeSeasonQuery.docs[0]!.ref;
   const settlementRef = db.collection(COLLECTIONS.rankedSettlements).doc(matchId);
   const matchRef = db.collection(COLLECTIONS.matches).doc(matchId);
 
   return db.runTransaction(async (transaction) => {
-    const existingSettlement = await transaction.get(settlementRef);
+    const [matchSnap, existingSettlement] = await Promise.all([
+      transaction.get(matchRef),
+      transaction.get(settlementRef),
+    ]);
+    const match = matchSnap.data();
+    if (!match) throw new HttpsError("not-found", "Match not found.");
+
+    const playerAId = stringValue(match.playerAId);
+    const playerBId = stringValue(match.playerBId);
+    if (callerUid !== playerAId && callerUid !== playerBId) {
+      throw new HttpsError("permission-denied", "Not a participant.");
+    }
+    if (!playerAId || !playerBId || playerAId === playerBId) {
+      throw new HttpsError("data-loss", "Invalid match participants.");
+    }
+
     if (existingSettlement.exists) {
       const stored = existingSettlement.data()?.payload;
       if (stored && typeof stored === "object") return stored;
       throw new HttpsError("data-loss", "Settlement record is incomplete.");
     }
 
-    const [seasonSnap, matchSnap] = await Promise.all([
-      transaction.get(seasonRef),
-      transaction.get(matchRef),
-    ]);
-    const season = seasonSnap.data();
-    const match = matchSnap.data();
-    if (!season || season.active !== true) {
-      throw new HttpsError("aborted", "Season changed. Retry settlement.");
-    }
-    if (!match) throw new HttpsError("not-found", "Match not found.");
     if (intValue(match.authorityVersion) !== AUTHORITY_VERSION) {
       throw new HttpsError(
         "failed-precondition",
@@ -121,13 +116,15 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       throw new HttpsError("failed-precondition", "Cancelled matches cannot settle.");
     }
 
-    const playerAId = stringValue(match.playerAId);
-    const playerBId = stringValue(match.playerBId);
-    if (callerUid !== playerAId && callerUid !== playerBId) {
-      throw new HttpsError("permission-denied", "Not a participant.");
+    const seasonId = stringValue(match.seasonId);
+    if (!seasonId) {
+      throw new HttpsError("failed-precondition", "Ranked match is not bound to a season.");
     }
-    if (!playerAId || !playerBId || playerAId === playerBId) {
-      throw new HttpsError("data-loss", "Invalid match participants.");
+    const seasonRef = db.collection(COLLECTIONS.seasons).doc(seasonId);
+    const seasonSnap = await transaction.get(seasonRef);
+    const season = seasonSnap.data();
+    if (!season || season.active !== true) {
+      throw new HttpsError("failed-precondition", "The match season is already closed.");
     }
 
     const gameCount = intValue(match.gameCount, 8);
@@ -193,12 +190,12 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const inventoryBRef = db.collection(COLLECTIONS.inventories).doc(playerBId);
     const leaderboardARef = db
       .collection(COLLECTIONS.leaderboards)
-      .doc(seasonRef.id)
+      .doc(seasonId)
       .collection(COLLECTIONS.entries)
       .doc(playerAId);
     const leaderboardBRef = db
       .collection(COLLECTIONS.leaderboards)
-      .doc(seasonRef.id)
+      .doc(seasonId)
       .collection(COLLECTIONS.entries)
       .doc(playerBId);
 
@@ -257,23 +254,29 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const boardA = boardASnap.data() ?? {};
     const boardB = boardBSnap.data() ?? {};
     const peakTierA = higherTier(
-      typeof boardA.peakTier === "string" ? (boardA.peakTier as RankTier) : previousTierA,
+      storedRankTier(boardA.peakTier, previousTierA),
       nextTierA,
     );
     const peakTierB = higherTier(
-      typeof boardB.peakTier === "string" ? (boardB.peakTier as RankTier) : previousTierB,
+      storedRankTier(boardB.peakTier, previousTierB),
       nextTierB,
     );
 
-    const winsA = intValue(profileA.wins) + (resultA === "win" ? 1 : 0);
-    const winsB = intValue(profileB.wins) + (resultB === "win" ? 1 : 0);
-    const lossesA = intValue(profileA.losses) + (resultA === "loss" ? 1 : 0);
-    const lossesB = intValue(profileB.losses) + (resultB === "loss" ? 1 : 0);
+    const lifetimeWinsA = intValue(profileA.wins) + (resultA === "win" ? 1 : 0);
+    const lifetimeWinsB = intValue(profileB.wins) + (resultB === "win" ? 1 : 0);
+    const lifetimeLossesA = intValue(profileA.losses) + (resultA === "loss" ? 1 : 0);
+    const lifetimeLossesB = intValue(profileB.losses) + (resultB === "loss" ? 1 : 0);
+    const seasonWinsA = intValue(boardA.wins) + (resultA === "win" ? 1 : 0);
+    const seasonWinsB = intValue(boardB.wins) + (resultB === "win" ? 1 : 0);
+    const seasonLossesA = intValue(boardA.losses) + (resultA === "loss" ? 1 : 0);
+    const seasonLossesB = intValue(boardB.losses) + (resultB === "loss" ? 1 : 0);
+    const seasonTiesA = intValue(boardA.ties) + (resultA === "tie" ? 1 : 0);
+    const seasonTiesB = intValue(boardB.ties) + (resultB === "tie" ? 1 : 0);
     const settledAt = new Date();
 
     const payload = {
       matchId,
-      seasonId: seasonRef.id,
+      seasonId,
       playerA: settlementPlayer({
         uid: playerAId,
         previousRp: previousRpA,
@@ -302,8 +305,8 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       peakRankTier: lifetimePeakA,
       level: progressionA.level,
       xp: progressionA.xp,
-      wins: winsA,
-      losses: lossesA,
+      wins: lifetimeWinsA,
+      losses: lifetimeLossesA,
       gamesPlayed: intValue(profileA.gamesPlayed) + 1,
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -312,8 +315,8 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       peakRankTier: lifetimePeakB,
       level: progressionB.level,
       xp: progressionB.xp,
-      wins: winsB,
-      losses: lossesB,
+      wins: lifetimeWinsB,
+      losses: lifetimeLossesB,
       gamesPlayed: intValue(profileB.gamesPlayed) + 1,
       updatedAt: FieldValue.serverTimestamp(),
     });
@@ -353,8 +356,9 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       {
         ...leaderboardBase(profileA),
         rankPoints: nextRpA,
-        wins: winsA,
-        losses: lossesA,
+        wins: seasonWinsA,
+        losses: seasonLossesA,
+        ties: seasonTiesA,
         peakTier: peakTierA,
       },
       { merge: true },
@@ -364,8 +368,9 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       {
         ...leaderboardBase(profileB),
         rankPoints: nextRpB,
-        wins: winsB,
-        losses: lossesB,
+        wins: seasonWinsB,
+        losses: seasonLossesB,
+        ties: seasonTiesB,
         peakTier: peakTierB,
       },
       { merge: true },
@@ -376,6 +381,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       {
         uid: playerAId,
         matchId,
+        seasonId,
         reason: "matchReward",
         amount: rewardA.coins,
         balanceAfter: nextCoinsA,
@@ -387,6 +393,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       {
         uid: playerBId,
         matchId,
+        seasonId,
         reason: "matchReward",
         amount: rewardB.coins,
         balanceAfter: nextCoinsB,
@@ -396,11 +403,12 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
 
     transaction.update(matchRef, {
       status: "finished",
+      settledSeasonId: seasonId,
       updatedAt: FieldValue.serverTimestamp(),
     });
     transaction.create(settlementRef, {
       matchId,
-      seasonId: seasonRef.id,
+      seasonId,
       payload,
       settledAt: Timestamp.fromDate(settledAt),
       createdAt: FieldValue.serverTimestamp(),
