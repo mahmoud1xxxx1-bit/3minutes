@@ -20,11 +20,13 @@ class SeasonScreen extends StatelessWidget {
     this.uid = '',
     required this.competitionBackend,
     this.onOpenMissions,
+    this.onOpenPremium,
   });
 
   final String uid;
   final CompetitionBackend competitionBackend;
   final VoidCallback? onOpenMissions;
+  final VoidCallback? onOpenPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +40,15 @@ class SeasonScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         title: Text(l10n.season, style: const TextStyle(fontWeight: FontWeight.w900)),
         actions: [
+          if (onOpenPremium != null)
+            IconButton(
+              tooltip: ar ? 'Premium Season Pass' : 'Premium Season Pass',
+              onPressed: onOpenPremium,
+              icon: const Icon(
+                Icons.workspace_premium_rounded,
+                color: GameColors.rewardGold,
+              ),
+            ),
           if (onOpenMissions != null)
             Padding(
               padding: const EdgeInsetsDirectional.only(end: 8),
@@ -101,6 +112,10 @@ class SeasonScreen extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onOpenPremium != null) ...[
+                const SizedBox(height: GameSpacing.md),
+                _PremiumGateway(onTap: onOpenPremium!),
+              ],
               if (onOpenMissions != null) ...[
                 const SizedBox(height: GameSpacing.md),
                 _MissionsGateway(onTap: onOpenMissions!),
@@ -122,7 +137,14 @@ class SeasonScreen extends StatelessWidget {
                         child: const Icon(Icons.lock_clock_rounded, color: GameColors.accentBright),
                       ),
                       const SizedBox(width: GameSpacing.sm),
-                      Expanded(child: Text(l10n.liveStandingsLocked, style: const TextStyle(color: GameColors.muted))),
+                      Expanded(
+                        child: Text(
+                          ar
+                              ? 'الترتيب المباشر غير متاح في هذه النسخة التجريبية.'
+                              : 'Live standings are unavailable in this test build.',
+                          style: const TextStyle(color: GameColors.muted),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -156,6 +178,88 @@ class SeasonScreen extends StatelessWidget {
                 _SeasonRewardCard(band: band),
                 const SizedBox(height: GameSpacing.sm),
               ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PremiumGateway extends StatelessWidget {
+  const _PremiumGateway({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GameRadii.panel),
+        child: Ink(
+          padding: const EdgeInsets.all(GameSpacing.lg),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GameRadii.panel),
+            gradient: const LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [Color(0xFF4B237B), Color(0xFF222B68), Color(0xFF10162C)],
+            ),
+            border: Border.all(color: GameColors.rewardGold.withValues(alpha: .55)),
+            boxShadow: [
+              BoxShadow(color: GameColors.violet.withValues(alpha: .16), blurRadius: 28),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: GameColors.rewardGold.withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: GameColors.rewardGold.withValues(alpha: .40)),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: GameColors.rewardGold,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(width: GameSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'PREMIUM SEASON PASS',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ar
+                          ? r'$30 • 30 يومًا • مكافآت إضافية • حتى 5 نجوم هيبة'
+                          : r'$30 • 30 days • Extra rewards • Up to 5 Prestige Stars',
+                      style: const TextStyle(
+                        color: GameColors.rewardGold,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ar
+                          ? 'افتح المسار المميز وتقدم باللعب لاستلام المكافآت.'
+                          : 'Unlock the premium track and progress by playing to claim rewards.',
+                      style: const TextStyle(color: GameColors.textSoft, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: GameColors.rewardGold, size: 18),
             ],
           ),
         ),
@@ -231,7 +335,7 @@ class _MissionsGateway extends StatelessWidget {
                     const SizedBox(height: 5),
                     Text(
                       ar
-                          ? 'المهام اليومية والأسبوعية والإنجازات وSeason Pass — تابع تقدمك واستلم مكافآتك من هنا.'
+                          ? 'المهام اليومية والأسبوعية والإنجازات ومسار الموسم — تابع تقدمك واستلم مكافآتك من هنا.'
                           : 'Daily and weekly missions, achievements, and Season Pass — track progress and claim rewards here.',
                       style: const TextStyle(color: GameColors.textSoft, fontSize: 12, height: 1.4),
                     ),
