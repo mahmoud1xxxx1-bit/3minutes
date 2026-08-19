@@ -8,6 +8,7 @@ import {
   tierFor,
   type RankTier,
 } from "./policy.js";
+import { seasonReadyForRollover } from "./season_boundary.js";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const ROLLOVER_GRANTS = "seasonRolloverGrants";
@@ -217,21 +218,61 @@ export const rolloverRankedSeason = onSchedule(
   },
   async () => {
     const db = getFirestore();
+
+    let seasonSnap;
     const active = await db
       .collection(COLLECTIONS.seasons)
       .where("active", "==", true)
       .limit(1)
       .get();
-    if (active.empty) return;
 
-    const seasonSnap = active.docs[0]!;
+    if (!active.empty) {
+      seasonSnap = active.docs[0]!;
+      const season = seasonSnap.data();
+      const endsAt = season.endsAt;
+      const endsAtMs = endsAt instanceof Timestamp ? endsAt.toMillis() : null;
+      if (!seasonReadyForRollover({ active: true, endsAtMs, nowMs: Date.now() })) return;
+
+      const acquired = await db.runTransaction(async (transaction) => {
+        const currentSnap = await transaction.get(seasonSnap!.ref);
+        const current = currentSnap.data();
+        if (!current) return false;
+        if (current.rolloverState === "processing") return true;
+        const currentEnd = current.endsAt;
+        const currentEndMs = currentEnd instanceof Timestamp ? currentEnd.toMillis() : null;
+        if (!seasonReadyForRollover({
+          active: current.active === true,
+          endsAtMs: currentEndMs,
+          nowMs: Date.now(),
+        })) {
+          return false;
+        }
+        transaction.update(seasonSnap!.ref, {
+          active: false,
+          rolloverState: "processing",
+          settlementsClosedAt: FieldValue.serverTimestamp(),
+          rolloverStartedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        return true;
+      });
+      if (!acquired) return;
+    } else {
+      const processing = await db
+        .collection(COLLECTIONS.seasons)
+        .where("rolloverState", "==", "processing")
+        .limit(1)
+        .get();
+      if (processing.empty) return;
+      seasonSnap = processing.docs[0]!;
+    }
+
     const season = seasonSnap.data();
     const endsAt = season.endsAt;
     if (!(endsAt instanceof Timestamp)) return;
-    if (Date.now() < endsAt.toMillis()) return;
-
     const seasonId = seasonSnap.id;
     const seasonNumber = Math.max(1, intValue(season.number, 1));
+
     const entries = await db
       .collection(COLLECTIONS.leaderboards)
       .doc(seasonId)
@@ -274,11 +315,10 @@ export const rolloverRankedSeason = onSchedule(
         transaction.get(nextRef),
       ]);
       const current = currentSnap.data();
-      if (!current || current.active !== true) return;
+      if (!current || current.rolloverState !== "processing") return;
 
       const currentEnd = current.endsAt;
       if (!(currentEnd instanceof Timestamp)) return;
-      if (Date.now() < currentEnd.toMillis()) return;
 
       const startMs = currentEnd.toMillis();
       const nextData = {
@@ -286,12 +326,14 @@ export const rolloverRankedSeason = onSchedule(
         startsAt: Timestamp.fromMillis(startMs),
         endsAt: Timestamp.fromMillis(startMs + THIRTY_DAYS_MS),
         active: true,
+        rolloverState: "open",
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       };
 
       transaction.update(seasonSnap.ref, {
         active: false,
+        rolloverState: "closed",
         finalEntryCount: ordered.length,
         rolledOverAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
