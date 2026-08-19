@@ -2,6 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../competition/data/mini_game_evidence_policy.dart';
 import '../../competition/domain/mini_game_evidence.dart';
+import '../../competition/domain/ranked_settlement_player.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../profile/domain/player_profile.dart';
 import '../domain/match_progress.dart';
@@ -58,8 +59,23 @@ class CloudFunctionsMatchBackend implements MatchBackend {
       _call('cancelRankedMatch', {'matchId': matchId});
 
   @override
-  Future<void> finalizeMatch({required String matchId, required String uid}) =>
-      _call('settleRankedMatch', {'matchId': matchId});
+  Future<void> finalizeMatch({required String matchId, required String uid}) async {
+    await finalizeMatchWithResult(matchId: matchId, uid: uid);
+  }
+
+  @override
+  Future<RankedSettlementPlayer?> finalizeMatchWithResult({
+    required String matchId,
+    required String uid,
+  }) async {
+    final response = await _functions
+        .httpsCallable('settleRankedMatch')
+        .call<Map<Object?, Object?>>({'matchId': matchId});
+    final payload = Map<String, dynamic>.from(response.data);
+    final playerA = RankedSettlementPlayer.fromPayload(payload['playerA'], uid: uid);
+    if (playerA != null) return playerA;
+    return RankedSettlementPlayer.fromPayload(payload['playerB'], uid: uid);
+  }
 
   @override
   Future<void> requestRematch({required String matchId, required String uid}) =>
