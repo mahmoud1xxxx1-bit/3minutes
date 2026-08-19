@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:three_minutes/features/competition/domain/leaderboard_entry.dart';
-import 'package:three_minutes/features/competition/domain/rank_tier.dart';
-import 'package:three_minutes/features/competition/domain/season_reset_policy.dart';
-import 'package:three_minutes/features/competition/domain/season_reward_policy.dart';
+import 'package:game/features/competition/domain/leaderboard_entry.dart';
+import 'package:game/features/competition/domain/rank_tier.dart';
+import 'package:game/features/competition/domain/season_reset_policy.dart';
+import 'package:game/features/competition/domain/season_reward_policy.dart';
 
 void main() {
   test('season entry keeps ties separate and counts them as played matches', () {
