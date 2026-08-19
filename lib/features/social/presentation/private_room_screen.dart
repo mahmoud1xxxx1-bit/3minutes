@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/platform/room_invite_service.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
+import '../../economy/data/cosmetic_loadout_repository.dart';
+import '../../economy/domain/cosmetic_loadout.dart';
+import '../../economy/presentation/avatar_artwork.dart';
+import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../match/domain/match_progress.dart';
 import '../../match/domain/multiplayer_match.dart';
@@ -38,9 +43,18 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
   bool _busy = false;
   bool _openedMatch = false;
   String? _error;
+  late final CosmeticLoadoutRepository _loadouts;
 
-  Future<void> _copyInvite(PrivateRoom room) async {
+  @override
+  void initState() {
+    super.initState();
+    _loadouts = CosmeticLoadoutRepository();
+  }
+
+  Future<void> _shareInvite(PrivateRoom room) async {
     final uri = RoomInvitePolicy.buildUri(room.code);
+    final shared = await RoomInviteService.shareRoomInvite(uri.toString());
+    if (shared || !mounted) return;
     await Clipboard.setData(ClipboardData(text: uri.toString()));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -155,13 +169,8 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
         if (room == null) {
           return Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              title: Text(copy.privateRoom),
-            ),
-            body: CosmicBackground(
-              child: Center(child: Text(copy.roomNotFound)),
-            ),
+            appBar: AppBar(backgroundColor: Colors.transparent, title: Text(copy.privateRoom)),
+            body: CosmicBackground(child: Center(child: Text(copy.roomNotFound))),
           );
         }
 
@@ -176,10 +185,7 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
         if (room.status == PrivateRoomStatus.cancelled) {
           return Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              title: Text(copy.privateRoom),
-            ),
+            appBar: AppBar(backgroundColor: Colors.transparent, title: Text(copy.privateRoom)),
             body: CosmicBackground(
               child: Center(
                 child: Padding(
@@ -188,19 +194,13 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.cancel_outlined,
-                          size: 56,
-                          color: GameColors.danger,
-                        ),
+                        const Icon(Icons.cancel_outlined, size: 56, color: GameColors.danger),
                         const SizedBox(height: GameSpacing.md),
                         Text(copy.roomCancelled),
                         const SizedBox(height: GameSpacing.md),
                         FilledButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          child: Text(
-                            MaterialLocalizations.of(context).backButtonTooltip,
-                          ),
+                          child: Text(MaterialLocalizations.of(context).backButtonTooltip),
                         ),
                       ],
                     ),
@@ -219,163 +219,166 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
           backgroundColor: Colors.transparent,
           appBar: AppBar(
             backgroundColor: Colors.transparent,
-            title: Text(
-              copy.privateRoom,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
+            title: Text(copy.privateRoom, style: const TextStyle(fontWeight: FontWeight.w900)),
             actions: [
               IconButton(
-                onPressed: () => _copyInvite(room),
+                onPressed: () => _shareInvite(room),
                 tooltip: copy.shareRoom,
                 icon: const Icon(Icons.ios_share_rounded),
               ),
             ],
           ),
-          body: CosmicBackground(
-            child: SafeArea(
-              top: false,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  GameSpacing.md,
-                  GameSpacing.sm,
-                  GameSpacing.md,
-                  110,
-                ),
-                children: [
-                  _RoomHeader(room: room, copy: copy),
-                  const SizedBox(height: GameSpacing.lg),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          room.isFull
-                              ? copy.roomFull
-                              : '${copy.waitingPlayers} • $waitingCount',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
+          body: StreamBuilder<CosmeticLoadout>(
+            stream: _loadouts.watch(room.hostUid),
+            initialData: const CosmeticLoadout(),
+            builder: (context, loadoutSnapshot) {
+              final hostLoadout = loadoutSnapshot.data ?? const CosmeticLoadout();
+              return CosmicBackground(
+                child: CosmeticRoomTheme(
+                  themeId: hostLoadout.roomThemeId,
+                  borderRadius: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(
+                        GameSpacing.md,
+                        GameSpacing.sm,
+                        GameSpacing.md,
+                        110,
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: GameSpacing.sm,
-                          vertical: GameSpacing.xs,
+                      children: [
+                        _RoomHeader(
+                          room: room,
+                          copy: copy,
+                          themeId: hostLoadout.roomThemeId,
                         ),
-                        decoration: BoxDecoration(
-                          color: GameColors.accentSoft,
-                          borderRadius: BorderRadius.circular(GameRadii.pill),
-                        ),
-                        child: Text(
-                          '${room.participantUids.length}/${room.maxPlayers}',
-                          style: const TextStyle(
-                            color: GameColors.accentBright,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: GameSpacing.sm),
-                  for (var i = 0; i < room.maxPlayers; i++) ...[
-                    if (i < room.participantUids.length)
-                      _ParticipantTile(
-                        uid: room.participantUids[i],
-                        isHost: room.hostUid == room.participantUids[i],
-                        isSelf: room.participantUids[i] == widget.profile.uid,
-                        isReady: room.readyUids.contains(room.participantUids[i]),
-                        socialBackend: widget.socialBackend,
-                        copy: copy,
-                      )
-                    else
-                      _EmptyParticipantSlot(index: i + 1, copy: copy),
-                    const SizedBox(height: GameSpacing.sm),
-                  ],
-                  if (_error != null) ...[
-                    const SizedBox(height: GameSpacing.xs),
-                    Text(
-                      _error!,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: GameColors.danger),
-                    ),
-                  ],
-                  const SizedBox(height: GameSpacing.md),
-                  if (room.status == PrivateRoomStatus.lobby) ...[
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: isReady ? null : GameColors.cosmicGradient,
-                        color: isReady ? GameColors.success : null,
-                        borderRadius: BorderRadius.circular(GameRadii.button),
-                        boxShadow: isReady ? null : GameShadows.primaryGlow,
-                      ),
-                      child: FilledButton.icon(
-                        onPressed: _busy ? null : () => _toggleReady(room),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          disabledBackgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          foregroundColor: GameColors.background,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: GameSpacing.md,
-                          ),
-                        ),
-                        icon: Icon(
-                          isReady
-                              ? Icons.check_circle_rounded
-                              : Icons.radio_button_unchecked_rounded,
-                        ),
-                        label: Text(isReady ? copy.ready : copy.notReady),
-                      ),
-                    ),
-                    if (isHost) ...[
-                      const SizedBox(height: GameSpacing.sm),
-                      CosmicPrimaryButton(
-                        onPressed:
-                            _busy || !room.canStart ? null : () => _start(room),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        const SizedBox(height: GameSpacing.lg),
+                        Row(
                           children: [
-                            const Icon(Icons.bolt_rounded),
-                            const SizedBox(width: GameSpacing.sm),
-                            Text(copy.startMatch),
+                            Expanded(
+                              child: Text(
+                                room.isFull
+                                    ? copy.roomFull
+                                    : '${copy.waitingPlayers} • $waitingCount',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: GameSpacing.sm,
+                                vertical: GameSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: GameColors.accentSoft,
+                                borderRadius: BorderRadius.circular(GameRadii.pill),
+                              ),
+                              child: Text(
+                                '${room.participantUids.length}/${room.maxPlayers}',
+                                style: const TextStyle(
+                                  color: GameColors.accentBright,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      if (!room.canStart) ...[
-                        const SizedBox(height: GameSpacing.xs),
-                        Text(
-                          copy.everyoneMustBeReady,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: GameColors.muted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ] else ...[
-                    CosmicPanel(
-                      glow: true,
-                      padding: const EdgeInsets.all(GameSpacing.lg),
-                      child: Column(
-                        children: [
-                          const CircularProgressIndicator(),
-                          const SizedBox(height: GameSpacing.md),
+                        const SizedBox(height: GameSpacing.sm),
+                        for (var i = 0; i < room.maxPlayers; i++) ...[
+                          if (i < room.participantUids.length)
+                            _ParticipantTile(
+                              uid: room.participantUids[i],
+                              isHost: room.hostUid == room.participantUids[i],
+                              isSelf: room.participantUids[i] == widget.profile.uid,
+                              isReady: room.readyUids.contains(room.participantUids[i]),
+                              socialBackend: widget.socialBackend,
+                              copy: copy,
+                            )
+                          else
+                            _EmptyParticipantSlot(index: i + 1, copy: copy),
+                          const SizedBox(height: GameSpacing.sm),
+                        ],
+                        if (_error != null) ...[
+                          const SizedBox(height: GameSpacing.xs),
                           Text(
-                            copy.matchStarting,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: GameColors.danger),
                           ),
                         ],
-                      ),
+                        const SizedBox(height: GameSpacing.md),
+                        if (room.status == PrivateRoomStatus.lobby) ...[
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: isReady ? null : GameColors.cosmicGradient,
+                              color: isReady ? GameColors.success : null,
+                              borderRadius: BorderRadius.circular(GameRadii.button),
+                              boxShadow: isReady ? null : GameShadows.primaryGlow,
+                            ),
+                            child: FilledButton.icon(
+                              onPressed: _busy ? null : () => _toggleReady(room),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                disabledBackgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                foregroundColor: GameColors.background,
+                                padding: const EdgeInsets.symmetric(vertical: GameSpacing.md),
+                              ),
+                              icon: Icon(
+                                isReady
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                              ),
+                              label: Text(isReady ? copy.ready : copy.notReady),
+                            ),
+                          ),
+                          if (isHost) ...[
+                            const SizedBox(height: GameSpacing.sm),
+                            CosmicPrimaryButton(
+                              onPressed: _busy || !room.canStart ? null : () => _start(room),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.bolt_rounded),
+                                  const SizedBox(width: GameSpacing.sm),
+                                  Text(copy.startMatch),
+                                ],
+                              ),
+                            ),
+                            if (!room.canStart) ...[
+                              const SizedBox(height: GameSpacing.xs),
+                              Text(
+                                copy.everyoneMustBeReady,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: GameColors.muted, fontSize: 12),
+                              ),
+                            ],
+                          ],
+                        ] else ...[
+                          CosmicPanel(
+                            glow: true,
+                            padding: const EdgeInsets.all(GameSpacing.lg),
+                            child: Column(
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: GameSpacing.md),
+                                Text(copy.matchStarting, style: const TextStyle(fontWeight: FontWeight.w900)),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: GameSpacing.sm),
+                        if (room.status == PrivateRoomStatus.lobby)
+                          TextButton.icon(
+                            onPressed: _busy ? null : () => _leave(room),
+                            icon: const Icon(Icons.logout_rounded),
+                            label: Text(isHost ? copy.cancelRoom : copy.leaveRoom),
+                          ),
+                      ],
                     ),
-                  ],
-                  const SizedBox(height: GameSpacing.sm),
-                  if (room.status == PrivateRoomStatus.lobby)
-                    TextButton.icon(
-                      onPressed: _busy ? null : () => _leave(room),
-                      icon: const Icon(Icons.logout_rounded),
-                      label: Text(isHost ? copy.cancelRoom : copy.leaveRoom),
-                    ),
-                ],
-              ),
-            ),
+                  ),
+                ),
+              );
+            },
           ),
         );
       },
@@ -384,13 +387,19 @@ class _PrivateRoomScreenState extends State<PrivateRoomScreen> {
 }
 
 class _RoomHeader extends StatelessWidget {
-  const _RoomHeader({required this.room, required this.copy});
+  const _RoomHeader({
+    required this.room,
+    required this.copy,
+    required this.themeId,
+  });
 
   final PrivateRoom room;
   final SocialCopy copy;
+  final String? themeId;
 
   @override
   Widget build(BuildContext context) {
+    final themed = themeId != null;
     return CosmicPanel(
       glow: true,
       padding: const EdgeInsets.all(GameSpacing.lg),
@@ -400,12 +409,20 @@ class _RoomHeader extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              gradient: GameColors.cosmicGradient,
+              gradient: themed
+                  ? (themeId == 'room_cyber_royal'
+                      ? const LinearGradient(colors: [GameColors.rewardGold, GameColors.violet])
+                      : const LinearGradient(colors: [GameColors.accentBright, GameColors.cosmicPink]))
+                  : GameColors.cosmicGradient,
               borderRadius: BorderRadius.circular(18),
               boxShadow: GameShadows.primaryGlow,
             ),
-            child: const Icon(
-              Icons.groups_2_rounded,
+            child: Icon(
+              themeId == 'room_cyber_royal'
+                  ? Icons.diamond_rounded
+                  : themeId == 'room_arcade'
+                      ? Icons.sports_esports_rounded
+                      : Icons.groups_2_rounded,
               color: Colors.white,
               size: 30,
             ),
@@ -415,28 +432,12 @@ class _RoomHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  copy.roomCode,
-                  style: const TextStyle(
-                    color: GameColors.muted,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  room.code,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                Text(copy.roomCode, style: const TextStyle(color: GameColors.muted, fontWeight: FontWeight.w700)),
+                Text(room.code, style: const TextStyle(fontSize: 26, letterSpacing: 2, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 3),
                 Text(
                   '${room.maxPlayers} • ${copy.roomNoRankedRp}',
-                  style: const TextStyle(
-                    color: GameColors.rewardGold,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: GameColors.rewardGold, fontSize: 12),
                 ),
               ],
             ),
@@ -468,78 +469,70 @@ class _ParticipantTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return FutureBuilder<SocialPlayerSummary?>(
       future: socialBackend.loadPlayerSummary(uid),
-      builder: (context, snapshot) {
-        final player = snapshot.data;
-        return CosmicPanel(
-          padding: const EdgeInsets.all(GameSpacing.sm),
-          glow: isReady,
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: isReady ? GameColors.cosmicGradient : null,
-                  color: isReady ? null : GameColors.accentSoft,
-                ),
-                child: Icon(
-                  Icons.person_rounded,
-                  color: isReady ? Colors.white : GameColors.accentBright,
-                ),
-              ),
-              const SizedBox(width: GameSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      player?.displayName ?? '…',
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    Wrap(
-                      spacing: GameSpacing.xs,
+      builder: (context, summarySnapshot) {
+        final player = summarySnapshot.data;
+        return FutureBuilder<CosmeticLoadout>(
+          future: CosmeticLoadoutRepository().load(uid),
+          builder: (context, loadoutSnapshot) {
+            final loadout = loadoutSnapshot.data ?? const CosmeticLoadout();
+            final avatarId = loadout.avatarId ?? player?.avatarId ?? 'avatar_free_vanguard';
+            return CosmicPanel(
+              padding: const EdgeInsets.all(GameSpacing.sm),
+              glow: isReady,
+              child: Row(
+                children: [
+                  CosmeticAvatarView(
+                    avatarId: avatarId,
+                    frameId: loadout.avatarFrameId,
+                    size: 46,
+                  ),
+                  const SizedBox(width: GameSpacing.sm),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (isSelf)
-                          Text(
-                            copy.you,
-                            style: const TextStyle(
-                              color: GameColors.accentBright,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: CosmeticNameText(
+                                text: player?.displayName ?? '…',
+                                styleId: loadout.nameStyleId,
+                                fontSize: 15,
+                              ),
                             ),
-                          ),
-                        if (isHost)
-                          Text(
-                            copy.host,
-                            style: const TextStyle(
-                              color: GameColors.rewardGold,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
+                            if (loadout.badgeId != null)
+                              CosmeticBadgeView(badgeId: loadout.badgeId!, size: 28),
+                          ],
+                        ),
+                        Wrap(
+                          spacing: GameSpacing.xs,
+                          children: [
+                            if (isSelf)
+                              Text(copy.you, style: const TextStyle(color: GameColors.accentBright, fontSize: 11, fontWeight: FontWeight.w800)),
+                            if (isHost)
+                              Text(copy.host, style: const TextStyle(color: GameColors.rewardGold, fontSize: 11, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    isReady ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    color: isReady ? GameColors.success : GameColors.muted,
+                  ),
+                  const SizedBox(width: GameSpacing.xs),
+                  Text(
+                    isReady ? copy.ready : copy.notReady,
+                    style: TextStyle(
+                      color: isReady ? GameColors.success : GameColors.muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
               ),
-              Icon(
-                isReady
-                    ? Icons.check_circle_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                color: isReady ? GameColors.success : GameColors.muted,
-              ),
-              const SizedBox(width: GameSpacing.xs),
-              Text(
-                isReady ? copy.ready : copy.notReady,
-                style: TextStyle(
-                  color: isReady ? GameColors.success : GameColors.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -548,7 +541,6 @@ class _ParticipantTile extends StatelessWidget {
 
 class _EmptyParticipantSlot extends StatelessWidget {
   const _EmptyParticipantSlot({required this.index, required this.copy});
-
   final int index;
   final SocialCopy copy;
 
@@ -563,10 +555,7 @@ class _EmptyParticipantSlot extends StatelessWidget {
             const Icon(Icons.person_outline_rounded, color: GameColors.muted),
             const SizedBox(width: GameSpacing.sm),
             Expanded(
-              child: Text(
-                '${copy.waitingPlayers} #$index',
-                style: const TextStyle(color: GameColors.muted),
-              ),
+              child: Text('${copy.waitingPlayers} #$index', style: const TextStyle(color: GameColors.muted)),
             ),
           ],
         ),
