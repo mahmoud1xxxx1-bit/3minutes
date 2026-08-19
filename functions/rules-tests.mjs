@@ -1,9 +1,28 @@
 import assert from 'node:assert/strict';
-import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import {
+  assertFails,
+  assertSucceeds,
+  initializeTestEnvironment,
+} from '@firebase/rules-unit-testing';
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore';
 
 const projectId = 'demo-3minutes';
 const testEnv = await initializeTestEnvironment({ projectId });
+
+const emptyProgress = () => ({
+  completedGames: 0,
+  totalScore: 0,
+  accuracyTotal: 0,
+  mistakes: 0,
+  elapsedMs: 0,
+  completedAt: null,
+});
 
 try {
   const aliceDb = testEnv.authenticatedContext('alice').firestore();
@@ -24,15 +43,105 @@ try {
   const ownInventory = await getDoc(doc(aliceDb, 'inventories', 'alice'));
   assert.equal(ownInventory.exists(), false, 'Missing own inventory should be readable as empty state.');
 
-  let blocked = false;
-  try {
-    await getDoc(doc(bobDb, 'inventories', 'alice'));
-  } catch {
-    blocked = true;
-  }
-  assert.equal(blocked, true, 'Another player must not read someone else inventory.');
+  await assertFails(
+    getDoc(doc(bobDb, 'inventories', 'alice')),
+  );
 
-  console.log('Firestore rules smoke tests passed.');
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const adminDb = context.firestore();
+    await setDoc(doc(adminDb, 'users', 'alice'), {
+      gameName: 'Alice',
+      avatarId: 'avatar_free_vanguard',
+      level: 1,
+      xp: 0,
+      rankPoints: 0,
+      stars: 0,
+      wins: 0,
+      losses: 0,
+      gamesPlayed: 0,
+      cosmeticLoadout: {},
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    await setDoc(doc(adminDb, 'socialMatches', 'social-security'), {
+      mode: 'privateRoom',
+      hostUid: 'alice',
+      maxPlayers: 2,
+      seed: 12345,
+      registryVersion: 3,
+      gameCount: 8,
+      roomCode: 'ABCDE',
+      participantOrder: ['alice', 'bob'],
+      participants: {
+        alice: {
+          displayName: 'Alice',
+          avatarId: 'avatar_free_vanguard',
+          isReady: true,
+          connectionState: 'connected',
+          progress: emptyProgress(),
+          finishedAt: null,
+          latestEmoteId: null,
+          latestEmoteAt: null,
+        },
+        bob: {
+          displayName: 'Bob',
+          avatarId: 'avatar_free_arena',
+          isReady: true,
+          connectionState: 'connected',
+          progress: emptyProgress(),
+          finishedAt: null,
+          latestEmoteId: null,
+          latestEmoteAt: null,
+        },
+      },
+      countdownStartedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    });
+  });
+
+  const socialRef = doc(aliceDb, 'socialMatches', 'social-security');
+
+  await assertSucceeds(
+    updateDoc(socialRef, {
+      'participants.alice.connectionState': 'reconnecting',
+    }),
+  );
+
+  await assertFails(
+    updateDoc(socialRef, {
+      'participants.alice.displayName': 'FORGED OWNER',
+    }),
+  );
+
+  await assertFails(
+    updateDoc(socialRef, {
+      'participants.alice.latestEmoteId': 'emote_gg',
+      'participants.alice.latestEmoteAt': serverTimestamp(),
+    }),
+  );
+
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const adminDb = context.firestore();
+    await updateDoc(doc(adminDb, 'users', 'alice'), {
+      'cosmeticLoadout.equippedEmoteId': 'emote_gg',
+    });
+  });
+
+  await assertSucceeds(
+    updateDoc(socialRef, {
+      'participants.alice.latestEmoteId': 'emote_gg',
+      'participants.alice.latestEmoteAt': serverTimestamp(),
+    }),
+  );
+
+  await assertFails(
+    updateDoc(socialRef, {
+      'participants.alice.latestEmoteId': 'emote_gg',
+      'participants.alice.latestEmoteAt': serverTimestamp(),
+    }),
+  );
+
+  console.log('Firestore rules smoke and cosmetic security tests passed.');
 } finally {
   await testEnv.cleanup();
 }
