@@ -1,8 +1,8 @@
 # Season System Closeout
 
-Status: IN PROGRESS — scale hardening and final APK validation pending.
+Status: IN PROGRESS — distributed rollover validation and final APK validation pending.
 
-This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Exact season-boundary correctness is now validated; the remaining open item in this subsystem is production-scale rollover architecture plus the final whole-app APK validation later in the project.
+This document is updated continuously with the current Season / Soft Reset / Prestige Stars hardening work. Exact season-boundary correctness is validated. The former single-invocation million-player rollover bottleneck has now been replaced in source by a distributed Cloud Tasks page pipeline and is awaiting dedicated validation before this subsystem is marked closed.
 
 ## Work in this batch
 
@@ -30,11 +30,49 @@ The policy is intentionally stricter than `now < endsAt`:
 - The transition that starts the synchronized countdown checks the guard again, preventing players from creating a room early and waiting until the final seconds to start it.
 - Ranked rematches use the same guard.
 - Rollover does not freeze standings exactly at `endsAt`; it waits an additional five-minute settlement grace.
-- At rollover acquisition the season is atomically changed to `active: false` and `rolloverState: processing` before standings are read. Existing settlement code already requires an active season, so transactions that race with this lock retry against the closed state instead of mutating standings after the snapshot.
-- If rollover execution fails after acquiring the lock, the scheduler can resume a season whose `rolloverState` is `processing`; per-player grants remain idempotent through `seasonRolloverGrants`.
-- The next season is activated only in the final rollover transaction after the old season's player grants are processed.
+- At rollover acquisition the season is atomically changed to `active: false` and `rolloverState: processing` before standings are processed. Existing settlement code requires an active season, so transactions racing the lock cannot mutate frozen standings.
+- The next season is activated only after every discovered rollover page has completed exactly once.
 
-This guarantees that a legal Ranked match cannot be moved into the next season and that the standings snapshot cannot be changed by a late settlement after rollover has acquired the lock.
+This guarantees that a legal Ranked match cannot be moved into the next season and that the final standings cannot be changed by a late settlement after rollover has acquired the lock.
+
+## Distributed rollover architecture
+
+The previous implementation loaded the complete leaderboard and iterated every player inside one scheduled Function. That design was correct at development scale but explicitly rejected for a one-million-player production target.
+
+The source now uses a distributed page pipeline:
+
+- `rolloverRankedSeason` is now only the coordinator/lock owner.
+- The coordinator runs every five minutes instead of hourly so post-season downtime is bounded more tightly.
+- It atomically freezes the ended season, initializes rollover counters, and enqueues page 0.
+- `processSeasonRolloverPage` is a Firebase task-queue function in `me-central2`.
+- Leaderboard traversal is server-index ordered by `rankPoints DESC`, `wins DESC`, `losses ASC`, then document ID ASC for a deterministic total order.
+- Each task reads at most 200 leaderboard entries.
+- Each page enqueues its deterministic next page immediately after discovering its cursor, allowing the queue pipeline to overlap work instead of forcing one long serial invocation.
+- Task IDs use `season_<seasonId>_page_<offset>`, so a retry cannot create an uncontrolled duplicate task tree.
+- Cloud Tasks retry policy is bounded and backs off on transient failures.
+- Queue dispatch is rate-limited to protect Firestore and Functions from an uncontrolled rollover spike.
+- Within a page, player grants are processed with bounded concurrency rather than 200 unbounded simultaneous transactions.
+- Per-player `seasonRolloverGrants` remain the exactly-once entitlement guard for Stars, reset RP, history and Legendary-season increments.
+- Every page writes a separate completion marker in `seasonRolloverPages/{seasonId}/pages/{offset}` before contributing to `rolloverCompletedEntries`, so a retried page cannot double-increment progress.
+- The last discovered page sets `rolloverExpectedEntries`.
+- Finalization occurs only when `rolloverCompletedEntries >= rolloverExpectedEntries`.
+- The final transaction closes the old season and activates the next season exactly once.
+- An empty leaderboard is also valid: page 0 records an expected count of zero and finalizes safely.
+
+This architecture removes the requirement to hold the full season leaderboard in memory or finish one million grants in one 540-second Function invocation.
+
+## Firestore indexing for rollover
+
+The repository now tracks `firestore.indexes.json` and `firebase.json` references it alongside the rules file.
+
+The required manual leaderboard index is tracked in source for:
+
+- `rankPoints DESC`
+- `wins DESC`
+- `losses ASC`
+- Firestore's final document-name ordering provides the deterministic UID tie-break direction used by the query.
+
+This index is a production deployment requirement before the distributed rollover worker can run against live Firestore.
 
 ## Locked economy/prestige policy
 
@@ -42,11 +80,11 @@ Prestige Stars remain permanent account history and are never spent. Season clos
 
 Current reward and reset tables are unchanged in this hardening batch. Rebalancing requires an explicit product decision.
 
-## Validation evidence
+## Validation evidence already completed
 
-The exact boundary implementation passed the dedicated No-APK validation on GitHub Actions run `32220593908` via temporary PR #62. The PR was closed **without merge** after validation.
+The exact boundary implementation passed dedicated No-APK validation on GitHub Actions run `32220593908` via temporary PR #62. The PR was closed **without merge** after validation.
 
-Validated successfully:
+Validated successfully in that run:
 
 - Cloud Functions TypeScript build;
 - Cloud Functions policy/unit tests, including exact boundary tests;
@@ -55,7 +93,7 @@ Validated successfully:
 - `flutter analyze`;
 - full `flutter test` suite.
 
-A previous validation attempt correctly failed on a TypeScript snapshot typing error in `season.ts`; that error was fixed and the full validation was rerun from the beginning until green. No APK was built in this validation cycle.
+A previous validation attempt correctly failed on a TypeScript snapshot typing error in `season.ts`; that error was fixed and the full validation was rerun from the beginning until green. No APK was built in that validation cycle.
 
 Additional policy coverage includes:
 
@@ -67,16 +105,31 @@ Additional policy coverage includes:
 - exact final legal Ranked-admission millisecond;
 - full five-minute settlement grace before rollover can acquire the season lock.
 
-## Scale gate still open
+## Current validation gate
 
-The current rollover implementation still loads the complete season leaderboard and processes player rollover grants sequentially. This is deterministic and idempotent for the current development/validation scale, but it is **not accepted as a one-million-player production architecture**.
+The new distributed rollover source is **not yet declared validated** merely because it has been written. It still must pass a fresh dedicated No-APK run covering:
 
-Before final production readiness, season rollover must be redesigned or distributed so that:
+- TypeScript build with `firebase-admin/functions` and task-queue APIs;
+- Functions tests;
+- Firestore emulator rules tests;
+- Flutter analyze/tests to prove no cross-project breakage;
+- source contract tests for page IDs, page size, completion accounting and deterministic ordering where practical.
 
-- it never requires loading a million leaderboard entries into one function invocation;
-- it never depends on one 540-second invocation finishing all player grants;
-- retries preserve exact final standings and exactly-once Star/reset/history outcomes;
-- next-season availability is not blocked for an unacceptable duration;
-- Firestore reads/writes and Cloud Functions invocations are bounded and measurable.
+After that run is green, this document will be updated again with the exact run ID and the scale gate will move from implementation to deployment/capacity testing.
 
-This scalability item is explicitly tracked for the million-player cost/capacity audit and must be resolved before the project is declared fully production-ready.
+## Remaining production-scale considerations for the final owner report
+
+The distributed design removes the single-function memory/timeout bottleneck, but the final million-player report must still quantify:
+
+- reads/writes per player rollover transaction;
+- page-query reads;
+- task count (`ceil(entries / 200)` at current page size);
+- Cloud Tasks cost;
+- Functions compute duration at the configured queue concurrency;
+- expected time until the next season becomes active at 100K / 1M players;
+- whether player rollover transactions should later be further reduced or denormalized;
+- operational alarms for a season stuck in `processing`;
+- deployment of the required Firestore composite index;
+- Blaze/IAM requirements for Cloud Tasks enqueue/invoke permissions.
+
+These points are intentionally retained for the final financial/capacity report rather than hidden behind a generic “scales automatically” claim.
