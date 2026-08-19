@@ -55,6 +55,7 @@ type SubscriptionPurchaseV2 = {
   subscriptionState?: string;
   acknowledgementState?: string;
   latestOrderId?: string;
+  linkedPurchaseToken?: string;
   regionCode?: string;
   startTime?: string;
   lineItems?: SubscriptionLineItem[];
@@ -136,6 +137,12 @@ export const verifyPremiumSeasonPass = onCall(CALLABLE_OPTIONS, async (request) 
     if (startsAt === null || endsAt === null || now.getTime() < startsAt || now.getTime() >= endsAt) {
       throw new HttpsError("failed-precondition", "Premium Season Pass can only unlock the live season.");
     }
+    if (expiry.getTime() < endsAt) {
+      throw new HttpsError(
+        "failed-precondition",
+        "The verified prepaid entitlement does not cover the remainder of this season.",
+      );
+    }
 
     if (receiptSnap.exists) {
       const receipt = receiptSnap.data() ?? {};
@@ -143,6 +150,12 @@ export const verifyPremiumSeasonPass = onCall(CALLABLE_OPTIONS, async (request) 
         throw new HttpsError(
           "permission-denied",
           "This Google Play subscription token belongs to another entitlement.",
+        );
+      }
+      if (receipt.seasonId !== seasonId) {
+        throw new HttpsError(
+          "already-exists",
+          "This Premium Season Pass purchase was already bound to another season.",
         );
       }
     }
@@ -179,16 +192,17 @@ export const verifyPremiumSeasonPass = onCall(CALLABLE_OPTIONS, async (request) 
       {
         receiptId: receiptRef.id,
         uid,
+        seasonId,
         productId: PREMIUM_SEASON_PASS_PRODUCT_ID,
         basePlanId: PREMIUM_SEASON_PASS_BASE_PLAN_ID,
         platform: "googlePlaySubscription",
         latestOrderId: verified.latestOrderId ?? null,
+        linkedPurchaseToken: verified.linkedPurchaseToken ?? null,
         regionCode: verified.regionCode ?? null,
         startTime: verified.startTime ?? null,
         expiryTime: lineItem.expiryTime,
         subscriptionState: verified.subscriptionState,
         googleAcknowledgementState: verified.acknowledgementState ?? null,
-        seasonIdsUnlocked: FieldValue.arrayUnion(seasonId),
         verifiedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
