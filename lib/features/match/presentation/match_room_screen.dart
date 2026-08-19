@@ -11,7 +11,7 @@ import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../minigames/data/game_registry.dart';
 import '../data/match_backend.dart';
 import '../domain/match_session.dart';
-import 'match_play_screen.dart';
+import 'audio_match_play_screen.dart';
 
 class MatchRoomScreen extends StatefulWidget {
   const MatchRoomScreen({
@@ -133,7 +133,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => MatchPlayScreen(
+          builder: (_) => AudioMatchPlayScreen(
             matchId: widget.matchId,
             uid: widget.uid,
             matchBackend: widget.matchBackend,
