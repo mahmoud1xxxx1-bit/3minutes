@@ -27,14 +27,14 @@ class ProgressionCopy {
   String get claimed => isArabic ? 'تم الاستلام' : 'Claimed';
   String get rewardClaimed => isArabic ? 'تم استلام المكافأة' : 'Reward claimed';
   String get rewardUnavailable => isArabic
-      ? 'ستتاح المطالبة بعد تفعيل خادم المكافآت.'
-      : 'Reward claiming becomes available when the reward server is enabled.';
+      ? 'هذه المكافأة غير متاحة للاستلام في النسخة الحالية.'
+      : 'This reward is unavailable to claim in the current build.';
   String get premiumPassLocked => isArabic
       ? 'المسار المميز غير مفعل لهذا الموسم.'
       : 'Premium track is not unlocked for this season.';
   String get serverProtected => isArabic
-      ? 'التقدم والمكافآت محمية من الخادم ولا يمكن للهاتف منحها لنفسه.'
-      : 'Progress and rewards are server protected and cannot be self-awarded by the client.';
+      ? 'يتم التحقق من التقدم والمكافآت تلقائيًا للحفاظ على عدالة اللعبة.'
+      : 'Progress and rewards are automatically verified to keep the game fair.';
 
   String mission(String id) => switch (id) {
         'daily_play_3' => isArabic ? 'العب 3 مباريات' : 'Play 3 matches',
