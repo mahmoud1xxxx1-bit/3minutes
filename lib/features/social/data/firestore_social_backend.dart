@@ -45,15 +45,31 @@ class FirestoreSocialBackend implements SocialBackend {
     if (!doc.exists || data == null) return null;
     final rawLegendarySeasons =
         (data['legendarySeasons'] as num?)?.toInt() ?? 0;
+    final rawLoadout = data['cosmeticLoadout'];
+    final loadout = rawLoadout is Map
+        ? Map<String, dynamic>.from(rawLoadout)
+        : const <String, dynamic>{};
+
+    String? equipped(String key) {
+      final value = loadout[key];
+      return value is String && value.isNotEmpty ? value : null;
+    }
+
     return SocialPlayerSummary(
       uid: uid,
       displayName: (data['gameName'] as String?) ?? 'Player',
-      avatarId: (data['avatarId'] as String?) ?? 'default_01',
+      avatarId: equipped('equippedAvatarId') ??
+          (data['avatarId'] as String?) ??
+          'avatar_free_vanguard',
       rankPoints: (data['rankPoints'] as num?)?.toInt() ?? 0,
       level: (data['level'] as num?)?.toInt() ?? 1,
       stars: (data['stars'] as num?)?.toInt() ?? 0,
       legendarySeasons:
           rawLegendarySeasons < 0 ? 0 : rawLegendarySeasons,
+      avatarFrameId: equipped('equippedAvatarFrameId'),
+      badgeId: equipped('equippedBadgeId'),
+      nameStyleId: equipped('equippedNameStyleId'),
+      rankAuraId: equipped('equippedRankAuraId'),
     );
   }
 
