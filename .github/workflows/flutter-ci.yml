@@ -87,11 +87,13 @@ jobs:
         run: flutter test
 
       - name: Build Android debug APK
+        if: github.event_name == 'workflow_dispatch'
         env:
           CI_DEBUG_KEYSTORE: /home/runner/.android/debug.keystore
         run: flutter build apk --debug
 
       - name: Verify generated Google OAuth resources
+        if: github.event_name == 'workflow_dispatch'
         run: |
           VALUES_FILE=$(find build android -type f -name values.xml -path '*google-services*' -o -type f -name values.xml -path '*GoogleServices*' | head -1)
           if [ -z "$VALUES_FILE" ]; then
@@ -106,6 +108,7 @@ jobs:
           grep -F '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com' "$VALUES_FILE"
 
       - name: Verify APK certificate
+        if: github.event_name == 'workflow_dispatch'
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/apkcert.txt
@@ -113,7 +116,7 @@ jobs:
           grep -Fi '9d0cae8acee49746eec81f16e6b1f17a3365b9ea' /tmp/apkcert.txt
 
       - name: Upload validated debug APK
-        if: success()
+        if: success() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: 3minutes-debug-apk
