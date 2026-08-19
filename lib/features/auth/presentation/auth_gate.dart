@@ -12,6 +12,7 @@ import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../profile/presentation/profile_setup_screen.dart';
 import '../../progression/data/progression_backend.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
 import '../data/auth_service.dart';
@@ -50,14 +51,11 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   int _profileRetry = 0;
 
-  void _retryProfile() {
-    setState(() => _profileRetry++);
-  }
+  void _retryProfile() => setState(() => _profileRetry++);
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
     return StreamBuilder<User?>(
       stream: widget.authService.authStateChanges(),
       initialData: widget.authService.currentUser,
@@ -65,11 +63,8 @@ class _AuthGateState extends State<AuthGate> {
         if (authSnapshot.connectionState == ConnectionState.waiting) {
           return _LoadingScreen(message: l10n.signingYouIn);
         }
-
         final user = authSnapshot.data;
-        if (user == null) {
-          return SignInScreen(authService: widget.authService);
-        }
+        if (user == null) return SignInScreen(authService: widget.authService);
 
         return StreamBuilder<PlayerProfile?>(
           key: ValueKey(_profileRetry),
@@ -81,11 +76,9 @@ class _AuthGateState extends State<AuthGate> {
                 onSignOut: widget.authService.signOut,
               );
             }
-
             if (profileSnapshot.connectionState == ConnectionState.waiting) {
               return _LoadingScreen(message: l10n.loadingProfile);
             }
-
             final profile = profileSnapshot.data;
             if (profile == null) {
               return ProfileSetupScreen(
@@ -93,7 +86,6 @@ class _AuthGateState extends State<AuthGate> {
                 profileRepository: widget.profileRepository,
               );
             }
-
             return GameShellScreen(
               user: user,
               authService: widget.authService,
@@ -116,46 +108,40 @@ class _AuthGateState extends State<AuthGate> {
 
 class _LoadingScreen extends StatelessWidget {
   const _LoadingScreen({required this.message});
-
   final String message;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Container(
-            margin: const EdgeInsets.all(GameSpacing.lg),
-            padding: const EdgeInsets.all(GameSpacing.lg),
-            decoration: BoxDecoration(
-              color: GameColors.surface,
-              borderRadius: BorderRadius.circular(GameRadii.panel),
-              border: Border.all(color: GameColors.surfaceStrong),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: GameSpacing.md),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-              ],
+  Widget build(BuildContext context) => Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Container(
+              margin: const EdgeInsets.all(GameSpacing.lg),
+              padding: const EdgeInsets.all(GameSpacing.lg),
+              decoration: BoxDecoration(
+                color: GameColors.surface,
+                borderRadius: BorderRadius.circular(GameRadii.panel),
+                border: Border.all(color: GameColors.surfaceStrong),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: GameSpacing.md),
+                  Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _ProfileErrorScreen extends StatelessWidget {
-  const _ProfileErrorScreen({
-    required this.onRetry,
-    required this.onSignOut,
-  });
+  const _ProfileErrorScreen({required this.onRetry, required this.onSignOut});
 
   final VoidCallback onRetry;
   final Future<void> Function() onSignOut;
@@ -163,7 +149,6 @@ class _ProfileErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -179,25 +164,15 @@ class _ProfileErrorScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.cloud_off_rounded,
-                    size: 50,
-                    color: GameColors.warning,
-                  ),
+                  const Icon(Icons.cloud_off_rounded, size: 50, color: GameColors.warning),
                   const SizedBox(height: GameSpacing.md),
                   Text(
                     l10n.profileLoadFailed,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: GameSpacing.xs),
-                  Text(
-                    l10n.checkConnection,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: GameColors.muted),
-                  ),
+                  Text(l10n.checkConnection, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted)),
                   const SizedBox(height: GameSpacing.lg),
                   FilledButton.icon(
                     onPressed: onRetry,
@@ -206,7 +181,10 @@ class _ProfileErrorScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: GameSpacing.sm),
                   TextButton(
-                    onPressed: onSignOut,
+                    onPressed: () async {
+                      if (!await confirmSignOut(context) || !context.mounted) return;
+                      await onSignOut();
+                    },
                     child: Text(l10n.signOut),
                   ),
                 ],
