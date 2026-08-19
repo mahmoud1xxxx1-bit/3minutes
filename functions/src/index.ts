@@ -21,7 +21,11 @@ export { settleRankedMatch } from "./settlement.js";
 export { submitSocialGameResult } from "./social_submit.js";
 export { settleSocialMatch } from "./social.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";
-export { unlockPrestigeCosmetic, selectRankShowcase } from "./prestige.js";
+export {
+  unlockPrestigeCosmetic,
+  selectRankShowcase,
+  claimEarnedCosmetic,
+} from "./prestige.js";
 export { verifyPremiumPurchase } from "./premium.js";
 export {
   onRankedSettlementProgression,
