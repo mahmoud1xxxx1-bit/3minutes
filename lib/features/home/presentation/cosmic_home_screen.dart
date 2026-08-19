@@ -13,6 +13,7 @@ import '../../competition/presentation/rank_badge.dart';
 import '../../competition/presentation/season_screen.dart';
 import '../../competition/presentation/season_star_badge.dart';
 import '../../economy/data/economy_backend.dart';
+import '../../economy/presentation/avatar_artwork.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/data/social_match_backend.dart';
@@ -22,6 +23,7 @@ import '../../match/presentation/match_room_screen.dart';
 import '../../match/presentation/matchmaking_screen.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
 import '../../social/presentation/friends_screen.dart';
@@ -54,10 +56,26 @@ class CosmicHomeScreen extends StatelessWidget {
   final SocialBackend socialBackend;
   final RoomBackend roomBackend;
 
+  Future<void> _handleMenu(BuildContext context, String value) async {
+    if (value == 'settings') {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SettingsScreen(authService: authService),
+        ),
+      );
+      return;
+    }
+    if (value == 'signout') {
+      if (!await confirmSignOut(context) || !context.mounted) return;
+      await authService.signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final social = SocialCopy.of(context);
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
 
     return StreamBuilder<PlayerProfile?>(
       stream: profileRepository.watchProfile(user.uid),
@@ -82,10 +100,19 @@ class CosmicHomeScreen extends StatelessWidget {
               ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_horiz_rounded),
-                onSelected: (value) {
-                  if (value == 'signout') authService.signOut();
-                },
+                onSelected: (value) => _handleMenu(context, value),
                 itemBuilder: (_) => [
+                  PopupMenuItem<String>(
+                    value: 'settings',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.settings_rounded),
+                        const SizedBox(width: GameSpacing.sm),
+                        Text(ar ? 'الإعدادات' : 'Settings'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
                   PopupMenuItem<String>(
                     value: 'signout',
                     child: Row(
@@ -201,6 +228,7 @@ class _ProfileHero extends StatelessWidget {
     final player = profile;
     final rp = player?.rankPoints ?? 0;
     final tier = RankPolicy.tierFor(rp);
+    final avatarId = player?.avatarId ?? 'avatar_free_vanguard';
 
     return CosmicPanel(
       child: Row(
@@ -214,12 +242,15 @@ class _ProfileHero extends StatelessWidget {
               boxShadow: GameShadows.primaryGlow,
             ),
             padding: const EdgeInsets.all(2),
-            child: const DecoratedBox(
-              decoration: BoxDecoration(
-                color: GameColors.surface,
-                shape: BoxShape.circle,
+            child: ClipOval(
+              child: DecoratedBox(
+                decoration: const BoxDecoration(color: GameColors.surface),
+                child: AvatarArtwork(
+                  avatarId: avatarId,
+                  size: 64,
+                  borderRadius: 32,
+                ),
               ),
-              child: Icon(Icons.person_rounded, size: 36),
             ),
           ),
           const SizedBox(width: GameSpacing.md),
@@ -239,7 +270,11 @@ class _ProfileHero extends StatelessWidget {
                   runSpacing: GameSpacing.xs,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    RankBadge(tier: tier, compact: true),
+                    RankBadge(
+                      tier: tier,
+                      compact: true,
+                      legendarySeasons: player?.legendarySeasons ?? 0,
+                    ),
                     Text(
                       l10n.levelWithValue(player?.level ?? 1),
                       style: Theme.of(context).textTheme.bodySmall,
@@ -418,8 +453,8 @@ class _QuickPlayButton extends StatelessWidget {
               serverReady
                   ? subtitle
                   : (_isArabic(context)
-                      ? 'يتطلب تشغيل الخادم الآمن'
-                      : 'Requires secure server'),
+                      ? 'غير متاح في هذه النسخة التجريبية'
+                      : 'Unavailable in this test build'),
               style: const TextStyle(fontSize: 10),
             ),
           ],
