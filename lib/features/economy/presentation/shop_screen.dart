@@ -386,7 +386,7 @@ class _ShopScreenState extends State<ShopScreen> {
             padding: const EdgeInsets.fromLTRB(GameSpacing.md, 0, GameSpacing.md, 110),
             sliver: SliverList.separated(
               itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: GameSpacing.sm),
+              separatorBuilder: (_, _) => const SizedBox(height: GameSpacing.sm),
               itemBuilder: (context, index) {
                 final item = items[index];
                 final owned = inventory.ownedCosmeticIds.contains(item.id);
