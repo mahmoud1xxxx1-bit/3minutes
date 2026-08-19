@@ -1,4 +1,10 @@
-import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
+import {
+  FieldValue,
+  Timestamp,
+  getFirestore,
+  type DocumentData,
+  type QueryDocumentSnapshot,
+} from "firebase-admin/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import { COLLECTIONS, intValue, stringValue } from "./firestore.js";
@@ -219,7 +225,7 @@ export const rolloverRankedSeason = onSchedule(
   async () => {
     const db = getFirestore();
 
-    let seasonSnap;
+    let seasonSnap: QueryDocumentSnapshot<DocumentData>;
     const active = await db
       .collection(COLLECTIONS.seasons)
       .where("active", "==", true)
@@ -234,7 +240,7 @@ export const rolloverRankedSeason = onSchedule(
       if (!seasonReadyForRollover({ active: true, endsAtMs, nowMs: Date.now() })) return;
 
       const acquired = await db.runTransaction(async (transaction) => {
-        const currentSnap = await transaction.get(seasonSnap!.ref);
+        const currentSnap = await transaction.get(seasonSnap.ref);
         const current = currentSnap.data();
         if (!current) return false;
         if (current.rolloverState === "processing") return true;
@@ -247,7 +253,7 @@ export const rolloverRankedSeason = onSchedule(
         })) {
           return false;
         }
-        transaction.update(seasonSnap!.ref, {
+        transaction.update(seasonSnap.ref, {
           active: false,
           rolloverState: "processing",
           settlementsClosedAt: FieldValue.serverTimestamp(),
