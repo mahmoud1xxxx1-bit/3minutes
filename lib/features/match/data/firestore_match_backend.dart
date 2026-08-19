@@ -210,6 +210,7 @@ class FirestoreMatchBackend implements MatchBackend {
       progressB: _progressFrom(data['progressB']),
       rematchA: data['rematchA'] as bool? ?? false,
       rematchB: data['rematchB'] as bool? ?? false,
+      mode: data['mode'] as String? ?? 'ranked',
       rematchMatchId: data['rematchMatchId'] as String?,
       cancelledBy: data['cancelledBy'] as String?,
       countdownStartedAt: countdownTimestamp is Timestamp
@@ -233,7 +234,10 @@ class FirestoreMatchBackend implements MatchBackend {
     final asB = await _matches.where('playerBId', isEqualTo: uid).limit(20).get();
     final byId = <String, MatchSession>{};
     for (final doc in [...asA.docs, ...asB.docs]) {
-      byId[doc.id] = _sessionFromDoc(doc);
+      final session = _sessionFromDoc(doc);
+      // Legacy matches predate the explicit mode field and default to ranked.
+      // Quick matches share the runtime collection but never belong in Ranked history.
+      if (session.isRanked) byId[doc.id] = session;
     }
     final items = byId.values.toList()
       ..sort((a, b) {
