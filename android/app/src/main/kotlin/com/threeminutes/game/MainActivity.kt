@@ -1,8 +1,5 @@
 package com.threeminutes.game
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -12,23 +9,6 @@ class MainActivity : FlutterActivity() {
     private val channelName = "com.threeminutes.game/invites"
     private var inviteChannel: MethodChannel? = null
     private var pendingRoomCode: String? = null
-    private var clipboardManager: ClipboardManager? = null
-    private var lastSharedInvite: String? = null
-
-    private val clipboardListener = ClipboardManager.OnPrimaryClipChangedListener {
-        val text = clipboardManager
-            ?.primaryClip
-            ?.getItemAt(0)
-            ?.coerceToText(this)
-            ?.toString()
-            ?.trim()
-            ?: return@OnPrimaryClipChangedListener
-
-        if (!Regex("^threeminutes://join/[A-Z0-9]{5}$").matches(text)) return@OnPrimaryClipChangedListener
-        if (text == lastSharedInvite) return@OnPrimaryClipChangedListener
-        lastSharedInvite = text
-        shareInvite(text)
-    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -57,14 +37,9 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
-
-        clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager?.addPrimaryClipChangedListener(clipboardListener)
     }
 
     override fun onDestroy() {
-        clipboardManager?.removePrimaryClipChangedListener(clipboardListener)
-        clipboardManager = null
         inviteChannel = null
         super.onDestroy()
     }
@@ -93,7 +68,6 @@ class MainActivity : FlutterActivity() {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-        val chooser = Intent.createChooser(sendIntent, "3 Minutes")
-        startActivity(chooser)
+        startActivity(Intent.createChooser(sendIntent, "3 Minutes"))
     }
 }
