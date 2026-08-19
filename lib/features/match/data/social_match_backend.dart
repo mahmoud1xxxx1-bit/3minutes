@@ -26,5 +26,11 @@ abstract class SocialMatchBackend {
     required ParticipantConnectionState state,
   });
 
+  Future<void> sendEmote({
+    required String matchId,
+    required String uid,
+    required String emoteId,
+  });
+
   Future<void> settleMatch(String matchId);
 }
