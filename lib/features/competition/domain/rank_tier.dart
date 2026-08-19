@@ -16,7 +16,7 @@ enum RankTier {
         RankTier.diamond => 'Diamond',
         RankTier.master => 'Master',
         RankTier.grandmaster => 'Grandmaster',
-        RankTier.legend => 'Legend',
+        RankTier.legend => 'Legendary',
       };
 }
 
