@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '.ci-no-apk-trigger'
   workflow_dispatch:
 
 jobs:
