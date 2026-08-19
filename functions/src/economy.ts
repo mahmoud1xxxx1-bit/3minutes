@@ -99,10 +99,18 @@ export const equipCosmetic = onCall(CALLABLE_OPTIONS, async (request) => {
 
   const db = getFirestore();
   const inventoryRef = db.collection(COLLECTIONS.inventories).doc(uid);
+  const userRef = db.collection(COLLECTIONS.users).doc(uid);
 
   return db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(inventoryRef);
-    const inventory = snapshot.data() ?? {};
+    const [inventorySnap, userSnap] = await Promise.all([
+      transaction.get(inventoryRef),
+      transaction.get(userRef),
+    ]);
+    if (!userSnap.exists) {
+      throw new HttpsError("failed-precondition", "Player profile does not exist.");
+    }
+
+    const inventory = inventorySnap.data() ?? {};
     const owned = Array.isArray(inventory.ownedCosmeticIds)
       ? inventory.ownedCosmeticIds.filter(
           (value): value is string => typeof value === "string",
@@ -126,6 +134,16 @@ export const equipCosmetic = onCall(CALLABLE_OPTIONS, async (request) => {
       },
       { merge: true },
     );
+
+    // Public loadout is a display-only mirror written exclusively by server
+    // authority after ownership verification. Clients can read it to render
+    // cosmetics in profiles, rooms and matches, but Firestore rules prevent
+    // them from writing or forging it directly.
+    transaction.update(userRef, {
+      [`cosmeticLoadout.${field}`]: cosmeticId,
+      ...(cosmetic.slot === "avatar" ? { avatarId: cosmeticId } : {}),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
 
     return {
       coins: Math.max(0, intValue(inventory.coins)),
