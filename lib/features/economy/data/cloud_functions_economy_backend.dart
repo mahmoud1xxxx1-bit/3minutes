@@ -17,6 +17,29 @@ class CloudFunctionsEconomyBackend implements EconomyBackend {
   final FirebaseFirestore _firestore;
   final FirebaseFunctions _functions;
 
+  PlayerInventory _inventoryFromData(Map<String, dynamic> data) {
+    final owned = data['ownedCosmeticIds'];
+    return PlayerInventory(
+      coins: (data['coins'] as num?)?.toInt() ?? 0,
+      prestigeStars: (data['prestigeStars'] as num?)?.toInt() ??
+          (data['stars'] as num?)?.toInt() ??
+          0,
+      ownedCosmeticIds: Set.unmodifiable(
+        owned is List ? owned.whereType<String>().toSet() : <String>{},
+      ),
+      equippedAvatarId: data['equippedAvatarId'] as String?,
+      equippedAvatarFrameId: data['equippedAvatarFrameId'] as String?,
+      equippedBadgeId: data['equippedBadgeId'] as String?,
+      equippedProfileBackgroundId: data['equippedProfileBackgroundId'] as String?,
+      equippedNameStyleId: data['equippedNameStyleId'] as String?,
+      equippedMatchIntroId: data['equippedMatchIntroId'] as String?,
+      equippedVictoryEffectId: data['equippedVictoryEffectId'] as String?,
+      equippedRankAuraId: data['equippedRankAuraId'] as String?,
+      equippedEmoteId: data['equippedEmoteId'] as String?,
+      equippedRoomThemeId: data['equippedRoomThemeId'] as String?,
+    );
+  }
+
   @override
   Stream<PlayerInventory?> watchInventory(String uid) {
     return _firestore
@@ -26,26 +49,7 @@ class CloudFunctionsEconomyBackend implements EconomyBackend {
         .map((snapshot) {
       final data = snapshot.data();
       if (!snapshot.exists || data == null) return null;
-      final owned = data['ownedCosmeticIds'];
-      return PlayerInventory(
-        coins: (data['coins'] as num?)?.toInt() ?? 0,
-        prestigeStars: (data['prestigeStars'] as num?)?.toInt() ??
-            (data['stars'] as num?)?.toInt() ??
-            0,
-        ownedCosmeticIds: Set.unmodifiable(
-          owned is List ? owned.whereType<String>().toSet() : <String>{},
-        ),
-        equippedAvatarId: data['equippedAvatarId'] as String?,
-        equippedAvatarFrameId: data['equippedAvatarFrameId'] as String?,
-        equippedBadgeId: data['equippedBadgeId'] as String?,
-        equippedProfileBackgroundId: data['equippedProfileBackgroundId'] as String?,
-        equippedNameStyleId: data['equippedNameStyleId'] as String?,
-        equippedMatchIntroId: data['equippedMatchIntroId'] as String?,
-        equippedVictoryEffectId: data['equippedVictoryEffectId'] as String?,
-        equippedRankAuraId: data['equippedRankAuraId'] as String?,
-        equippedEmoteId: data['equippedEmoteId'] as String?,
-        equippedRoomThemeId: data['equippedRoomThemeId'] as String?,
-      );
+      return _inventoryFromData(data);
     });
   }
 
@@ -58,9 +62,9 @@ class CloudFunctionsEconomyBackend implements EconomyBackend {
     required String uid,
     required String cosmeticId,
   }) async {
-    final response = await _functions.httpsCallable('purchaseCosmetic').call<Map<Object?, Object?>>({
-      'cosmeticId': cosmeticId,
-    });
+    final response = await _functions
+        .httpsCallable('purchaseCosmetic')
+        .call<Map<Object?, Object?>>({'cosmeticId': cosmeticId});
     final data = Map<String, dynamic>.from(response.data);
     return PurchaseReceipt(
       transactionId: data['transactionId'] as String,
@@ -84,6 +88,16 @@ class CloudFunctionsEconomyBackend implements EconomyBackend {
   }
 
   @override
+  Future<void> claimEarnedCosmetic({
+    required String uid,
+    required String cosmeticId,
+  }) async {
+    await _functions.httpsCallable('claimEarnedCosmetic').call<void>({
+      'cosmeticId': cosmeticId,
+    });
+  }
+
+  @override
   Future<PlayerInventory> equipCosmetic({
     required String uid,
     required String cosmeticId,
@@ -95,26 +109,6 @@ class CloudFunctionsEconomyBackend implements EconomyBackend {
         .collection(ServerCollections.inventories)
         .doc(uid)
         .get();
-    final data = snapshot.data() ?? const <String, dynamic>{};
-    final owned = data['ownedCosmeticIds'];
-    return PlayerInventory(
-      coins: (data['coins'] as num?)?.toInt() ?? 0,
-      prestigeStars: (data['prestigeStars'] as num?)?.toInt() ??
-          (data['stars'] as num?)?.toInt() ??
-          0,
-      ownedCosmeticIds: Set.unmodifiable(
-        owned is List ? owned.whereType<String>().toSet() : <String>{},
-      ),
-      equippedAvatarId: data['equippedAvatarId'] as String?,
-      equippedAvatarFrameId: data['equippedAvatarFrameId'] as String?,
-      equippedBadgeId: data['equippedBadgeId'] as String?,
-      equippedProfileBackgroundId: data['equippedProfileBackgroundId'] as String?,
-      equippedNameStyleId: data['equippedNameStyleId'] as String?,
-      equippedMatchIntroId: data['equippedMatchIntroId'] as String?,
-      equippedVictoryEffectId: data['equippedVictoryEffectId'] as String?,
-      equippedRankAuraId: data['equippedRankAuraId'] as String?,
-      equippedEmoteId: data['equippedEmoteId'] as String?,
-      equippedRoomThemeId: data['equippedRoomThemeId'] as String?,
-    );
+    return _inventoryFromData(snapshot.data() ?? const <String, dynamic>{});
   }
 }
