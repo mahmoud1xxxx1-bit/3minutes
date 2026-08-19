@@ -32,6 +32,7 @@ class GameShellScreen extends StatefulWidget {
     required this.authService,
     required this.profileRepository,
     required this.matchBackend,
+    required this.quickMatchBackend,
     required this.socialMatchBackend,
     required this.competitionBackend,
     required this.economyBackend,
@@ -44,6 +45,7 @@ class GameShellScreen extends StatefulWidget {
   final AuthService authService;
   final ProfileRepository profileRepository;
   final MatchBackend matchBackend;
+  final MatchBackend quickMatchBackend;
   final SocialMatchBackend socialMatchBackend;
   final CompetitionBackend competitionBackend;
   final EconomyBackend economyBackend;
@@ -132,6 +134,7 @@ class _GameShellScreenState extends State<GameShellScreen> {
             authService: widget.authService,
             profileRepository: widget.profileRepository,
             matchBackend: widget.matchBackend,
+            quickMatchBackend: widget.quickMatchBackend,
             socialMatchBackend: widget.socialMatchBackend,
             competitionBackend: widget.competitionBackend,
             economyBackend: widget.economyBackend,
