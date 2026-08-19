@@ -6,7 +6,6 @@ import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../economy/data/cosmetic_loadout_repository.dart';
 import '../../economy/domain/cosmetic_loadout.dart';
-import '../../economy/presentation/avatar_artwork.dart';
 import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../match/domain/match_progress.dart';
