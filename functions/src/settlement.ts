@@ -25,6 +25,7 @@ import {
   parseEvidence,
   validateEvidence,
 } from "./registry.js";
+import { advanceSeasonalRecord } from "./season_integrity.js";
 
 const CALLABLE_OPTIONS = {
   region: "me-central2",
@@ -266,12 +267,22 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const lifetimeWinsB = intValue(profileB.wins) + (resultB === "win" ? 1 : 0);
     const lifetimeLossesA = intValue(profileA.losses) + (resultA === "loss" ? 1 : 0);
     const lifetimeLossesB = intValue(profileB.losses) + (resultB === "loss" ? 1 : 0);
-    const seasonWinsA = intValue(boardA.wins) + (resultA === "win" ? 1 : 0);
-    const seasonWinsB = intValue(boardB.wins) + (resultB === "win" ? 1 : 0);
-    const seasonLossesA = intValue(boardA.losses) + (resultA === "loss" ? 1 : 0);
-    const seasonLossesB = intValue(boardB.losses) + (resultB === "loss" ? 1 : 0);
-    const seasonTiesA = intValue(boardA.ties) + (resultA === "tie" ? 1 : 0);
-    const seasonTiesB = intValue(boardB.ties) + (resultB === "tie" ? 1 : 0);
+    const seasonRecordA = advanceSeasonalRecord(
+      {
+        wins: intValue(boardA.wins),
+        losses: intValue(boardA.losses),
+        ties: intValue(boardA.ties),
+      },
+      resultA,
+    );
+    const seasonRecordB = advanceSeasonalRecord(
+      {
+        wins: intValue(boardB.wins),
+        losses: intValue(boardB.losses),
+        ties: intValue(boardB.ties),
+      },
+      resultB,
+    );
     const settledAt = new Date();
 
     const payload = {
@@ -356,9 +367,9 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       {
         ...leaderboardBase(profileA),
         rankPoints: nextRpA,
-        wins: seasonWinsA,
-        losses: seasonLossesA,
-        ties: seasonTiesA,
+        wins: seasonRecordA.wins,
+        losses: seasonRecordA.losses,
+        ties: seasonRecordA.ties,
         peakTier: peakTierA,
       },
       { merge: true },
@@ -368,9 +379,9 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       {
         ...leaderboardBase(profileB),
         rankPoints: nextRpB,
-        wins: seasonWinsB,
-        losses: seasonLossesB,
-        ties: seasonTiesB,
+        wins: seasonRecordB.wins,
+        losses: seasonRecordB.losses,
+        ties: seasonRecordB.ties,
         peakTier: peakTierB,
       },
       { merge: true },
