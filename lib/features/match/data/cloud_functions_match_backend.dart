@@ -11,7 +11,8 @@ import '../domain/match_ticket.dart';
 import 'firestore_match_backend.dart';
 import 'match_backend.dart';
 
-class CloudFunctionsMatchBackend implements MatchBackend {
+class CloudFunctionsMatchBackend
+    implements MatchBackend, RankedSettlementResultBackend {
   CloudFunctionsMatchBackend({
     FirebaseFunctions? functions,
     FirestoreMatchBackend? readBackend,
