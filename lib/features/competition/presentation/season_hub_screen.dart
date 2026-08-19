@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../progression/data/progression_backend.dart';
 import '../../progression/presentation/progression_screen.dart';
 import '../data/competition_backend.dart';
@@ -22,7 +23,25 @@ class SeasonHubScreen extends StatelessWidget {
     void openProgression() {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => ProgressionScreen(uid: uid, backend: progressionBackend),
+          builder: (_) => StreamBuilder(
+            stream: competitionBackend.watchCurrentSeason(),
+            builder: (context, snapshot) {
+              final season = snapshot.data;
+              if (season == null) {
+                return const Scaffold(
+                  backgroundColor: Colors.transparent,
+                  body: CosmicBackground(
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                );
+              }
+              return ProgressionScreen(
+                uid: uid,
+                seasonId: season.id,
+                backend: progressionBackend,
+              );
+            },
+          ),
         ),
       );
     }
