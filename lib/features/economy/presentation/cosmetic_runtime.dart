@@ -26,6 +26,11 @@ class CosmeticAvatarView extends StatelessWidget {
   final String? frameId;
   final double size;
 
+  bool get _animatedFrame =>
+      frameId == 'frame_neon' ||
+      frameId == 'frame_voltage' ||
+      frameId == 'frame_elite';
+
   @override
   Widget build(BuildContext context) {
     final frame = frameId;
@@ -39,31 +44,53 @@ class CosmeticAvatarView extends StatelessWidget {
       _ => const [GameColors.surfaceStrong, GameColors.accent],
     };
     final premiumFrame = frame != null;
-    return SizedBox.square(
-      dimension: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: SweepGradient(colors: [...frameColors, frameColors.first]),
-          boxShadow: premiumFrame
-              ? [
-                  BoxShadow(
-                    color: frameColors.first.withValues(alpha: .34),
-                    blurRadius: size * .18,
-                  ),
-                ]
-              : null,
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(frame == null ? 2 : size * .045),
-          child: ClipOval(
-            child: AvatarArtwork(
-              avatarId: avatarId,
-              size: size,
-              borderRadius: size,
+
+    Widget frameLayer(double phase) => Transform.rotate(
+          angle: _animatedFrame ? phase * math.pi * 2 : 0,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: SweepGradient(colors: [...frameColors, frameColors.first]),
+              boxShadow: premiumFrame
+                  ? [
+                      BoxShadow(
+                        color: frameColors.first.withValues(
+                          alpha: _animatedFrame ? .24 + .12 * _pulse(phase) : .34,
+                        ),
+                        blurRadius: size * (_animatedFrame ? .15 + .06 * _pulse(phase) : .18),
+                      ),
+                    ]
+                  : null,
             ),
           ),
-        ),
+        );
+
+    return SizedBox.square(
+      dimension: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: _animatedFrame
+                ? _CosmeticLoop(
+                    duration: const Duration(milliseconds: 4200),
+                    builder: (_, phase) => frameLayer(phase),
+                  )
+                : frameLayer(0),
+          ),
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.all(frame == null ? 2 : size * .045),
+              child: ClipOval(
+                child: AvatarArtwork(
+                  avatarId: avatarId,
+                  size: size,
+                  borderRadius: size,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -128,7 +155,31 @@ class CosmeticNameText extends StatelessWidget {
           color: GameColors.textStrong,
         ),
     };
-    return Text(text, style: style, textAlign: textAlign, maxLines: 1, overflow: TextOverflow.ellipsis);
+
+    Widget label({double opacity = 1, double dy = 0}) => Transform.translate(
+          offset: Offset(0, dy),
+          child: Opacity(
+            opacity: opacity,
+            child: Text(
+              text,
+              style: style,
+              textAlign: textAlign,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        );
+
+    if (styleId != 'name_electric' && styleId != 'name_royal') {
+      return label();
+    }
+    return _CosmeticLoop(
+      duration: const Duration(milliseconds: 2600),
+      builder: (_, phase) {
+        final pulse = _pulse(phase);
+        return label(opacity: .88 + .12 * pulse, dy: -.4 + .8 * pulse);
+      },
+    );
   }
 }
 
@@ -215,9 +266,9 @@ class CosmeticProfileBackground extends StatelessWidget {
           children: [
             if (backgroundId == 'background_grid') const Positioned.fill(child: _GridOverlay()),
             if (backgroundId == 'background_constellation')
-              const Positioned.fill(child: _StarOverlay(count: 18)),
+              const Positioned.fill(child: _AnimatedStarOverlay(count: 18)),
             if (backgroundId == 'background_void')
-              const Positioned.fill(child: _VoidRings()),
+              const Positioned.fill(child: _AnimatedVoidRings()),
             child,
           ],
         ),
@@ -247,21 +298,51 @@ class CosmeticRankAura extends StatelessWidget {
       'aura_mythic_legacy' => const [Color(0xFFC37BFF), Color(0xFFFFD86B), Color(0xFF6AA8FF)],
       _ => const [GameColors.violet, GameColors.accentBright],
     };
-    return Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: SweepGradient(colors: [...colors, colors.first]),
-        boxShadow: [
-          BoxShadow(color: colors.first.withValues(alpha: .28), blurRadius: 22, spreadRadius: 2),
-          if (auraId == 'aura_mythic_legacy')
-            BoxShadow(color: colors[1].withValues(alpha: .18), blurRadius: 34, spreadRadius: 3),
-        ],
-      ),
-      child: DecoratedBox(
-        decoration: const BoxDecoration(shape: BoxShape.circle, color: GameColors.backgroundDeep),
-        child: Padding(padding: const EdgeInsets.all(5), child: child),
-      ),
+
+    return _CosmeticLoop(
+      duration: Duration(milliseconds: auraId == 'aura_storm' ? 3200 : 4600),
+      builder: (_, phase) {
+        final pulse = _pulse(phase);
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned.fill(
+              child: Transform.rotate(
+                angle: phase * math.pi * 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: SweepGradient(colors: [...colors, colors.first]),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.first.withValues(alpha: .20 + .10 * pulse),
+                        blurRadius: 18 + 8 * pulse,
+                        spreadRadius: 1 + pulse,
+                      ),
+                      if (auraId == 'aura_mythic_legacy')
+                        BoxShadow(
+                          color: colors[1].withValues(alpha: .12 + .08 * pulse),
+                          blurRadius: 28 + 10 * pulse,
+                          spreadRadius: 2,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(padding),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: GameColors.backgroundDeep,
+                ),
+                child: Padding(padding: const EdgeInsets.all(5), child: child),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -309,7 +390,8 @@ class CosmeticRoomTheme extends StatelessWidget {
           fit: StackFit.passthrough,
           children: [
             if (themeId == 'room_arcade') const Positioned.fill(child: _ArcadeOverlay()),
-            if (themeId == 'room_cyber_royal') const Positioned.fill(child: _RoyalOverlay()),
+            if (themeId == 'room_cyber_royal')
+              const Positioned.fill(child: _AnimatedRoyalOverlay()),
             child,
           ],
         ),
@@ -346,61 +428,88 @@ class CosmeticMatchIntro extends StatelessWidget {
       'intro_portal' => Icons.blur_circular_rounded,
       _ => Icons.flash_on_rounded,
     };
+
     return SizedBox(
       height: height,
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [color.withValues(alpha: .26), GameColors.backgroundDeep, GameColors.violetSoft],
-          ),
-          borderRadius: BorderRadius.circular(GameRadii.panel),
-          border: Border.all(color: color.withValues(alpha: .55)),
-          boxShadow: [BoxShadow(color: color.withValues(alpha: .17), blurRadius: 28)],
-        ),
-        child: Stack(
-          children: [
-            if (introId == 'intro_portal')
-              Center(
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: color.withValues(alpha: .7), width: 4),
-                    boxShadow: [BoxShadow(color: color.withValues(alpha: .35), blurRadius: 30)],
-                  ),
-                ),
-              ),
-            Align(
-              alignment: Alignment.topCenter,
-              child: Icon(icon, color: color, size: 36),
-            ),
-            Center(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      playerName,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-                    ),
-                  ),
-                  Text('VS', style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 24)),
-                  Expanded(
-                    child: Text(
-                      opponentName,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-                    ),
-                  ),
+      child: _CosmeticLoop(
+        duration: const Duration(milliseconds: 2600),
+        builder: (_, phase) {
+          final pulse = _pulse(phase);
+          return Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color.withValues(alpha: .20 + .08 * pulse),
+                  GameColors.backgroundDeep,
+                  GameColors.violetSoft,
                 ],
               ),
+              borderRadius: BorderRadius.circular(GameRadii.panel),
+              border: Border.all(color: color.withValues(alpha: .45 + .14 * pulse)),
+              boxShadow: [
+                BoxShadow(color: color.withValues(alpha: .11 + .09 * pulse), blurRadius: 22 + 10 * pulse),
+              ],
             ),
-          ],
-        ),
+            child: Stack(
+              children: [
+                if (introId == 'intro_portal')
+                  Center(
+                    child: Transform.rotate(
+                      angle: phase * math.pi * 2,
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: color.withValues(alpha: .62 + .2 * pulse), width: 4),
+                          boxShadow: [
+                            BoxShadow(color: color.withValues(alpha: .22 + .16 * pulse), blurRadius: 24 + 12 * pulse),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Transform.scale(
+                    scale: .96 + .08 * pulse,
+                    child: Icon(icon, color: color, size: 36),
+                  ),
+                ),
+                Center(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          playerName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                        ),
+                      ),
+                      Transform.scale(
+                        scale: .98 + .05 * pulse,
+                        child: Text(
+                          'VS',
+                          style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 24),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          opponentName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -432,37 +541,57 @@ class CosmeticVictoryEffect extends StatelessWidget {
       'victory_lightning' => Icons.bolt_rounded,
       _ => Icons.emoji_events_rounded,
     };
+
     return SizedBox(
       height: height,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            colors: [color.withValues(alpha: .28), GameColors.surface, GameColors.backgroundDeep],
-          ),
-          borderRadius: BorderRadius.circular(GameRadii.panel),
-          border: Border.all(color: color.withValues(alpha: .5)),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            if (effectId == 'victory_confetti') const Positioned.fill(child: _ConfettiOverlay()),
-            if (effectId == 'victory_crown_burst') const Positioned.fill(child: _BurstOverlay()),
-            if (effectId == 'victory_lightning') const Positioned.fill(child: _LightningOverlay()),
-            Column(
-              mainAxisSize: MainAxisSize.min,
+      child: _CosmeticLoop(
+        duration: const Duration(milliseconds: 2300),
+        builder: (_, phase) {
+          final pulse = _pulse(phase);
+          return Container(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  color.withValues(alpha: .20 + .12 * pulse),
+                  GameColors.surface,
+                  GameColors.backgroundDeep,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(GameRadii.panel),
+              border: Border.all(color: color.withValues(alpha: .42 + .12 * pulse)),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                Icon(icon, color: color, size: 62),
-                const SizedBox(height: 10),
-                Text(
-                  winnerName,
-                  style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 22),
+                if (effectId == 'victory_confetti')
+                  Positioned.fill(child: _ConfettiOverlay(phase: phase)),
+                if (effectId == 'victory_crown_burst')
+                  Positioned.fill(child: _BurstOverlay(phase: phase)),
+                if (effectId == 'victory_lightning')
+                  Positioned.fill(child: _LightningOverlay(phase: phase)),
+                Transform.scale(
+                  scale: .97 + .06 * pulse,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, color: color, size: 62),
+                      const SizedBox(height: 10),
+                      Text(
+                        winnerName,
+                        style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 22),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'VICTORY',
+                        style: TextStyle(letterSpacing: 3, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                const Text('VICTORY', style: TextStyle(letterSpacing: 3, fontWeight: FontWeight.w800)),
               ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -527,7 +656,11 @@ class CosmeticAppliedPreview extends StatelessWidget {
           backgroundId: item.id,
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: _IdentityPreview(avatarId: avatarId, playerName: playerName, transparent: true),
+            child: _IdentityPreview(
+              avatarId: avatarId,
+              playerName: playerName,
+              transparent: true,
+            ),
           ),
         ),
       CosmeticSlot.nameStyle => _IdentityPreview(
@@ -594,7 +727,13 @@ class _IdentityPreview extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(child: CosmeticNameText(text: playerName, styleId: nameStyleId, fontSize: 22)),
+              Flexible(
+                child: CosmeticNameText(
+                  text: playerName,
+                  styleId: nameStyleId,
+                  fontSize: 22,
+                ),
+              ),
               if (badgeId != null) ...[
                 const SizedBox(width: 8),
                 CosmeticBadgeView(badgeId: badgeId!, size: 38),
@@ -637,7 +776,11 @@ class _RoomMock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('PRIVATE ROOM', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+        const Text(
+          'PRIVATE ROOM',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2),
+        ),
         const SizedBox(height: 18),
         Wrap(
           alignment: WrapAlignment.center,
@@ -651,7 +794,9 @@ class _RoomMock extends StatelessWidget {
               decoration: BoxDecoration(
                 color: GameColors.surfaceGlass,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: index == 0 ? GameColors.rewardGold : GameColors.surfaceStrong),
+                border: Border.all(
+                  color: index == 0 ? GameColors.rewardGold : GameColors.surfaceStrong,
+                ),
               ),
               child: Icon(index == 0 ? Icons.workspace_premium_rounded : Icons.person_rounded),
             ),
@@ -662,6 +807,52 @@ class _RoomMock extends StatelessWidget {
   }
 }
 
+class _CosmeticLoop extends StatefulWidget {
+  const _CosmeticLoop({required this.builder, required this.duration});
+
+  final Duration duration;
+  final Widget Function(BuildContext context, double phase) builder;
+
+  @override
+  State<_CosmeticLoop> createState() => _CosmeticLoopState();
+}
+
+class _CosmeticLoopState extends State<_CosmeticLoop>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration)..repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CosmeticLoop oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.duration != widget.duration) {
+      _controller.duration = widget.duration;
+      if (!_controller.isAnimating) _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => widget.builder(context, _controller.value),
+    );
+  }
+}
+
+double _pulse(double phase) => (math.sin(phase * math.pi * 2) + 1) / 2;
+
 class _GridOverlay extends StatelessWidget {
   const _GridOverlay();
   @override
@@ -671,7 +862,9 @@ class _GridOverlay extends StatelessWidget {
 class _GridOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = GameColors.accentBright.withValues(alpha: .13)..strokeWidth = 1;
+    final paint = Paint()
+      ..color = GameColors.accentBright.withValues(alpha: .13)
+      ..strokeWidth = 1;
     const step = 28.0;
     for (var x = 0.0; x < size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
@@ -680,8 +873,28 @@ class _GridOverlayPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _AnimatedStarOverlay extends StatelessWidget {
+  const _AnimatedStarOverlay({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CosmeticLoop(
+      duration: const Duration(milliseconds: 6200),
+      builder: (_, phase) => Transform.translate(
+        offset: Offset(8 * math.sin(phase * math.pi * 2), -5 * _pulse(phase)),
+        child: Opacity(
+          opacity: .72 + .28 * _pulse(phase),
+          child: _StarOverlay(count: count),
+        ),
+      ),
+    );
+  }
 }
 
 class _StarOverlay extends StatelessWidget {
@@ -699,11 +912,34 @@ class _StarPainter extends CustomPainter {
     final random = math.Random(7);
     final paint = Paint()..color = Colors.white.withValues(alpha: .45);
     for (var i = 0; i < count; i++) {
-      canvas.drawCircle(Offset(random.nextDouble() * size.width, random.nextDouble() * size.height), 1 + random.nextDouble() * 1.5, paint);
+      canvas.drawCircle(
+        Offset(random.nextDouble() * size.width, random.nextDouble() * size.height),
+        1 + random.nextDouble() * 1.5,
+        paint,
+      );
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _AnimatedVoidRings extends StatelessWidget {
+  const _AnimatedVoidRings();
+
+  @override
+  Widget build(BuildContext context) {
+    return _CosmeticLoop(
+      duration: const Duration(milliseconds: 7000),
+      builder: (_, phase) => Transform.rotate(
+        angle: phase * math.pi * .12,
+        child: Transform.scale(
+          scale: .98 + .04 * _pulse(phase),
+          child: const _VoidRings(),
+        ),
+      ),
+    );
+  }
 }
 
 class _VoidRings extends StatelessWidget {
@@ -727,6 +963,7 @@ class _VoidPainter extends CustomPainter {
       );
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
@@ -740,13 +977,34 @@ class _ArcadeOverlay extends StatelessWidget {
 class _ArcadePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = GameColors.cosmicPink.withValues(alpha: .09)..strokeWidth = 2;
+    final paint = Paint()
+      ..color = GameColors.cosmicPink.withValues(alpha: .09)
+      ..strokeWidth = 2;
     for (var y = 22.0; y < size.height; y += 42) {
       canvas.drawLine(Offset(0, y), Offset(size.width, y + 16), paint);
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _AnimatedRoyalOverlay extends StatelessWidget {
+  const _AnimatedRoyalOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return _CosmeticLoop(
+      duration: const Duration(milliseconds: 5200),
+      builder: (_, phase) => Transform.translate(
+        offset: Offset(5 * math.sin(phase * math.pi * 2), 0),
+        child: Opacity(
+          opacity: .72 + .28 * _pulse(phase),
+          child: const _RoyalOverlay(),
+        ),
+      ),
+    );
+  }
 }
 
 class _RoyalOverlay extends StatelessWidget {
@@ -758,72 +1016,117 @@ class _RoyalOverlay extends StatelessWidget {
 class _RoyalPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = GameColors.rewardGold.withValues(alpha: .12)..strokeWidth = 1.5;
+    final paint = Paint()
+      ..color = GameColors.rewardGold.withValues(alpha: .12)
+      ..strokeWidth = 1.5;
     final center = Offset(size.width / 2, 0);
     for (var i = 1; i <= 7; i++) {
       canvas.drawLine(center, Offset(size.width * i / 8, size.height), paint);
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _ConfettiOverlay extends StatelessWidget {
-  const _ConfettiOverlay();
+  const _ConfettiOverlay({required this.phase});
+  final double phase;
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: _ConfettiPainter());
+  Widget build(BuildContext context) => CustomPaint(
+        painter: _ConfettiPainter(phase),
+      );
 }
 
 class _ConfettiPainter extends CustomPainter {
+  const _ConfettiPainter(this.phase);
+  final double phase;
+
   @override
   void paint(Canvas canvas, Size size) {
     final random = math.Random(12);
-    const colors = [GameColors.accentBright, GameColors.cosmicPink, GameColors.rewardGold, GameColors.success];
+    const colors = [
+      GameColors.accentBright,
+      GameColors.cosmicPink,
+      GameColors.rewardGold,
+      GameColors.success,
+    ];
     for (var i = 0; i < 34; i++) {
       final paint = Paint()..color = colors[i % colors.length].withValues(alpha: .7);
-      final p = Offset(random.nextDouble() * size.width, random.nextDouble() * size.height);
-      canvas.drawRect(Rect.fromCenter(center: p, width: 5, height: 10), paint);
+      final baseX = random.nextDouble() * size.width;
+      final baseY = random.nextDouble() * size.height;
+      final x = (baseX + math.sin((phase + i * .07) * math.pi * 2) * 7) % size.width;
+      final y = (baseY + phase * size.height * .28) % size.height;
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(phase * math.pi * 2 + i * .3);
+      canvas.drawRect(const Rect.fromCenter(center: Offset.zero, width: 5, height: 10), paint);
+      canvas.restore();
     }
   }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) => oldDelegate.phase != phase;
 }
 
 class _BurstOverlay extends StatelessWidget {
-  const _BurstOverlay();
+  const _BurstOverlay({required this.phase});
+  final double phase;
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: _BurstPainter());
+  Widget build(BuildContext context) => Transform.rotate(
+        angle: phase * math.pi * .35,
+        child: CustomPaint(painter: _BurstPainter(_pulse(phase))),
+      );
 }
 
 class _BurstPainter extends CustomPainter {
+  const _BurstPainter(this.pulse);
+  final double pulse;
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()..color = GameColors.rewardGold.withValues(alpha: .22)..strokeWidth = 2;
+    final paint = Paint()
+      ..color = GameColors.rewardGold.withValues(alpha: .16 + .10 * pulse)
+      ..strokeWidth = 1.7 + .7 * pulse;
+    final radius = math.min(size.width, size.height) * (.72 + .18 * pulse);
     for (var i = 0; i < 18; i++) {
       final angle = i * math.pi * 2 / 18;
-      canvas.drawLine(center, center + Offset(math.cos(angle), math.sin(angle)) * math.min(size.width, size.height), paint);
+      canvas.drawLine(
+        center,
+        center + Offset(math.cos(angle), math.sin(angle)) * radius,
+        paint,
+      );
     }
   }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _BurstPainter oldDelegate) => oldDelegate.pulse != pulse;
 }
 
 class _LightningOverlay extends StatelessWidget {
-  const _LightningOverlay();
+  const _LightningOverlay({required this.phase});
+  final double phase;
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: _LightningPainter());
+  Widget build(BuildContext context) => Opacity(
+        opacity: .58 + .42 * _pulse(phase * 2),
+        child: CustomPaint(painter: _LightningPainter(phase)),
+      );
 }
 
 class _LightningPainter extends CustomPainter {
+  const _LightningPainter(this.phase);
+  final double phase;
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = GameColors.accentBright.withValues(alpha: .45)
+      ..color = GameColors.accentBright.withValues(alpha: .38 + .16 * _pulse(phase))
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2;
+      ..strokeWidth = 1.8 + .7 * _pulse(phase);
     for (var i = 0; i < 5; i++) {
-      final x = size.width * (.12 + i * .2);
+      final drift = math.sin((phase + i * .11) * math.pi * 2) * 5;
+      final x = size.width * (.12 + i * .2) + drift;
       final path = Path()
         ..moveTo(x, 0)
         ..lineTo(x - 16, size.height * .35)
@@ -833,6 +1136,7 @@ class _LightningPainter extends CustomPainter {
       canvas.drawPath(path, paint);
     }
   }
+
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _LightningPainter oldDelegate) => oldDelegate.phase != phase;
 }
