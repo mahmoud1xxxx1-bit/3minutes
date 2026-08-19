@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../competition/data/mini_game_evidence_policy.dart';
@@ -14,14 +13,11 @@ import 'match_backend.dart';
 class CloudFunctionsQuickMatchBackend implements MatchBackend {
   CloudFunctionsQuickMatchBackend({
     FirebaseFunctions? functions,
-    FirebaseFirestore? firestore,
     FirestoreMatchBackend? matchReadBackend,
   })  : _functions = functions ?? FirebaseFunctions.instanceFor(region: 'me-central2'),
-        _firestore = firestore ?? FirebaseFirestore.instance,
         _matchReadBackend = matchReadBackend ?? FirestoreMatchBackend();
 
   final FirebaseFunctions _functions;
-  final FirebaseFirestore _firestore;
   final FirestoreMatchBackend _matchReadBackend;
 
   Future<void> _call(String name, Map<String, Object?> data) async {
@@ -45,18 +41,24 @@ class CloudFunctionsQuickMatchBackend implements MatchBackend {
       _call('syncQuickTicket', {'matchId': matchId});
 
   @override
-  Stream<MatchTicket?> watchTicket(String uid) {
-    return _firestore.collection('quickMatchmaking').doc(uid).snapshots().map((snapshot) {
-      final data = snapshot.data();
-      if (!snapshot.exists || data == null) return null;
-      return MatchTicket(
-        uid: uid,
-        status: MatchTicketStatus.fromWire(
-          data['status'] as String? ?? MatchTicketStatus.waiting.name,
-        ),
-        matchId: data['matchId'] as String?,
-      );
-    });
+  Stream<MatchTicket?> watchTicket(String uid) async* {
+    while (true) {
+      final response = await _functions
+          .httpsCallable('getQuickTicket')
+          .call<Map<Object?, Object?>>(const {});
+      final data = Map<String, dynamic>.from(response.data);
+      if (data['exists'] != true) {
+        yield null;
+      } else {
+        final status = data['status'] as String? ?? MatchTicketStatus.waiting.name;
+        yield MatchTicket(
+          uid: uid,
+          status: MatchTicketStatus.fromWire(status),
+          matchId: data['matchId'] as String?,
+        );
+      }
+      await Future<void>.delayed(const Duration(seconds: 1));
+    }
   }
 
   @override
