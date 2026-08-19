@@ -125,8 +125,6 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
       return;
     }
 
-    // Spark keeps the tested casual flow. No Coins, RP, Missions or prestige
-    // rewards are granted on this path; Blaze authority handles those later.
     final ref = _matches.doc(matchId);
     await _firestore.runTransaction((tx) async {
       final doc = await tx.get(ref);
@@ -181,6 +179,8 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
           finishedAt: progress.completedGames >= AppConfig.gamesPerMatch
               ? (progress.completedAt ?? DateTime.now().toUtc())
               : participant.finishedAt,
+          latestEmoteId: participant.latestEmoteId,
+          latestEmoteAt: participant.latestEmoteAt,
         ),
       );
       tx.update(ref, {'participants': participants});
@@ -213,6 +213,66 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
           connectionState: state,
           progress: participant.progress,
           finishedAt: participant.finishedAt,
+          latestEmoteId: participant.latestEmoteId,
+          latestEmoteAt: participant.latestEmoteAt,
+        ),
+      );
+      tx.update(ref, {'participants': participants});
+    });
+  }
+
+  @override
+  Future<void> sendEmote({
+    required String matchId,
+    required String uid,
+    required String emoteId,
+  }) async {
+    if (emoteId != 'emote_gg') {
+      throw ArgumentError('Unsupported social emote.');
+    }
+    // The equipped public loadout is written only by server authority after
+    // ownership verification. Reading it here prevents a client from sending
+    // a shop emote it does not own/equip.
+    final userSnap = await _firestore
+        .collection(ServerCollections.users)
+        .doc(uid)
+        .get();
+    final user = userSnap.data() ?? const <String, dynamic>{};
+    final loadoutRaw = user['cosmeticLoadout'];
+    final loadout = loadoutRaw is Map
+        ? Map<String, dynamic>.from(loadoutRaw)
+        : const <String, dynamic>{};
+    if (loadout['equippedEmoteId'] != emoteId) {
+      throw StateError('This emote is not equipped.');
+    }
+
+    final ref = _matches.doc(matchId);
+    await _firestore.runTransaction((tx) async {
+      final doc = await tx.get(ref);
+      if (!doc.exists) throw StateError('Social match not found.');
+      final data = doc.data()!;
+      final participants = Map<String, dynamic>.from(
+        data['participants'] as Map<String, dynamic>? ?? const {},
+      );
+      final raw = participants[uid];
+      if (raw is! Map) throw StateError('Player is not a match participant.');
+      final participant = _participantFromMap(uid, Map<String, dynamic>.from(raw));
+      final now = DateTime.now().toUtc();
+      if (participant.latestEmoteAt != null &&
+          now.difference(participant.latestEmoteAt!).inSeconds < 2) {
+        throw StateError('Emote cooldown is active.');
+      }
+      participants[uid] = _participantToMap(
+        MatchParticipant(
+          uid: participant.uid,
+          displayName: participant.displayName,
+          avatarId: participant.avatarId,
+          isReady: participant.isReady,
+          connectionState: participant.connectionState,
+          progress: participant.progress,
+          finishedAt: participant.finishedAt,
+          latestEmoteId: emoteId,
+          latestEmoteAt: now,
         ),
       );
       tx.update(ref, {'participants': participants});
@@ -265,6 +325,10 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
         'finishedAt': participant.finishedAt == null
             ? null
             : Timestamp.fromDate(participant.finishedAt!),
+        'latestEmoteId': participant.latestEmoteId,
+        'latestEmoteAt': participant.latestEmoteAt == null
+            ? null
+            : Timestamp.fromDate(participant.latestEmoteAt!),
       };
 
   static MatchParticipant _participantFromMap(String uid, Map<String, dynamic> data) {
@@ -283,6 +347,8 @@ class FirestoreSocialMatchBackend implements SocialMatchBackend {
           ? _progressFromMap(Map<String, dynamic>.from(progressData))
           : const MatchProgress.empty(),
       finishedAt: (data['finishedAt'] as Timestamp?)?.toDate(),
+      latestEmoteId: data['latestEmoteId'] as String?,
+      latestEmoteAt: (data['latestEmoteAt'] as Timestamp?)?.toDate(),
     );
   }
 
