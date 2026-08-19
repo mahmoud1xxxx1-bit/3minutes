@@ -29,6 +29,9 @@ class SeasonPassPolicy {
 
   static const int maxLevel = 30;
   static const int xpPerLevel = 500;
+  static const int premiumPriceUsd = 30;
+  static const List<int> premiumStarLevels = <int>[6, 12, 18, 24, 30];
+  static const int maxPremiumStarsPerSeason = 5;
 
   static int levelForXp(int seasonXp) {
     if (seasonXp <= 0) return 1;
@@ -55,5 +58,9 @@ class SeasonPassPolicy {
   static int premiumCoinRewardForLevel(int level) {
     final safeLevel = level.clamp(1, maxLevel).toInt();
     return 100 + safeLevel * 20;
+  }
+
+  static int premiumStarRewardForLevel(int level) {
+    return premiumStarLevels.contains(level) ? 1 : 0;
   }
 }
