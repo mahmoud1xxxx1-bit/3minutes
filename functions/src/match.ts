@@ -20,6 +20,7 @@ import {
   parseEvidence,
   validateEvidence,
 } from "./registry.js";
+import { seasonAcceptsNewRankedMatch } from "./season_boundary.js";
 
 const REGION = "me-central2";
 const CALLABLE_OPTIONS = {
@@ -41,13 +42,12 @@ function requireString(value: unknown, name: string): string {
 }
 
 function seasonAcceptsRanked(data: Record<string, unknown>, nowMs: number): boolean {
-  const startsAtMs = timestampMillis(data.startsAt);
-  const endsAtMs = timestampMillis(data.endsAt);
-  return data.active === true &&
-    startsAtMs !== null &&
-    endsAtMs !== null &&
-    nowMs >= startsAtMs &&
-    nowMs < endsAtMs;
+  return seasonAcceptsNewRankedMatch({
+    active: data.active === true,
+    startsAtMs: timestampMillis(data.startsAt),
+    endsAtMs: timestampMillis(data.endsAt),
+    nowMs,
+  });
 }
 
 function newMatchData(options: {
@@ -226,6 +226,17 @@ export const markRankedReady = onCall(CALLABLE_OPTIONS, async (request) => {
       updatedAt: FieldValue.serverTimestamp(),
     };
     if (nextReadyA && nextReadyB && data.countdownStartedAt == null) {
+      const seasonId = stringValue(data.seasonId);
+      if (!seasonId) {
+        throw new HttpsError("failed-precondition", "Ranked match has no season binding.");
+      }
+      const season = (await transaction.get(db.collection(COLLECTIONS.seasons).doc(seasonId))).data();
+      if (!season || !seasonAcceptsRanked(season, Date.now())) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Not enough season time remains to start this ranked match.",
+        );
+      }
       update.countdownStartedAt = FieldValue.serverTimestamp();
       update.status = "countdown";
     }
