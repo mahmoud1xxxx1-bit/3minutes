@@ -12,14 +12,17 @@ import '../domain/season.dart';
 import '../domain/season_clock.dart';
 import '../domain/season_reward_policy.dart';
 import 'rank_badge.dart';
+import 'season_player_progress_panel.dart';
 
 class SeasonScreen extends StatelessWidget {
   const SeasonScreen({
     super.key,
+    required this.uid,
     required this.competitionBackend,
     this.onOpenMissions,
   });
 
+  final String uid;
   final CompetitionBackend competitionBackend;
   final VoidCallback? onOpenMissions;
 
@@ -123,6 +126,20 @@ class SeasonScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+              const SizedBox(height: GameSpacing.md),
+              SeasonPlayerProgressPanel(
+                uid: uid,
+                backend: competitionBackend,
+                liveEnabled: liveEnabled,
+              ),
+              if (liveEnabled) ...[
+                const SizedBox(height: GameSpacing.md),
+                SeasonHistoryPanel(
+                  uid: uid,
+                  backend: competitionBackend,
+                  liveEnabled: liveEnabled,
+                ),
+              ],
               const SizedBox(height: GameSpacing.lg),
               Row(
                 children: [
