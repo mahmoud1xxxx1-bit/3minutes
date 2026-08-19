@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../economy/data/cosmetic_loadout_repository.dart';
+import '../../economy/domain/cosmetic_loadout.dart';
+import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../minigames/domain/mini_game_contract.dart';
 import '../../minigames/presentation/mini_game_host.dart';
@@ -603,6 +606,16 @@ class _MatchResultViewState extends State<_MatchResultView> {
     final requested = match.requestedRematch(widget.uid);
     final opponentRequested =
         match.playerAId == widget.uid ? match.rematchB : match.rematchA;
+    final winnerUid = outcome == MatchOutcome.playerA
+        ? match.playerAId
+        : outcome == MatchOutcome.playerB
+            ? match.playerBId
+            : null;
+    final winnerName = outcome == MatchOutcome.playerA
+        ? match.playerAName
+        : outcome == MatchOutcome.playerB
+            ? match.playerBName
+            : null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(GameSpacing.lg),
@@ -614,35 +627,12 @@ class _MatchResultViewState extends State<_MatchResultView> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: Container(
-                width: 112,
-                height: 112,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: resultColor.withValues(alpha: .10),
-                  border: Border.all(
-                    color: resultColor.withValues(alpha: .42),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: resultColor.withValues(alpha: .16),
-                      blurRadius: 36,
-                    ),
-                  ],
-                ),
-                child: Icon(resultIcon, size: 56, color: resultColor),
-              ),
-            ),
-            const SizedBox(height: GameSpacing.md),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: resultColor,
-                    fontWeight: FontWeight.w900,
-                  ),
+            _RankedResultHeader(
+              winnerUid: winnerUid,
+              winnerName: winnerName,
+              title: title,
+              resultColor: resultColor,
+              resultIcon: resultIcon,
             ),
             const SizedBox(height: GameSpacing.lg),
             CosmicPanel(
@@ -710,6 +700,119 @@ class _MatchResultViewState extends State<_MatchResultView> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RankedResultHeader extends StatelessWidget {
+  const _RankedResultHeader({
+    required this.winnerUid,
+    required this.winnerName,
+    required this.title,
+    required this.resultColor,
+    required this.resultIcon,
+  });
+
+  final String? winnerUid;
+  final String? winnerName;
+  final String title;
+  final Color resultColor;
+  final IconData resultIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = winnerUid;
+    final name = winnerName;
+    if (uid == null || name == null) {
+      return _DefaultResultHeader(
+        title: title,
+        resultColor: resultColor,
+        resultIcon: resultIcon,
+      );
+    }
+
+    return FutureBuilder<CosmeticLoadout>(
+      future: CosmeticLoadoutRepository().load(uid),
+      builder: (context, snapshot) {
+        final loadout = snapshot.data ?? const CosmeticLoadout();
+        final effect = loadout.victoryEffectId;
+        if (effect == null) {
+          return _DefaultResultHeader(
+            title: title,
+            resultColor: resultColor,
+            resultIcon: resultIcon,
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            CosmeticVictoryEffect(
+              effectId: effect,
+              winnerName: name,
+              height: 230,
+            ),
+            const SizedBox(height: GameSpacing.md),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: resultColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DefaultResultHeader extends StatelessWidget {
+  const _DefaultResultHeader({
+    required this.title,
+    required this.resultColor,
+    required this.resultIcon,
+  });
+
+  final String title;
+  final Color resultColor;
+  final IconData resultIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Center(
+          child: Container(
+            width: 112,
+            height: 112,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: resultColor.withValues(alpha: .10),
+              border: Border.all(
+                color: resultColor.withValues(alpha: .42),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: resultColor.withValues(alpha: .16),
+                  blurRadius: 36,
+                ),
+              ],
+            ),
+            child: Icon(resultIcon, size: 56, color: resultColor),
+          ),
+        ),
+        const SizedBox(height: GameSpacing.md),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                color: resultColor,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+      ],
     );
   }
 }
