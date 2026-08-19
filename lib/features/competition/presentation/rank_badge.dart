@@ -71,6 +71,7 @@ class RankBadge extends StatelessWidget {
     final color = _color;
     final l10n = AppLocalizations.of(context);
     final prestigeIcon = _prestigeIcon;
+    final emblemSize = compact ? 22.0 : 28.0;
 
     return Container(
       padding: EdgeInsetsDirectional.fromSTEB(
@@ -101,7 +102,13 @@ class RankBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          RankEmblem(tier: tier, size: compact ? 22 : 28),
+          if (tier == RankTier.legend && _showsPrestige)
+            _LegendaryPrestigeEmblem(
+              size: emblemSize,
+              level: _prestigeLevel,
+            )
+          else
+            RankEmblem(tier: tier, size: emblemSize),
           const SizedBox(width: GameSpacing.xs),
           Text(
             _label(l10n),
@@ -133,6 +140,108 @@ class RankBadge extends StatelessWidget {
               ),
             ],
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendaryPrestigeEmblem extends StatelessWidget {
+  const _LegendaryPrestigeEmblem({
+    required this.size,
+    required this.level,
+  });
+
+  final double size;
+  final LegendaryPrestigeLevel level;
+
+  bool get _doubleHalo => level.index >= LegendaryPrestigeLevel.doubleHalo.index;
+  bool get _crowned => level.index >= LegendaryPrestigeLevel.crowned.index;
+  bool get _aura => level.index >= LegendaryPrestigeLevel.aura.index;
+  bool get _legacy => level == LegendaryPrestigeLevel.legacy;
+
+  @override
+  Widget build(BuildContext context) {
+    final extra = _crowned ? size * .38 : _doubleHalo ? size * .24 : size * .12;
+    final dimension = size + extra;
+
+    return SizedBox.square(
+      dimension: dimension,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          if (_aura)
+            Container(
+              width: size * 1.2,
+              height: size * 1.2,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: GameColors.rankLegend.withValues(alpha: _legacy ? .34 : .24),
+                    blurRadius: _legacy ? 18 : 13,
+                    spreadRadius: _legacy ? 2 : 1,
+                  ),
+                  if (_legacy)
+                    BoxShadow(
+                      color: GameColors.rewardGold.withValues(alpha: .2),
+                      blurRadius: 22,
+                      spreadRadius: 1,
+                    ),
+                ],
+              ),
+            ),
+          if (_doubleHalo) ...[
+            Container(
+              width: size * 1.15,
+              height: size * 1.15,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: GameColors.rankLegend.withValues(alpha: .52),
+                  width: 1.2,
+                ),
+              ),
+            ),
+            Container(
+              width: size * 1.34,
+              height: size * 1.34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: (_legacy ? GameColors.rewardGold : GameColors.violet)
+                      .withValues(alpha: .34),
+                ),
+              ),
+            ),
+          ],
+          RankEmblem(tier: RankTier.legend, size: size),
+          if (_crowned)
+            Positioned(
+              top: -size * .12,
+              child: Icon(
+                Icons.workspace_premium_rounded,
+                size: size * .42,
+                color: GameColors.rewardGold,
+                shadows: [
+                  Shadow(
+                    color: GameColors.rewardGold.withValues(alpha: .45),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+          if (_legacy)
+            Positioned(
+              right: -size * .06,
+              bottom: -size * .02,
+              child: Icon(
+                Icons.auto_awesome_rounded,
+                size: size * .3,
+                color: GameColors.rewardGold,
+              ),
+            ),
         ],
       ),
     );
