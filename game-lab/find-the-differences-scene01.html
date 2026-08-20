@@ -1,1 +1,113 @@
-__PLACEHOLDER__
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Find the Differences — Scene 01</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:#050914;color:#eef6ff;font-family:system-ui,-apple-system,Segoe UI,Tahoma,sans-serif}
+.app{min-height:100dvh;padding:12px;background:radial-gradient(circle at 50% 0,#1a2945,#07101d 55%,#03060c)}
+.hud{max-width:1300px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pill{background:#0b1528e8;border:1px solid #2b4667;border-radius:14px;padding:8px;text-align:center}.pill b{display:block;color:#6eeaff;font-size:19px}.pill span{font-size:10px;color:#92a8c1;font-weight:800}
+h1{text-align:center;margin:10px 0 2px;font-size:24px}.sub{text-align:center;color:#9cb0c8;font-size:12px;margin-bottom:10px}
+.boards{max-width:1300px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;direction:ltr}
+.board{position:relative;border:1px solid #315277;border-radius:20px;overflow:hidden;background:#0a1120;box-shadow:0 18px 48px #0008}
+.board canvas{width:100%;display:block;touch-action:manipulation}
+.tag{position:absolute;top:10px;right:10px;background:#06101ddd;border:1px solid #5a789d;border-radius:10px;padding:4px 10px;font-weight:1000;z-index:3}
+.mark{position:absolute;border:3px solid #55ffae;border-radius:50%;box-shadow:0 0 18px #55ffae;transform:translate(-50%,-50%);pointer-events:none;z-index:4}
+.toast{position:fixed;left:50%;top:12%;transform:translateX(-50%);opacity:0;transition:.12s;background:#07101eea;border:1px solid #365775;border-radius:999px;padding:8px 14px;font-weight:1000;z-index:20;pointer-events:none}.toast.show{opacity:1}.toast.good{color:#5dffb2}.toast.bad{color:#ff7b8c}
+.overlay{position:fixed;inset:0;background:#020611ed;z-index:30;display:flex;align-items:center;justify-content:center;padding:18px}.overlay.hidden{display:none}
+.card{width:min(430px,96vw);background:linear-gradient(180deg,#12233f,#081426);border:1px solid #365576;border-radius:24px;padding:22px;text-align:center;box-shadow:0 30px 90px #000d}.card h2{margin:0 0 8px}.card p{font-size:13px;color:#a9bbcf;line-height:1.75}.row{display:flex;gap:8px;direction:ltr}.row input,.row select{flex:1;min-width:0;background:#06101f;color:white;border:1px solid #35506d;border-radius:12px;padding:10px}.play{width:100%;height:50px;border:0;border-radius:15px;margin-top:10px;background:linear-gradient(90deg,#35d9ee,#91f4ff);font-weight:1000;color:#04101c}.result{font-size:38px;color:#72efff;font-weight:1000}.note{font-size:10px!important;color:#7890aa!important}
+@media(max-width:820px){.boards{grid-template-columns:1fr}.hud{grid-template-columns:repeat(2,1fr)}h1{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hud">
+    <div class="pill"><b id="time">20.0</b><span>الوقت</span></div>
+    <div class="pill"><b id="found">0/3</b><span>الفروقات</span></div>
+    <div class="pill"><b id="mistakes">0</b><span>الأخطاء</span></div>
+    <div class="pill"><b id="family">S01</b><span>المشهد</span></div>
+  </div>
+  <h1>اكتشف الفروقات — Scene 01</h1>
+  <div class="sub">نفس الشكل الذي يرسم الفرق هو نفسه منطقة الضغط في الصورتين A وB</div>
+  <div class="boards">
+    <div class="board" id="boardA"><div class="tag">A</div><canvas id="a" width="630" height="602"></canvas></div>
+    <div class="board" id="boardB"><div class="tag">B</div><canvas id="b" width="630" height="602"></canvas></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<div id="overlay" class="overlay">
+  <div id="card" class="card">
+    <h2>Scene 01 — Exact Layer Masks</h2>
+    <p>10 فروقات مستقلة. Normal = 3، Hard = 4، Expert = 5. لا توجد Hitboxes يدوية منفصلة.</p>
+    <div class="row">
+      <input id="seed" value="20260820" inputmode="numeric">
+      <select id="difficulty">
+        <option value="0">Normal • 3</option>
+        <option value="1">Hard • 4</option>
+        <option value="2">Expert • 5</option>
+      </select>
+    </div>
+    <button id="play" class="play">ابدأ التجربة</button>
+    <p class="note">Scene 01 فقط — لن ننتقل للمشهد الثاني قبل اعتماده.</p>
+  </div>
+</div>
+<script>
+(()=>{'use strict';
+const W=630,H=602,a=document.getElementById('a'),b=document.getElementById('b'),A=a.getContext('2d'),B=b.getContext('2d');
+const boardA=document.getElementById('boardA'),boardB=document.getElementById('boardB'),overlay=document.getElementById('overlay'),card=document.getElementById('card'),toast=document.getElementById('toast');
+const timeEl=document.getElementById('time'),foundEl=document.getElementById('found'),mistEl=document.getElementById('mistakes');
+const img=new Image();img.src='scene01_base.webp';
+let active=[],found=new Set(),mist=0,remain=20,running=false,last=0,targetCount=3;
+function rng(seed){let s=(seed>>>0)||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function P_clock(){const p=new Path2D();p.moveTo(84,82);p.lineTo(112,99);p.lineTo(122,72);p.lineTo(126,75);p.lineTo(115,106);p.lineTo(81,86);p.closePath();return p}
+function D_clock(c,p){c.save();c.fillStyle='#ff5c63';c.fill(p);c.restore()}
+function P_picture(){const p=new Path2D();p.arc(244,77,13,0,Math.PI*2);return p}
+function D_picture(c,p){c.fillStyle='#67d7ff';c.fill(p)}
+function P_plant(){const p=new Path2D();p.arc(310,219,12,0,Math.PI*2);return p}
+function D_plant(c,p){c.fillStyle='#ff6d8a';c.fill(p)}
+function P_books(){const p=new Path2D();p.roundRect(179,187,16,71,3);return p}
+function D_books(c,p){c.fillStyle='#5ac9e6';c.fill(p)}
+function P_lamp(){const p=new Path2D();p.moveTo(536,165);p.lineTo(627,166);p.lineTo(616,205);p.lineTo(548,205);p.closePath();return p}
+function D_lamp(c,p){c.save();c.globalAlpha=.88;c.fillStyle='#f0b34f';c.fill(p);c.restore()}
+function P_cushionL(){const p=new Path2D();p.arc(177,364,13,0,Math.PI*2);return p}
+function D_cushionL(c,p){c.fillStyle='#ffe05f';c.fill(p)}
+function P_cushionM(){const p=new Path2D();p.roundRect(276,350,72,11,4);return p}
+function D_cushionM(c,p){c.fillStyle='#4bc8e9';c.fill(p)}
+function P_cushionR(){const p=new Path2D();p.moveTo(445,350);p.lineTo(450,364);p.lineTo(465,365);p.lineTo(453,374);p.lineTo(458,389);p.lineTo(445,380);p.lineTo(432,389);p.lineTo(437,374);p.lineTo(425,365);p.lineTo(440,364);p.closePath();return p}
+function D_cushionR(c,p){c.fillStyle='#ff6a75';c.fill(p)}
+function P_mug(){const p=new Path2D();p.moveTo(205,490);p.lineTo(223,475);p.lineTo(228,480);p.lineTo(210,498);p.closePath();return p}
+function D_mug(c,p){c.fillStyle='#d5f6ff';c.fill(p)}
+function P_book(){const p=new Path2D();p.moveTo(410,507);p.lineTo(428,514);p.lineTo(419,546);p.lineTo(407,539);p.closePath();return p}
+function D_book(c,p){c.fillStyle='#e85e72';c.fill(p)}
+const defs=[
+{id:'clock',path:P_clock,draw:D_clock,mark:[103,80]},
+{id:'picture',path:P_picture,draw:D_picture,mark:[244,77]},
+{id:'plant',path:P_plant,draw:D_plant,mark:[310,219]},
+{id:'books',path:P_books,draw:D_books,mark:[187,222]},
+{id:'lamp',path:P_lamp,draw:D_lamp,mark:[582,185]},
+{id:'cushionL',path:P_cushionL,draw:D_cushionL,mark:[177,364]},
+{id:'cushionM',path:P_cushionM,draw:D_cushionM,mark:[312,356]},
+{id:'cushionR',path:P_cushionR,draw:D_cushionR,mark:[445,371]},
+{id:'mug',path:P_mug,draw:D_mug,mark:[216,487]},
+{id:'book',path:P_book,draw:D_book,mark:[417,527]}
+];
+const byId=id=>defs.find(d=>d.id===id);
+function draw(){if(!img.complete)return;A.clearRect(0,0,W,H);B.clearRect(0,0,W,H);A.drawImage(img,0,0,W,H);B.drawImage(img,0,0,W,H);for(const id of active){const d=byId(id),p=d.path();d.draw(B,p)}}
+function point(e,canvas){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+function hit(pt,ctx){for(const id of active){if(found.has(id))continue;const d=byId(id),p=d.path();if(ctx.isPointInPath(p,pt.x,pt.y))return id}return null}
+function mark(board,id){const [x,y]=byId(id).mark,d=document.createElement('div');d.className='mark';d.style.left=(x/W*board.clientWidth)+'px';d.style.top=(y/H*board.clientHeight)+'px';d.style.width='34px';d.style.height='34px';board.appendChild(d)}
+function flash(t,ok){toast.textContent=t;toast.className='toast show '+(ok?'good':'bad');clearTimeout(flash.t);flash.t=setTimeout(()=>toast.className='toast',220)}
+function tap(e,canvas,ctx){if(!running)return;const id=hit(point(e,canvas),ctx);if(id){found.add(id);mark(boardA,id);mark(boardB,id);foundEl.textContent=`${found.size}/${targetCount}`;flash('فرق صحيح',true);if(found.size===targetCount)finish(true)}else{mist++;mistEl.textContent=mist;flash('ليست منطقة اختلاف',false)}}
+a.addEventListener('pointerdown',e=>tap(e,a,A));b.addEventListener('pointerdown',e=>tap(e,b,B));
+function start(){const seed=(parseInt(document.getElementById('seed').value,10)||1)>>>0,level=+document.getElementById('difficulty').value||0;targetCount=[3,4,5][level];active=shuffle(defs.map(d=>d.id),rng(seed)).slice(0,targetCount);found.clear();mist=0;remain=20;document.querySelectorAll('.mark').forEach(x=>x.remove());foundEl.textContent=`0/${targetCount}`;mistEl.textContent='0';timeEl.textContent='20.0';draw();overlay.classList.add('hidden');running=true;last=performance.now()}
+function finish(done){if(!running)return;running=false;overlay.classList.remove('hidden');card.innerHTML=`<h2>${done?'أحسنت':'انتهى الوقت'}</h2><div class="result">${found.size}/${targetCount}</div><p>الأخطاء: <b>${mist}</b></p><button id="again" class="play">تجربة جديدة</button><p class="note">Scene 01 • Exact layer path = exact hit mask</p>`;document.getElementById('again').onclick=()=>location.reload()}
+function loop(now){requestAnimationFrame(loop);if(!running){last=now;return}const dt=Math.min(.05,(now-last)/1000||0);last=now;remain-=dt;timeEl.textContent=Math.max(0,remain).toFixed(1);if(remain<=0)finish(false)}
+img.onload=draw;document.getElementById('play').onclick=start;requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
