@@ -38,8 +38,10 @@ void main() {
     final english = await titlesFor(tester, const Locale('en'));
     final arabic = await titlesFor(tester, const Locale('ar'));
 
-    expect(english.length, 10);
-    expect(arabic.length, 10);
+    expect(english.length, GameRegistry.games.length);
+    expect(arabic.length, GameRegistry.games.length);
+    expect(english['mole_strike'], 'Mole Strike');
+    expect(arabic['mole_strike'], 'اضرب السنجاب');
     for (final game in GameRegistry.games) {
       expect(english[game.id], isNotEmpty);
       expect(arabic[game.id], isNotEmpty);
