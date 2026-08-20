@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>اكتشف الفروقات</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:#050b13;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Tahoma,sans-serif}
+body{background:radial-gradient(circle at 50% 0,#12253b,#06101d 56%,#02060b)}
+.app{min-height:100dvh;padding:12px}
+h1{text-align:center;margin:4px 0 2px;font-size:24px}
+.sub{text-align:center;color:#9fb4c8;font-size:12px;margin-bottom:10px}
+.hud{display:flex;justify-content:center;gap:10px;margin-bottom:10px}
+.pill{min-width:150px;text-align:center;padding:8px 14px;border:1px solid #355877;background:#091625;border-radius:14px}
+.pill b{display:block;font-size:20px;color:#ffd052}.pill span{font-size:10px;color:#a8bbce;font-weight:900}
+.boards{max-width:1450px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;direction:ltr}
+.board{position:relative;aspect-ratio:736/748;border:1px solid #3b6689;border-radius:20px;overflow:hidden;background:#07101a;box-shadow:0 18px 50px #0008}
+.board canvas{width:100%;height:100%;display:block;touch-action:manipulation}
+.tag{position:absolute;top:10px;right:10px;z-index:4;background:#07101ddd;border:1px solid #6887a1;border-radius:10px;padding:4px 10px;font-weight:1000}
+.mark{position:absolute;z-index:5;border:3px solid #55ffae;border-radius:50%;box-shadow:0 0 18px #55ffae;transform:translate(-50%,-50%);pointer-events:none}
+.toast{position:fixed;left:50%;top:10%;transform:translateX(-50%);z-index:30;opacity:0;padding:8px 14px;border-radius:999px;background:#06101eee;border:1px solid #40617b;font-weight:1000;transition:.12s;pointer-events:none}
+.toast.show{opacity:1}.good{color:#5dffb2}.bad{color:#ff7d8f}
+@media(max-width:850px){.boards{grid-template-columns:1fr;max-width:720px}}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>اكتشف الفروقات</h1>
+<div class="sub">اضغط على الاختلاف في أي صورة</div>
+<div class="hud">
+<div class="pill"><b id="found">0/5</b><span>الفروقات المكتشفة</span></div>
+<div class="pill"><b id="mist">0</b><span>الأخطاء</span></div>
+</div>
+<div class="boards">
+<div class="board" id="ba"><span class="tag">A</span><canvas id="a" width="736" height="748"></canvas></div>
+<div class="board" id="bb"><span class="tag">B</span><canvas id="b" width="736" height="748"></canvas></div>
+</div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+(()=>{'use strict';
+const W=736,H=748;
+const img=new Image(); img.src='scene02_base_exact.webp';
+const a=document.getElementById('a'), b=document.getElementById('b');
+const A=a.getContext('2d'), B=b.getContext('2d');
+const ba=document.getElementById('ba'), bb=document.getElementById('bb');
+const foundEl=document.getElementById('found'), mistEl=document.getElementById('mist'), toast=document.getElementById('toast');
+let found=new Set(), mistakes=0;
+function poly(pts){const p=new Path2D();p.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)p.lineTo(pts[i][0],pts[i][1]);p.closePath();return p}
+function circle(cx,cy,r){const p=new Path2D();p.arc(cx,cy,r,0,Math.PI*2);return p}
+const defs=[
+{id:'clock',path:()=>circle(601,112,48),draw:(c,p)=>{c.save();c.globalAlpha=.88;c.fillStyle='#276aa0';c.fill(p);c.restore()},mark:[601,112]},
+{id:'leftPillow',path:()=>poly([[197,330],[211,319],[263,319],[278,334],[278,394],[264,405],[210,404],[196,390]]),draw:(c,p)=>{c.save();c.globalAlpha=.93;c.fillStyle='#e85e22';c.fill(p);c.restore()},mark:[237,362]},
+{id:'rightPillow',path:()=>poly([[478,338],[493,327],[547,337],[563,355],[548,405],[531,418],[475,402],[464,382]]),draw:(c,p)=>{c.save();c.globalAlpha=.93;c.fillStyle='#f9c62f';c.fill(p);c.restore()},mark:[515,373]},
+{id:'mug',path:()=>poly([[140,516],[158,507],[192,510],[208,524],[206,558],[193,574],[157,575],[143,561]]),draw:(c,p)=>{c.save();c.globalAlpha=.93;c.fillStyle='#74a92e';c.fill(p);c.restore()},mark:[174,542]},
+{id:'book',path:()=>poly([[337,547],[405,531],[455,550],[450,579],[381,592],[336,575]]),draw:(c,p)=>{c.save();c.globalAlpha=.94;c.fillStyle='#2d6fb2';c.fill(p);c.restore()},mark:[397,562]}
+];
+function draw(){A.clearRect(0,0,W,H);B.clearRect(0,0,W,H);A.drawImage(img,0,0,W,H);B.drawImage(img,0,0,W,H);for(const d of defs){const p=d.path();d.draw(B,p)}}
+function point(e,canvas){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+function hit(pt,ctx){for(const d of defs){if(found.has(d.id))continue;const p=d.path();if(ctx.isPointInPath(p,pt.x,pt.y))return d}return null}
+function mark(board,d){const m=document.createElement('div');m.className='mark';m.style.left=(d.mark[0]/W*100)+'%';m.style.top=(d.mark[1]/H*100)+'%';m.style.width='34px';m.style.height='34px';board.appendChild(m)}
+function flash(t,ok){toast.textContent=t;toast.className='toast show '+(ok?'good':'bad');clearTimeout(flash.t);flash.t=setTimeout(()=>toast.className='toast',240)}
+function tap(e,canvas,ctx){const d=hit(point(e,canvas),ctx);if(d){found.add(d.id);mark(ba,d);mark(bb,d);foundEl.textContent=found.size+'/5';flash('فرق صحيح',true)}else{mistakes++;mistEl.textContent=mistakes;flash('ليس اختلافًا',false)}}
+a.addEventListener('pointerdown',e=>tap(e,a,A));
+b.addEventListener('pointerdown',e=>tap(e,b,B));
+img.onload=draw;
+})();
+</script>
+</body>
+</html>
