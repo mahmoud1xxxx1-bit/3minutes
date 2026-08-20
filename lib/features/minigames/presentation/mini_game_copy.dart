@@ -14,6 +14,8 @@ class MiniGameCopy {
   String title(String gameId) => switch (gameId) {
         'tap_target' => isArabic ? 'اضغط الهدف' : 'Tap Target',
         'mole_strike' => isArabic ? 'اضرب السنجاب' : 'Mole Strike',
+        'follow_the_cup' => isArabic ? 'تابع الكأس' : 'Follow the Cup',
+        'path_rush' => isArabic ? 'تتبّع المسار' : 'Path Rush',
         'quick_math' => isArabic ? 'حساب سريع' : 'Quick Math',
         'color_match' => isArabic ? 'مطابقة اللون' : 'Color Match',
         'odd_one_out' => isArabic ? 'المختلف' : 'Odd One Out',
@@ -31,6 +33,15 @@ class MiniGameCopy {
       ? 'اضرب السنجاب الحقيقي بسرعة وتجنب المخادع'
       : 'Hit the real squirrel quickly and avoid the decoy';
   String get moleStrikeHits => isArabic ? 'الإصابات' : 'Hits';
+  String get followCupInstruction => isArabic
+      ? 'شاهد الكرة تحت الكأس ثم تابع التبديلات حتى النهاية'
+      : 'Watch the ball, then follow the cup until the swaps end';
+  String get followCupCorrect => isArabic ? 'الصحيح' : 'Correct';
+  String get pathRushInstruction => isArabic
+      ? 'اعرف طعام الشخصية ثم اختر بداية الخط الذي يصل إليه'
+      : 'Find the character food, then choose the path that reaches it';
+  String get pathRushRound => isArabic ? 'الجولة' : 'Round';
+  String get pathRushChoose => isArabic ? 'اختر 1 أو 2 أو 3' : 'Choose 1, 2, or 3';
   String get findOdd => isArabic ? 'اختر الشكل المختلف' : 'Find the odd one';
   String get howMany => isArabic ? 'كم عددها؟' : 'How many?';
   String matchSymbol(String symbol) =>
