@@ -37,7 +37,7 @@ html,body{margin:0;min-height:100%;background:#050914;color:#eef6ff;font-family:
 <div class="pill"><b>Scene 01</b><span>المشهد المعتمد</span></div>
 </div>
 <div class="title">اكتشف الفروقات — Scene 01 المعتمدة</div>
-<div class="sub">12 ألغاز من نفس الغرفة • لا تغيير للمشهد الأساسي</div>
+<div class="sub">12 ألغاز من نفس الغرفة • عند تغيير الرقم تظهر فروقات اللغز مباشرة في B</div>
 <div class="nav"><button id="prev">◀</button><select id="pick"></select><button id="next">▶</button></div>
 <div class="boards">
 <div class="board" id="boardA"><div class="tag">A</div><canvas id="a" width="800" height="600"></canvas></div>
@@ -89,7 +89,6 @@ function scene(c){
  for(let i=0;i<5;i++){c.beginPath();c.moveTo(115,396);c.quadraticCurveTo(110+i*10,340,85+i*18,300+i*8);c.stroke()}
  c.fillStyle='#66b77a';for(let i=0;i<5;i++){c.beginPath();c.ellipse(85+i*18,300+i*8,18,36,-1+i*.4,0,Math.PI*2);c.fill()}
 }
-
 const defs=[
 {id:'clockHand',path:()=>poly([[616,114],[620,114],[652,88],[656,92],[624,122],[618,121]]),draw:(c,p)=>{c.fillStyle='#ff5f6d';c.fill(p)},mark:[635,104]},
 {id:'clockDot',path:()=>circle(620,118,8),draw:(c,p)=>{c.fillStyle='#6de3ff';c.fill(p)},mark:[620,118]},
@@ -116,7 +115,6 @@ const defs=[
 {id:'windowMoon',path:()=>circle(110,103,13),draw:(c,p)=>{c.fillStyle='#ff9b67';c.fill(p)},mark:[110,103]},
 {id:'tableMark',path:()=>rect(430,487,38,8),draw:(c,p)=>{c.fillStyle='#65d9ff';c.fill(p)},mark:[449,491]}
 ];
-
 const variants=[
 ['clockHand','paintingMoon','book2','lampShade','leftDot'],
 ['clockDot','paintingPeak','book1','middleStripe','fruitMissing'],
@@ -131,7 +129,6 @@ const variants=[
 ['clockHand','paintingPeak','book3','middleDot','fruit1'],
 ['clockDot','paintingMoon','lampShade','rightDot','fruit2']
 ];
-
 function byId(id){return defs.find(d=>d.id===id)}
 function draw(){scene(A);scene(B);for(const id of active){const d=byId(id),p=d.path();d.draw(B,p)}}
 function point(e,c){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
@@ -140,11 +137,9 @@ function mark(board,id){const [x,y]=byId(id).mark,m=document.createElement('div'
 function flash(s,ok){toast.textContent=s;toast.className='toast show '+(ok?'good':'bad');clearTimeout(flash.t);flash.t=setTimeout(()=>toast.className='toast',220)}
 function tap(e,c,ctx){if(!running)return;const id=hit(point(e,c),ctx);if(id){found.add(id);mark(boardA,id);mark(boardB,id);foundEl.textContent=`${found.size}/${target}`;flash('فرق صحيح',true);if(found.size===target)finish(true)}else{mist++;mistEl.textContent=String(mist);flash('ليست منطقة اختلاف',false)}}
 a.addEventListener('pointerdown',e=>tap(e,a,A));b.addEventListener('pointerdown',e=>tap(e,b,B));
-
 for(let i=0;i<12;i++){const o=document.createElement('option');o.value=i;o.textContent='S01-'+String(i+1).padStart(2,'0');pick.appendChild(o)}
-function setVariant(v){variant=(v+12)%12;pick.value=variant;variantEl.textContent='S01-'+String(variant+1).padStart(2,'0');running=false;active=[];found.clear();document.querySelectorAll('.mark').forEach(x=>x.remove());scene(A);scene(B)}
+function setVariant(v){variant=(v+12)%12;pick.value=variant;variantEl.textContent='S01-'+String(variant+1).padStart(2,'0');running=false;active=variants[variant].slice();found.clear();mist=0;remain=20;document.querySelectorAll('.mark').forEach(x=>x.remove());foundEl.textContent='معاينة 5';mistEl.textContent='0';timeEl.textContent='20.0';draw()}
 pick.onchange=()=>setVariant(+pick.value);document.getElementById('prev').onclick=()=>setVariant(variant-1);document.getElementById('next').onclick=()=>setVariant(variant+1);
-
 function start(){target=+document.getElementById('difficulty').value;active=variants[variant].slice(0,target);found.clear();mist=0;remain=20;document.querySelectorAll('.mark').forEach(x=>x.remove());foundEl.textContent=`0/${target}`;mistEl.textContent='0';timeEl.textContent='20.0';draw();overlay.classList.add('hidden');running=true;last=performance.now()}
 function finish(done){if(!running)return;running=false;overlay.classList.remove('hidden');card.innerHTML=`<h2>${done?'أحسنت':'انتهى الوقت'}</h2><div style="font-size:38px;color:#72efff;font-weight:1000">${found.size}/${target}</div><p>${variantEl.textContent}<br>الأخطاء: <b>${mist}</b></p><button id="again" class="play">جولة جديدة</button>`;document.getElementById('again').onclick=()=>location.reload()}
 function loop(now){requestAnimationFrame(loop);if(!running){last=now;return}const dt=Math.min(.05,(now-last)/1000||0);last=now;remain-=dt;timeEl.textContent=Math.max(0,remain).toFixed(1);if(remain<=0)finish(false)}
