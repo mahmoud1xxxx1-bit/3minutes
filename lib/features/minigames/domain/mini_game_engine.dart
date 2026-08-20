@@ -16,6 +16,7 @@ class MiniGameEngineRegistry {
     'shape_count': MiniGameEngine.choice,
     'symbol_pair': MiniGameEngine.choice,
     'tap_target': MiniGameEngine.target,
+    'mole_strike': MiniGameEngine.target,
     'number_order': MiniGameEngine.sequence,
     'memory_flash': MiniGameEngine.sequence,
     'direction_swipe': MiniGameEngine.swipe,
