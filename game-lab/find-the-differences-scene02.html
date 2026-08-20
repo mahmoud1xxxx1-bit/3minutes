@@ -45,7 +45,7 @@ h1{text-align:center;margin:4px 0 2px;font-size:24px}
 <div id="toast" class="toast"></div>
 <script>
 (()=>{'use strict';
-const W=736,H=748;const img=new Image();img.src='scene02_base_exact.webp';
+const W=736,H=748;const img=new Image();img.src='https://raw.githubusercontent.com/mahmoud1xxxx1-bit/3minutes/0c8173d534c0735f891c25595c11f0278749d5e5/game-lab/scene02_base_exact.webp';
 const a=document.getElementById('a'),b=document.getElementById('b'),A=a.getContext('2d'),B=b.getContext('2d'),ba=document.getElementById('ba'),bb=document.getElementById('bb');
 const foundEl=document.getElementById('found'),mistEl=document.getElementById('mist'),toast=document.getElementById('toast'),difficulty=document.getElementById('difficulty'),puzzlesEl=document.getElementById('puzzles');
 let found=new Set(),mistakes=0,puzzleIndex=0,active=[];
@@ -63,7 +63,7 @@ const byId=Object.fromEntries(defs.map(d=>[d.id,d]));
 const recipes=[['clockBlue','leftOrange','rightGold','mugGreen','bookBlue'],['clockTeal','leftBlue','rightCoral','mugRed','bookGreen'],['clockWine','leftPlum','rightMint','mugBlue','bookRed'],['clockBlue','leftBlue','rightMint','mugRed','bookRed'],['clockTeal','leftPlum','rightGold','mugBlue','bookBlue'],['clockWine','leftOrange','rightCoral','mugGreen','bookGreen'],['clockBlue','leftPlum','rightCoral','mugBlue','bookGreen'],['clockTeal','leftOrange','rightMint','mugGreen','bookRed'],['clockWine','leftBlue','rightGold','mugRed','bookBlue'],['clockBlue','leftBlue','rightCoral','mugGreen','bookGreen'],['clockTeal','leftPlum','rightMint','mugRed','bookBlue'],['clockWine','leftOrange','rightGold','mugBlue','bookRed']];
 function targetCount(){return Math.max(3,Math.min(5,+difficulty.value||5))}
 function prepare(){active=recipes[puzzleIndex].map(id=>byId[id]).slice(0,targetCount());found.clear();mistakes=0;document.querySelectorAll('.mark').forEach(x=>x.remove());foundEl.textContent='0/'+active.length;mistEl.textContent='0';[...puzzlesEl.children].forEach((el,i)=>el.classList.toggle('active',i===puzzleIndex));draw()}
-function draw(){if(!img.complete)return;A.clearRect(0,0,W,H);B.clearRect(0,0,W,H);A.drawImage(img,0,0,W,H);B.drawImage(img,0,0,W,H);for(const d of active){const p=d.path();d.draw(B,p)}}
+function draw(){if(!img.complete||!img.naturalWidth)return;A.clearRect(0,0,W,H);B.clearRect(0,0,W,H);A.drawImage(img,0,0,W,H);B.drawImage(img,0,0,W,H);for(const d of active){const p=d.path();d.draw(B,p)}}
 function point(e,canvas){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
 function hit(pt,ctx){for(const d of active){if(found.has(d.id))continue;const p=d.path();if(ctx.isPointInPath(p,pt.x,pt.y))return d}return null}
 function mark(board,d){const m=document.createElement('div');m.className='mark';m.style.left=(d.mark[0]/W*100)+'%';m.style.top=(d.mark[1]/H*100)+'%';m.style.width='34px';m.style.height='34px';board.appendChild(m)}
@@ -71,7 +71,7 @@ function flash(t,ok){toast.textContent=t;toast.className='toast show '+(ok?'good
 function tap(e,canvas,ctx){const d=hit(point(e,canvas),ctx);if(d){found.add(d.id);mark(ba,d);mark(bb,d);foundEl.textContent=found.size+'/'+active.length;flash(found.size===active.length?'اكتملت الفروقات':'فرق صحيح',true)}else{mistakes++;mistEl.textContent=mistakes;flash('ليس اختلافًا',false)}}
 for(let i=0;i<recipes.length;i++){const btn=document.createElement('button');btn.type='button';btn.textContent=String(i+1);btn.title='اختبار اللغز رقم '+(i+1);btn.onclick=()=>{puzzleIndex=i;prepare()};puzzlesEl.appendChild(btn)}
 document.getElementById('prev').onclick=()=>{puzzleIndex=(puzzleIndex+recipes.length-1)%recipes.length;prepare()};document.getElementById('next').onclick=()=>{puzzleIndex=(puzzleIndex+1)%recipes.length;prepare()};difficulty.onchange=prepare;
-a.addEventListener('pointerdown',e=>tap(e,a,A));b.addEventListener('pointerdown',e=>tap(e,b,B));img.onload=prepare;
+a.addEventListener('pointerdown',e=>tap(e,a,A));b.addEventListener('pointerdown',e=>tap(e,b,B));img.onload=prepare;img.onerror=()=>flash('فشل تحميل صورة المشهد',false);
 })();
 </script>
 </body>
