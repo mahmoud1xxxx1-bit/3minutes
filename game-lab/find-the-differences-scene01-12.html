@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Find the Differences — Scene 01 Variants</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:#050914;color:#eef6ff;font-family:system-ui,-apple-system,Segoe UI,Tahoma,sans-serif}
+.app{min-height:100dvh;padding:10px;background:radial-gradient(circle at 50% 0,#1b2c49,#081322 52%,#03060c)}
+.hud{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:1320px;margin:auto}
+.pill{background:#0b1528;border:1px solid #2b4667;border-radius:14px;padding:8px;text-align:center}
+.pill b{display:block;color:#72edff;font-size:18px}.pill span{font-size:10px;color:#91a7c1;font-weight:800}
+.title{text-align:center;font-weight:1000;font-size:23px;margin:10px 0 2px}.sub{text-align:center;color:#9db1c8;font-size:12px;margin-bottom:8px}
+.nav{display:flex;gap:8px;justify-content:center;align-items:center;max-width:620px;margin:0 auto 10px}
+.nav button,.nav select{background:#071426;color:#fff;border:1px solid #365978;border-radius:11px;padding:9px 12px;font-weight:900}.nav select{flex:1}
+.boards{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:1320px;margin:auto;direction:ltr}
+.board{position:relative;aspect-ratio:4/3;border:1px solid #315277;border-radius:20px;overflow:hidden;background:#0a1120;box-shadow:0 18px 48px #0008}
+.board canvas{width:100%;height:100%;display:block;touch-action:manipulation}
+.tag{position:absolute;top:10px;right:10px;background:#06101ddd;border:1px solid #5b7898;border-radius:10px;padding:4px 10px;font-weight:1000;z-index:4}
+.mark{position:absolute;z-index:5;border:3px solid #55ffae;border-radius:50%;box-shadow:0 0 18px #55ffae;transform:translate(-50%,-50%);pointer-events:none}
+.overlay{position:fixed;inset:0;z-index:30;background:#020611ed;display:flex;align-items:center;justify-content:center;padding:18px}.overlay.hidden{display:none}
+.card{width:min(430px,96vw);padding:22px;border-radius:24px;background:linear-gradient(180deg,#12233f,#081426);border:1px solid #365576;text-align:center}
+.row{display:flex;gap:8px;direction:ltr}.row select{flex:1;background:#06101f;color:#fff;border:1px solid #35506d;border-radius:12px;padding:10px}
+.play{width:100%;height:50px;border:0;border-radius:15px;margin-top:10px;background:linear-gradient(90deg,#35d9ee,#91f4ff);font-weight:1000;color:#04101c}
+.toast{position:fixed;left:50%;top:12%;transform:translateX(-50%);opacity:0;z-index:40;background:#07101eea;border:1px solid #365775;border-radius:999px;padding:8px 14px;font-weight:1000;transition:.12s;pointer-events:none}.toast.show{opacity:1}.toast.good{color:#5dffb2}.toast.bad{color:#ff7b8c}
+@media(max-width:820px){.boards{grid-template-columns:1fr}.hud{grid-template-columns:repeat(2,1fr)}.pill:last-child{grid-column:span 2}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="hud">
+<div class="pill"><b id="time">20.0</b><span>الوقت</span></div>
+<div class="pill"><b id="found">0/3</b><span>الفروقات</span></div>
+<div class="pill"><b id="mistakes">0</b><span>الأخطاء</span></div>
+<div class="pill"><b id="variant">S01-01</b><span>نسخة اللغز</span></div>
+<div class="pill"><b>Scene 01</b><span>المشهد المعتمد</span></div>
+</div>
+<div class="title">اكتشف الفروقات — Scene 01 المعتمدة</div>
+<div class="sub">12 ألغاز من نفس الغرفة • لا تغيير للمشهد الأساسي</div>
+<div class="nav"><button id="prev">◀</button><select id="pick"></select><button id="next">▶</button></div>
+<div class="boards">
+<div class="board" id="boardA"><div class="tag">A</div><canvas id="a" width="800" height="600"></canvas></div>
+<div class="board" id="boardB"><div class="tag">B</div><canvas id="b" width="800" height="600"></canvas></div>
+</div>
+</div>
+<div id="toast" class="toast"></div>
+<div id="overlay" class="overlay"><div class="card" id="card">
+<h2>Scene 01 — 12 ألغاز ثابتة</h2>
+<p>اختر الصعوبة. كل رقم S01-xx له فروق ثابتة خاصة به.</p>
+<div class="row"><select id="difficulty"><option value="3">Normal • 3</option><option value="4">Hard • 4</option><option value="5">Expert • 5</option></select></div>
+<button id="play" class="play">ابدأ التجربة</button>
+</div></div>
+<script>
+(()=>{'use strict';
+const W=800,H=600,a=document.getElementById('a'),b=document.getElementById('b'),A=a.getContext('2d'),B=b.getContext('2d');
+const boardA=document.getElementById('boardA'),boardB=document.getElementById('boardB'),overlay=document.getElementById('overlay'),card=document.getElementById('card'),toast=document.getElementById('toast');
+const timeEl=document.getElementById('time'),foundEl=document.getElementById('found'),mistEl=document.getElementById('mistakes'),variantEl=document.getElementById('variant'),pick=document.getElementById('pick');
+let variant=0,active=[],found=new Set(),mist=0,remain=20,running=false,last=0,target=3;
+
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
+function circle(cx,cy,r){const p=new Path2D();p.arc(cx,cy,r,0,Math.PI*2);return p}
+function rect(x,y,w,h){const p=new Path2D();p.rect(x,y,w,h);return p}
+function poly(pts){const p=new Path2D();p.moveTo(pts[0][0],pts[0][1]);for(let i=1;i<pts.length;i++)p.lineTo(pts[i][0],pts[i][1]);p.closePath();return p}
+function scene(c){
+ const g=c.createLinearGradient(0,0,800,600);g.addColorStop(0,'#202b3f');g.addColorStop(1,'#151522');c.fillStyle=g;c.fillRect(0,0,800,600);
+ c.fillStyle='#7b5d49';c.fillRect(0,470,800,130);
+ c.strokeStyle='#9a7860';c.globalAlpha=.25;for(let y=500;y<600;y+=30){c.beginPath();c.moveTo(0,y);c.lineTo(800,y);c.stroke()}c.globalAlpha=1;
+ c.fillStyle='#0c1622';rr(c,55,55,250,205,14);c.fill();
+ const sky=c.createLinearGradient(0,70,0,250);sky.addColorStop(0,'#173d5d');sky.addColorStop(1,'#0c1c31');c.fillStyle=sky;rr(c,68,68,224,179,8);c.fill();
+ c.fillStyle='#f8df8f';c.beginPath();c.arc(110,103,28,0,Math.PI*2);c.fill();c.fillStyle='#173d5d';c.beginPath();c.arc(124,95,30,0,Math.PI*2);c.fill();
+ c.fillStyle='#15382f';c.beginPath();c.moveTo(68,210);c.quadraticCurveTo(130,155,205,210);c.quadraticCurveTo(255,165,292,205);c.lineTo(292,247);c.lineTo(68,247);c.fill();
+ c.fillStyle='#141b27';rr(c,338,65,180,135,10);c.fill();c.fillStyle='#1d4054';rr(c,352,79,152,107,6);c.fill();
+ c.fillStyle='#e5bd70';c.beginPath();c.arc(430,115,24,0,Math.PI*2);c.fill();
+ c.fillStyle='#4f9878';c.beginPath();c.moveTo(360,180);c.lineTo(400,135);c.lineTo(435,170);c.lineTo(466,125);c.lineTo(495,180);c.closePath();c.fill();
+ c.fillStyle='#101721';c.beginPath();c.arc(620,118,55,0,Math.PI*2);c.fill();c.strokeStyle='#e7ece7';c.lineWidth=6;c.stroke();
+ c.strokeStyle='#e7ece7';c.lineWidth=5;c.beginPath();c.moveTo(620,118);c.lineTo(620,82);c.moveTo(620,118);c.lineTo(646,92);c.stroke();
+ c.fillStyle='#6b4a35';c.fillRect(590,210,150,13);c.fillStyle='#61b9c5';c.fillRect(610,160,22,50);c.fillStyle='#e2bf67';c.fillRect(640,148,22,62);c.fillStyle='#7b91d5';c.fillRect(670,166,22,44);
+ c.strokeStyle='#cbd6d9';c.lineWidth=8;c.beginPath();c.moveTo(700,265);c.lineTo(700,475);c.stroke();
+ c.fillStyle='#55a9a8';c.beginPath();c.moveTo(650,265);c.lineTo(750,265);c.lineTo(730,325);c.lineTo(670,325);c.closePath();c.fill();
+ c.fillStyle='#bbc0c7';c.beginPath();c.ellipse(700,485,55,14,0,0,Math.PI*2);c.fill();
+ c.fillStyle='#4b6d78';rr(c,180,330,390,160,30);c.fill();c.fillStyle='#35545f';rr(c,160,390,45,95,16);c.fill();rr(c,545,390,45,95,16);c.fill();
+ c.fillStyle='#d37172';rr(c,235,355,90,75,16);c.fill();c.fillStyle='#dc9b67';rr(c,342,363,90,67,16);c.fill();c.fillStyle='#d9e1d8';rr(c,450,356,88,74,16);c.fill();
+ c.fillStyle='#a06a46';rr(c,250,480,360,34,12);c.fill();c.fillStyle='#6a4634';c.fillRect(285,510,20,80);c.fillRect(555,510,20,80);
+ c.fillStyle='#ece9db';rr(c,270,430,62,58,10);c.fill();c.strokeStyle='#ece9db';c.lineWidth=10;c.beginPath();c.arc(328,458,18,-Math.PI/2,Math.PI/2);c.stroke();
+ c.fillStyle='#2d414c';c.beginPath();c.ellipse(470,462,80,22,0,0,Math.PI*2);c.fill();
+ ['#efc35c','#e97876','#6bc083'].forEach((col,i)=>{c.fillStyle=col;c.beginPath();c.arc(440+i*30,447+i*3,18,0,Math.PI*2);c.fill()});
+ c.fillStyle='#8d5a3d';rr(c,70,395,90,95,18);c.fill();c.strokeStyle='#487956';c.lineWidth=5;
+ for(let i=0;i<5;i++){c.beginPath();c.moveTo(115,396);c.quadraticCurveTo(110+i*10,340,85+i*18,300+i*8);c.stroke()}
+ c.fillStyle='#66b77a';for(let i=0;i<5;i++){c.beginPath();c.ellipse(85+i*18,300+i*8,18,36,-1+i*.4,0,Math.PI*2);c.fill()}
+}
+
+const defs=[
+{id:'clockHand',path:()=>poly([[616,114],[620,114],[652,88],[656,92],[624,122],[618,121]]),draw:(c,p)=>{c.fillStyle='#ff5f6d';c.fill(p)},mark:[635,104]},
+{id:'clockDot',path:()=>circle(620,118,8),draw:(c,p)=>{c.fillStyle='#6de3ff';c.fill(p)},mark:[620,118]},
+{id:'paintingMoon',path:()=>circle(430,115,22),draw:(c,p)=>{c.fillStyle='#69d8ff';c.fill(p)},mark:[430,115]},
+{id:'paintingPeak',path:()=>poly([[456,145],[466,125],[476,145]]),draw:(c,p)=>{c.fillStyle='#ff7b85';c.fill(p)},mark:[466,137]},
+{id:'book1',path:()=>rect(610,160,22,50),draw:(c,p)=>{c.fillStyle='#ff7a90';c.fill(p)},mark:[621,185]},
+{id:'book2',path:()=>rect(640,148,22,62),draw:(c,p)=>{c.fillStyle='#62d9e8';c.fill(p)},mark:[651,179]},
+{id:'book3',path:()=>rect(670,166,22,44),draw:(c,p)=>{c.fillStyle='#ffc95e';c.fill(p)},mark:[681,188]},
+{id:'lampShade',path:()=>poly([[650,265],[750,265],[730,325],[670,325]]),draw:(c,p)=>{c.fillStyle='#f1ad4f';c.fill(p)},mark:[700,295]},
+{id:'lampStem',path:()=>rect(696,330,8,74),draw:(c,p)=>{c.fillStyle='#ff6c83';c.fill(p)},mark:[700,367]},
+{id:'leftDot',path:()=>circle(280,392,18),draw:(c,p)=>{c.fillStyle='#ffe060';c.fill(p)},mark:[280,392]},
+{id:'leftStripe',path:()=>rect(252,374,55,10),draw:(c,p)=>{c.fillStyle='#64d9ff';c.fill(p)},mark:[279,379]},
+{id:'middleStripe',path:()=>rect(350,380,75,12),draw:(c,p)=>{c.fillStyle='#4bc8e9';c.fill(p)},mark:[387,386]},
+{id:'middleDot',path:()=>circle(387,406,12),draw:(c,p)=>{c.fillStyle='#ff6b81';c.fill(p)},mark:[387,406]},
+{id:'rightStar',path:()=>poly([[494,372],[500,387],[516,388],[503,398],[508,414],[494,404],[480,414],[485,398],[472,388],[488,387]]),draw:(c,p)=>{c.fillStyle='#ff6678';c.fill(p)},mark:[494,395]},
+{id:'rightDot',path:()=>circle(494,386,13),draw:(c,p)=>{c.fillStyle='#65d9ff';c.fill(p)},mark:[494,386]},
+{id:'mugMark',path:()=>poly([[285,447],[306,432],[312,438],[291,455]]),draw:(c,p)=>{c.fillStyle='#64d9ff';c.fill(p)},mark:[299,444]},
+{id:'mugBody',path:()=>rect(278,438,44,42),draw:(c,p)=>{c.fillStyle='#e9776e';c.fill(p)},mark:[300,459]},
+{id:'fruit1',path:()=>circle(440,447,18),draw:(c,p)=>{c.fillStyle='#80a7ff';c.fill(p)},mark:[440,447]},
+{id:'fruit2',path:()=>circle(470,450,18),draw:(c,p)=>{c.fillStyle='#ffd768';c.fill(p)},mark:[470,450]},
+{id:'fruitMissing',path:()=>circle(500,453,18),draw:(c,p)=>{c.fillStyle='#2d414c';c.fill(p)},mark:[500,453]},
+{id:'plantFlower',path:()=>circle(120,330,13),draw:(c,p)=>{c.fillStyle='#ff6b8a';c.fill(p)},mark:[120,330]},
+{id:'plantPot',path:()=>rect(88,425,55,12),draw:(c,p)=>{c.fillStyle='#e5bd70';c.fill(p)},mark:[115,431]},
+{id:'windowMoon',path:()=>circle(110,103,13),draw:(c,p)=>{c.fillStyle='#ff9b67';c.fill(p)},mark:[110,103]},
+{id:'tableMark',path:()=>rect(430,487,38,8),draw:(c,p)=>{c.fillStyle='#65d9ff';c.fill(p)},mark:[449,491]}
+];
+
+const variants=[
+['clockHand','paintingMoon','book2','lampShade','leftDot'],
+['clockDot','paintingPeak','book1','middleStripe','fruitMissing'],
+['windowMoon','book3','lampStem','rightStar','plantFlower'],
+['clockHand','paintingPeak','leftStripe','mugMark','fruit1'],
+['clockDot','paintingMoon','book1','rightDot','plantPot'],
+['windowMoon','book2','lampShade','middleDot','fruit2'],
+['clockHand','book3','lampStem','leftDot','tableMark'],
+['clockDot','paintingPeak','middleStripe','mugBody','plantFlower'],
+['paintingMoon','book1','rightStar','fruitMissing','plantPot'],
+['windowMoon','book2','leftStripe','mugMark','tableMark'],
+['clockHand','paintingPeak','book3','middleDot','fruit1'],
+['clockDot','paintingMoon','lampShade','rightDot','fruit2']
+];
+
+function byId(id){return defs.find(d=>d.id===id)}
+function draw(){scene(A);scene(B);for(const id of active){const d=byId(id),p=d.path();d.draw(B,p)}}
+function point(e,c){const r=c.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
+function hit(pt,ctx){for(const id of active){if(found.has(id))continue;const d=byId(id),p=d.path();if(ctx.isPointInPath(p,pt.x,pt.y))return id}return null}
+function mark(board,id){const [x,y]=byId(id).mark,m=document.createElement('div');m.className='mark';m.style.left=(x/W*board.clientWidth)+'px';m.style.top=(y/H*board.clientHeight)+'px';m.style.width='32px';m.style.height='32px';board.appendChild(m)}
+function flash(s,ok){toast.textContent=s;toast.className='toast show '+(ok?'good':'bad');clearTimeout(flash.t);flash.t=setTimeout(()=>toast.className='toast',220)}
+function tap(e,c,ctx){if(!running)return;const id=hit(point(e,c),ctx);if(id){found.add(id);mark(boardA,id);mark(boardB,id);foundEl.textContent=`${found.size}/${target}`;flash('فرق صحيح',true);if(found.size===target)finish(true)}else{mist++;mistEl.textContent=String(mist);flash('ليست منطقة اختلاف',false)}}
+a.addEventListener('pointerdown',e=>tap(e,a,A));b.addEventListener('pointerdown',e=>tap(e,b,B));
+
+for(let i=0;i<12;i++){const o=document.createElement('option');o.value=i;o.textContent='S01-'+String(i+1).padStart(2,'0');pick.appendChild(o)}
+function setVariant(v){variant=(v+12)%12;pick.value=variant;variantEl.textContent='S01-'+String(variant+1).padStart(2,'0');running=false;active=[];found.clear();document.querySelectorAll('.mark').forEach(x=>x.remove());scene(A);scene(B)}
+pick.onchange=()=>setVariant(+pick.value);document.getElementById('prev').onclick=()=>setVariant(variant-1);document.getElementById('next').onclick=()=>setVariant(variant+1);
+
+function start(){target=+document.getElementById('difficulty').value;active=variants[variant].slice(0,target);found.clear();mist=0;remain=20;document.querySelectorAll('.mark').forEach(x=>x.remove());foundEl.textContent=`0/${target}`;mistEl.textContent='0';timeEl.textContent='20.0';draw();overlay.classList.add('hidden');running=true;last=performance.now()}
+function finish(done){if(!running)return;running=false;overlay.classList.remove('hidden');card.innerHTML=`<h2>${done?'أحسنت':'انتهى الوقت'}</h2><div style="font-size:38px;color:#72efff;font-weight:1000">${found.size}/${target}</div><p>${variantEl.textContent}<br>الأخطاء: <b>${mist}</b></p><button id="again" class="play">جولة جديدة</button>`;document.getElementById('again').onclick=()=>location.reload()}
+function loop(now){requestAnimationFrame(loop);if(!running){last=now;return}const dt=Math.min(.05,(now-last)/1000||0);last=now;remain-=dt;timeEl.textContent=Math.max(0,remain).toFixed(1);if(remain<=0)finish(false)}
+document.getElementById('play').onclick=start;setVariant(0);requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
