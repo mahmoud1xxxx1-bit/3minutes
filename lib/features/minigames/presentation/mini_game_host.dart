@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/mini_game_contract.dart';
+import 'find_differences_game.dart';
 import 'follow_the_cup_game.dart';
 import 'legacy_mini_game_host.dart' as legacy;
 import 'mole_strike_game.dart';
@@ -35,6 +36,12 @@ class MiniGameHost extends StatelessWidget {
         );
       case 'path_rush':
         return PathRushGame(
+          key: ValueKey('${game.id}-${config.seed}'),
+          config: config,
+          onComplete: onComplete,
+        );
+      case 'find_differences':
+        return FindDifferencesGame(
           key: ValueKey('${game.id}-${config.seed}'),
           config: config,
           onComplete: onComplete,
