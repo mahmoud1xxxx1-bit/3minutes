@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../domain/find_differences_plan.dart';
 import '../domain/mini_game_contract.dart';
-import 'find_differences_game.dart' show FindDifferencesScenePainter, findDifferencesLogicalPoint;
+import 'find_differences_game.dart' show FindDifferencesScenePainter;
 import 'mini_game_copy.dart';
 
 /// Policy-compliant production host for Find the Differences.
@@ -52,7 +52,10 @@ class _FindDifferencesPolicyGameState extends State<FindDifferencesPolicyGame> {
 
   void _tap(Offset localPosition, Size boardSize) {
     if (_done || boardSize.width <= 0 || boardSize.height <= 0) return;
-    final logical = findDifferencesLogicalPoint(localPosition, boardSize);
+    final logical = Offset(
+      localPosition.dx / boardSize.width * FindDifferencesPlan.logicalWidth,
+      localPosition.dy / boardSize.height * FindDifferencesPlan.logicalHeight,
+    );
     final difference = _plan.hitTest(logical.dx, logical.dy, _found);
     if (difference == null) {
       setState(() => _mistakes++);
