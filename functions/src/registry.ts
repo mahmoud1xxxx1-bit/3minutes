@@ -1,4 +1,4 @@
-export const REGISTRY_VERSION = 3;
+export const REGISTRY_VERSION = 4;
 export const MATCH_GAME_COUNT = 8;
 export const MATCH_DURATION_MS = 180000;
 
@@ -30,6 +30,7 @@ export const APPROVED_GAMES: ReadonlyArray<GameDescriptor> = [
   { id: "shape_count", category: "logic" },
   { id: "reaction_stop", category: "reaction" },
   { id: "symbol_pair", category: "precision" },
+  { id: "mole_strike", category: "reaction" },
 ];
 
 const CATEGORIES: ReadonlyArray<GameCategory> = [
