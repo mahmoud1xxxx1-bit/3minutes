@@ -63,19 +63,20 @@ const img=new Image();img.src='scene01_base.webp';
 let active=[],found=new Set(),mist=0,remain=20,running=false,last=0,targetCount=3;
 function rng(seed){let s=(seed>>>0)||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
 function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function rectPath(x,y,w,h){const p=new Path2D();p.rect(x,y,w,h);return p}
 function P_clock(){const p=new Path2D();p.moveTo(84,82);p.lineTo(112,99);p.lineTo(122,72);p.lineTo(126,75);p.lineTo(115,106);p.lineTo(81,86);p.closePath();return p}
 function D_clock(c,p){c.save();c.fillStyle='#ff5c63';c.fill(p);c.restore()}
 function P_picture(){const p=new Path2D();p.arc(244,77,13,0,Math.PI*2);return p}
 function D_picture(c,p){c.fillStyle='#67d7ff';c.fill(p)}
 function P_plant(){const p=new Path2D();p.arc(310,219,12,0,Math.PI*2);return p}
 function D_plant(c,p){c.fillStyle='#ff6d8a';c.fill(p)}
-function P_books(){const p=new Path2D();p.roundRect(179,187,16,71,3);return p}
+function P_books(){return rectPath(179,187,16,71)}
 function D_books(c,p){c.fillStyle='#5ac9e6';c.fill(p)}
 function P_lamp(){const p=new Path2D();p.moveTo(536,165);p.lineTo(627,166);p.lineTo(616,205);p.lineTo(548,205);p.closePath();return p}
 function D_lamp(c,p){c.save();c.globalAlpha=.88;c.fillStyle='#f0b34f';c.fill(p);c.restore()}
 function P_cushionL(){const p=new Path2D();p.arc(177,364,13,0,Math.PI*2);return p}
 function D_cushionL(c,p){c.fillStyle='#ffe05f';c.fill(p)}
-function P_cushionM(){const p=new Path2D();p.roundRect(276,350,72,11,4);return p}
+function P_cushionM(){return rectPath(276,350,72,11)}
 function D_cushionM(c,p){c.fillStyle='#4bc8e9';c.fill(p)}
 function P_cushionR(){const p=new Path2D();p.moveTo(445,350);p.lineTo(450,364);p.lineTo(465,365);p.lineTo(453,374);p.lineTo(458,389);p.lineTo(445,380);p.lineTo(432,389);p.lineTo(437,374);p.lineTo(425,365);p.lineTo(440,364);p.closePath();return p}
 function D_cushionR(c,p){c.fillStyle='#ff6a75';c.fill(p)}
@@ -96,17 +97,17 @@ const defs=[
 {id:'book',path:P_book,draw:D_book,mark:[417,527]}
 ];
 const byId=id=>defs.find(d=>d.id===id);
-function draw(){if(!img.complete)return;A.clearRect(0,0,W,H);B.clearRect(0,0,W,H);A.drawImage(img,0,0,W,H);B.drawImage(img,0,0,W,H);for(const id of active){const d=byId(id),p=d.path();d.draw(B,p)}}
+function draw(){if(!img.complete||!img.naturalWidth)return;A.clearRect(0,0,W,H);B.clearRect(0,0,W,H);A.drawImage(img,0,0,W,H);B.drawImage(img,0,0,W,H);for(const id of active){const d=byId(id),p=d.path();d.draw(B,p)}}
 function point(e,canvas){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
 function hit(pt,ctx){for(const id of active){if(found.has(id))continue;const d=byId(id),p=d.path();if(ctx.isPointInPath(p,pt.x,pt.y))return id}return null}
 function mark(board,id){const [x,y]=byId(id).mark,d=document.createElement('div');d.className='mark';d.style.left=(x/W*board.clientWidth)+'px';d.style.top=(y/H*board.clientHeight)+'px';d.style.width='34px';d.style.height='34px';board.appendChild(d)}
 function flash(t,ok){toast.textContent=t;toast.className='toast show '+(ok?'good':'bad');clearTimeout(flash.t);flash.t=setTimeout(()=>toast.className='toast',220)}
 function tap(e,canvas,ctx){if(!running)return;const id=hit(point(e,canvas),ctx);if(id){found.add(id);mark(boardA,id);mark(boardB,id);foundEl.textContent=`${found.size}/${targetCount}`;flash('فرق صحيح',true);if(found.size===targetCount)finish(true)}else{mist++;mistEl.textContent=mist;flash('ليست منطقة اختلاف',false)}}
 a.addEventListener('pointerdown',e=>tap(e,a,A));b.addEventListener('pointerdown',e=>tap(e,b,B));
-function start(){const seed=(parseInt(document.getElementById('seed').value,10)||1)>>>0,level=+document.getElementById('difficulty').value||0;targetCount=[3,4,5][level];active=shuffle(defs.map(d=>d.id),rng(seed)).slice(0,targetCount);found.clear();mist=0;remain=20;document.querySelectorAll('.mark').forEach(x=>x.remove());foundEl.textContent=`0/${targetCount}`;mistEl.textContent='0';timeEl.textContent='20.0';draw();overlay.classList.add('hidden');running=true;last=performance.now()}
+async function start(){try{if(!img.complete||!img.naturalWidth){await img.decode()}}catch(e){flash('فشل تحميل المشهد',false);return}const seed=(parseInt(document.getElementById('seed').value,10)||1)>>>0,level=+document.getElementById('difficulty').value||0;targetCount=[3,4,5][level];active=shuffle(defs.map(d=>d.id),rng(seed)).slice(0,targetCount);found.clear();mist=0;remain=20;document.querySelectorAll('.mark').forEach(x=>x.remove());foundEl.textContent=`0/${targetCount}`;mistEl.textContent='0';timeEl.textContent='20.0';draw();overlay.classList.add('hidden');running=true;last=performance.now()}
 function finish(done){if(!running)return;running=false;overlay.classList.remove('hidden');card.innerHTML=`<h2>${done?'أحسنت':'انتهى الوقت'}</h2><div class="result">${found.size}/${targetCount}</div><p>الأخطاء: <b>${mist}</b></p><button id="again" class="play">تجربة جديدة</button><p class="note">Scene 01 • Exact layer path = exact hit mask</p>`;document.getElementById('again').onclick=()=>location.reload()}
 function loop(now){requestAnimationFrame(loop);if(!running){last=now;return}const dt=Math.min(.05,(now-last)/1000||0);last=now;remain-=dt;timeEl.textContent=Math.max(0,remain).toFixed(1);if(remain<=0)finish(false)}
-img.onload=draw;document.getElementById('play').onclick=start;requestAnimationFrame(loop);
+img.onload=draw;document.getElementById('play').addEventListener('click',start);requestAnimationFrame(loop);
 })();
 </script>
 </body>
