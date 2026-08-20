@@ -60,9 +60,8 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
 
   void _tap(Offset localPosition, Size boardSize) {
     if (_done || boardSize.width <= 0 || boardSize.height <= 0) return;
-    final logicalX = localPosition.dx / boardSize.width * FindDifferencesPlan.logicalWidth;
-    final logicalY = localPosition.dy / boardSize.height * FindDifferencesPlan.logicalHeight;
-    final difference = _plan.hitTest(logicalX, logicalY, _found);
+    final logical = findDifferencesLogicalPoint(localPosition, boardSize);
+    final difference = _plan.hitTest(logical.dx, logical.dy, _found);
     if (difference == null) {
       setState(() => _mistakes++);
       return;
@@ -78,10 +77,9 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
     _watch.stop();
     final target = _plan.differences.length;
     final progress = target == 0 ? 0.0 : _found.length / target;
-    final accuracy = _found.isEmpty
-        ? 0.0
-        : _found.length / (_found.length + _mistakes).clamp(1, 9999);
-    final score = math.max(0, (progress * 100).round() - (_mistakes * 4));
+    final attempts = (_found.length + _mistakes).clamp(1, 9999);
+    final accuracy = _found.isEmpty ? 0.0 : _found.length / attempts;
+    final score = math.max(0, (progress * 100).round() - (_mistakes * 4)).toInt();
     widget.onComplete(
       MiniGameResult(
         completed: true,
@@ -103,10 +101,7 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
         Text(
           copy.findDifferencesInstruction,
           textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w900),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 6),
         Wrap(
@@ -125,7 +120,7 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final vertical = constraints.maxWidth < 560;
-              final first = _DifferenceBoard(
+              final boardA = _DifferenceBoard(
                 key: const ValueKey('find-differences-board-a'),
                 label: 'A',
                 plan: _plan,
@@ -133,7 +128,7 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
                 altered: false,
                 onTap: _tap,
               );
-              final second = _DifferenceBoard(
+              final boardB = _DifferenceBoard(
                 key: const ValueKey('find-differences-board-b'),
                 label: 'B',
                 plan: _plan,
@@ -146,16 +141,16 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
                 child: vertical
                     ? Column(
                         children: [
-                          Expanded(child: first),
+                          Expanded(child: boardA),
                           const SizedBox(height: 8),
-                          Expanded(child: second),
+                          Expanded(child: boardB),
                         ],
                       )
                     : Row(
                         children: [
-                          Expanded(child: first),
+                          Expanded(child: boardA),
                           const SizedBox(width: 8),
-                          Expanded(child: second),
+                          Expanded(child: boardB),
                         ],
                       ),
               );
@@ -281,22 +276,27 @@ class FindDifferencesScenePainter extends CustomPainter {
     );
     _paintScene(canvas);
     for (final difference in plan.differences) {
-      if (_has(difference.id)) _paintDifference(canvas, difference);
+      if (_has(difference.id)) _paintSpecialDifference(canvas, difference);
       if (found.contains(difference.id)) _paintFound(canvas, difference);
     }
     canvas.restore();
   }
 
   void _paintScene(Canvas c) {
-    final wall = Paint()
-      ..shader = const LinearGradient(
-        colors: [Color(0xFF202B3F), Color(0xFF151522)],
-      ).createShader(const Rect.fromLTWH(0, 0, 800, 600));
-    c.drawRect(const Rect.fromLTWH(0, 0, 800, 600), wall);
+    final wallRect = const Rect.fromLTWH(0, 0, 800, 600);
+    c.drawRect(
+      wallRect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [Color(0xFF202B3F), Color(0xFF151522)],
+        ).createShader(wallRect),
+    );
     c.drawRect(const Rect.fromLTWH(0, 470, 800, 130), Paint()..color = const Color(0xFF7B5D49));
 
-    final frame = RRect.fromRectAndRadius(const Rect.fromLTWH(55, 55, 250, 205), const Radius.circular(14));
-    c.drawRRect(frame, Paint()..color = const Color(0xFF0C1622));
+    c.drawRRect(
+      RRect.fromRectAndRadius(const Rect.fromLTWH(55, 55, 250, 205), const Radius.circular(14)),
+      Paint()..color = const Color(0xFF0C1622),
+    );
     final skyRect = const Rect.fromLTWH(68, 68, 224, 179);
     c.drawRRect(
       RRect.fromRectAndRadius(skyRect, const Radius.circular(8)),
@@ -367,9 +367,13 @@ class FindDifferencesScenePainter extends CustomPainter {
     );
 
     c.drawRect(const Rect.fromLTWH(590, 210, 150, 13), Paint()..color = const Color(0xFF6B4A35));
-    if (!_has('book_color')) c.drawRect(const Rect.fromLTWH(610, 160, 22, 50), Paint()..color = const Color(0xFF61B9C5));
-    if (_has('book_color')) c.drawRect(const Rect.fromLTWH(610, 160, 22, 50), Paint()..color = const Color(0xFFFF7A90));
-    if (!_has('book_missing')) c.drawRect(const Rect.fromLTWH(640, 148, 22, 62), Paint()..color = const Color(0xFFE2BF67));
+    c.drawRect(
+      const Rect.fromLTWH(610, 160, 22, 50),
+      Paint()..color = _has('book_color') ? const Color(0xFFFF7A90) : const Color(0xFF61B9C5),
+    );
+    if (!_has('book_missing')) {
+      c.drawRect(const Rect.fromLTWH(640, 148, 22, 62), Paint()..color = const Color(0xFFE2BF67));
+    }
     c.drawRect(
       _has('book_short') ? const Rect.fromLTWH(670, 182, 22, 28) : const Rect.fromLTWH(670, 166, 22, 44),
       Paint()..color = const Color(0xFF7B91D5),
@@ -404,7 +408,9 @@ class FindDifferencesScenePainter extends CustomPainter {
       Paint()..color = _has('table_top') ? const Color(0xFF6E86A3) : const Color(0xFFA06A46),
     );
     c.drawRect(const Rect.fromLTWH(285, 510, 20, 80), Paint()..color = const Color(0xFF6A4634));
-    if (!_has('table_leg')) c.drawRect(const Rect.fromLTWH(555, 510, 20, 80), Paint()..color = const Color(0xFF6A4634));
+    if (!_has('table_leg')) {
+      c.drawRect(const Rect.fromLTWH(555, 510, 20, 80), Paint()..color = const Color(0xFF6A4634));
+    }
 
     c.drawRRect(
       RRect.fromRectAndRadius(const Rect.fromLTWH(270, 430, 62, 58), const Radius.circular(10)),
@@ -426,7 +432,9 @@ class FindDifferencesScenePainter extends CustomPainter {
     c.drawOval(const Rect.fromLTWH(390, 440, 160, 44), Paint()..color = const Color(0xFF2D414C));
     c.drawCircle(const Offset(440, 447), 18, Paint()..color = _has('fruit_color') ? const Color(0xFF80A7FF) : const Color(0xFFEFC35C));
     c.drawCircle(const Offset(470, 450), 18, Paint()..color = _has('fruit_color_2') ? const Color(0xFFFFD768) : const Color(0xFFE97876));
-    if (!_has('fruit_missing')) c.drawCircle(const Offset(500, 453), 18, Paint()..color = const Color(0xFF6BC083));
+    if (!_has('fruit_missing')) {
+      c.drawCircle(const Offset(500, 453), 18, Paint()..color = const Color(0xFF6BC083));
+    }
 
     c.drawRRect(
       RRect.fromRectAndRadius(const Rect.fromLTWH(70, 395, 90, 95), const Radius.circular(18)),
@@ -445,17 +453,14 @@ class FindDifferencesScenePainter extends CustomPainter {
     c.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(16)), Paint()..color = color);
   }
 
-  void _paintDifference(Canvas c, FindDifference difference) {
-    if (difference.id == 'painting_peak') {
-      final path = _pathFor(difference);
-      c.drawPath(path, Paint()..color = const Color(0xFFFF7B85));
-    }
+  void _paintSpecialDifference(Canvas c, FindDifference difference) {
+    if (difference.id != 'painting_peak') return;
+    c.drawPath(_pathFor(difference), Paint()..color = const Color(0xFFFF7B85));
   }
 
   void _paintFound(Canvas c, FindDifference difference) {
-    final center = Offset(difference.centerX, difference.centerY);
     c.drawCircle(
-      center,
+      Offset(difference.centerX, difference.centerY),
       20,
       Paint()
         ..color = const Color(0xFF55FFAE)
@@ -480,10 +485,14 @@ class FindDifferencesScenePainter extends CustomPainter {
     return path;
   }
 
+  bool _sameFound(Set<String> a, Set<String> b) {
+    return a.length == b.length && a.containsAll(b);
+  }
+
   @override
   bool shouldRepaint(covariant FindDifferencesScenePainter oldDelegate) {
     return oldDelegate.plan != plan ||
         oldDelegate.altered != altered ||
-        !setEquals(oldDelegate.found, found);
+        !_sameFound(oldDelegate.found, found);
   }
 }
