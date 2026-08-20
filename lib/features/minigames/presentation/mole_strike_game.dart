@@ -113,10 +113,12 @@ class _MoleStrikeGameState extends State<MoleStrikeGame> {
     }
 
     final occupiedMs = 85 +
-        math.max(
-          wave.visibleMs,
-          decoy == null ? 0 : wave.decoyLagMs + wave.visibleMs,
-        );
+        math
+            .max(
+              wave.visibleMs,
+              decoy == null ? 0 : wave.decoyLagMs + wave.visibleMs,
+            )
+            .toInt();
     _later(Duration(milliseconds: occupiedMs + wave.gapMs), _scheduleWave);
   }
 
