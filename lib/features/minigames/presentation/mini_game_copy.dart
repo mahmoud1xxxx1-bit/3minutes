@@ -13,6 +13,7 @@ class MiniGameCopy {
 
   String title(String gameId) => switch (gameId) {
         'tap_target' => isArabic ? 'اضغط الهدف' : 'Tap Target',
+        'mole_strike' => isArabic ? 'اضرب السنجاب' : 'Mole Strike',
         'quick_math' => isArabic ? 'حساب سريع' : 'Quick Math',
         'color_match' => isArabic ? 'مطابقة اللون' : 'Color Match',
         'odd_one_out' => isArabic ? 'المختلف' : 'Odd One Out',
@@ -26,6 +27,10 @@ class MiniGameCopy {
       };
 
   String get tapTarget => isArabic ? 'اضغط على الهدف' : 'Tap the target';
+  String get moleStrikeInstruction => isArabic
+      ? 'اضرب السنجاب الحقيقي بسرعة وتجنب المخادع'
+      : 'Hit the real squirrel quickly and avoid the decoy';
+  String get moleStrikeHits => isArabic ? 'الإصابات' : 'Hits';
   String get findOdd => isArabic ? 'اختر الشكل المختلف' : 'Find the odd one';
   String get howMany => isArabic ? 'كم عددها؟' : 'How many?';
   String matchSymbol(String symbol) =>

@@ -4,7 +4,7 @@ import '../domain/mini_game_contract.dart';
 class GameRegistry {
   const GameRegistry._();
 
-  static const int version = 3;
+  static const int version = 4;
 
   // Display copy is intentionally owned by MiniGameCopy so the registry stays
   // deterministic and language-neutral. Titles remain empty internal metadata.
@@ -58,6 +58,11 @@ class GameRegistry {
       id: 'symbol_pair',
       title: '',
       category: MiniGameCategory.precision,
+    ),
+    MiniGameDescriptor(
+      id: 'mole_strike',
+      title: '',
+      category: MiniGameCategory.reaction,
     ),
   ];
 
