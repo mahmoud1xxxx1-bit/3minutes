@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>Tunnel Rush V1</title>
+<style>
+:root{--bg:#07101d;--panel:#0b1830;--cyan:#28e4ff;--cyan2:#8df6ff;--red:#ff4d68;--gold:#ffcc66;--text:#eef7ff;--muted:#8ba0bd}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 8%,#132744 0,#081426 34%,#050b14 74%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Tahoma,sans-serif;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center}
+.shell{width:min(100vw,520px);height:100dvh;max-height:920px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.top{display:flex;justify-content:space-between;align-items:center;direction:ltr}.badge{background:#0a1730cc;border:1px solid #244263;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:800;color:#b9c7da;box-shadow:0 10px 30px #0006}.badge strong{color:var(--cyan2)}
+.hud{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}.stat{background:linear-gradient(180deg,#0e1c37,#081326);border:1px solid #1d3c5e;border-radius:16px;padding:8px;text-align:center}.stat b{display:block;color:var(--cyan2);font-size:19px}.stat span{font-size:10px;color:var(--muted);font-weight:800}
+.stage{position:relative;flex:1;min-height:430px;border-radius:28px;overflow:hidden;border:1px solid #254769;background:#020712;box-shadow:inset 0 0 70px #000,0 24px 55px #0008;touch-action:none}
+canvas{width:100%;height:100%;display:block}.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 48%,transparent 43%,#0000 54%,#000b 100%)}
+.message{position:absolute;left:50%;top:17%;transform:translate(-50%,-50%);z-index:4;padding:8px 14px;border-radius:999px;background:#07111ddd;border:1px solid #2b4f72;font-weight:900;font-size:12px;white-space:nowrap;opacity:0;transition:.18s}.message.show{opacity:1}.message.good{color:#6cffbb;border-color:#2b8f6a}.message.bad{color:#ff7187;border-color:#8c3344}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;direction:ltr}.btn{height:62px;border:1px solid #2d557d;border-radius:19px;background:linear-gradient(180deg,#122a4a,#09172d);color:white;font-size:27px;font-weight:1000;box-shadow:inset 0 1px #ffffff18,0 10px 20px #0005;cursor:pointer}.btn:active{transform:translateY(1px);background:#15365e}.btn small{display:block;font-size:9px;color:#92a8c5;margin-top:-2px;letter-spacing:.8px}
+.foot{display:flex;gap:7px}.chip{flex:1;border:1px solid #223d5d;border-radius:12px;background:#091427;color:#9fb2cd;font-size:10px;padding:7px;text-align:center}.start{border:0;border-radius:15px;background:linear-gradient(90deg,#19ddeb,#6ff3ff);color:#04111d;font-weight:1000;padding:10px 15px;cursor:pointer}
+.overlay{position:absolute;inset:0;z-index:8;background:#040a12e8;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}.card{width:min(360px,94%);background:linear-gradient(180deg,#10213b,#081426);border:1px solid #2b5075;border-radius:25px;padding:22px;box-shadow:0 30px 80px #000}.logo{font-size:34px;font-weight:1000;letter-spacing:1px;color:white}.logo em{font-style:normal;color:var(--cyan)}.sub{color:#9db1ca;font-size:13px;line-height:1.7;margin:8px 0 15px}.play{width:100%;height:52px;border:0;border-radius:16px;background:linear-gradient(90deg,#18d9e9,#78f4ff);font-size:16px;font-weight:1000;color:#03111d}.seedrow{display:flex;gap:7px;margin-top:9px;direction:ltr}.seedrow input,.seedrow select{min-width:0;flex:1;background:#081528;border:1px solid #294b6c;border-radius:12px;padding:9px;color:white;outline:none}.result{font-size:31px;font-weight:1000;color:var(--cyan2);margin:9px 0}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top"><div class="badge">Tunnel Rush <strong>V1</strong></div><div class="badge">Experimental · Game Lab</div></div>
+  <div class="hud">
+    <div class="stat"><b id="time">20.0</b><span>الوقت</span></div>
+    <div class="stat"><b id="score">0</b><span>بوابات ناجحة</span></div>
+    <div class="stat"><b id="family">F01</b><span>الخوارزمية</span></div>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="game"></canvas><div class="vignette"></div><div id="msg" class="message"></div>
+    <div id="overlay" class="overlay"><div class="card"><div class="logo">TUNNEL <em>RUSH</em></div><div class="sub">تحرك يمينًا ويسارًا واختر المسار المفتوح قبل وصول البوابة. مدة التجربة 20 ثانية. كل Seed يولّد عائلة ثابتة من أصل 50.</div><button id="play" class="play">ابدأ التجربة</button><div class="seedrow"><input id="seed" type="number" value="173" aria-label="seed"><select id="difficulty"><option value="0">Normal</option><option value="1">Hard</option><option value="2">Expert</option></select></div></div></div>
+  </div>
+  <div class="controls"><button class="btn" id="left">◀<small>LEFT</small></button><button class="btn" id="right">▶<small>RIGHT</small></button></div>
+  <div class="foot"><div class="chip">اسحب يمين/يسار أو استخدم الأزرار</div><button class="start" id="restart">↻ Seed جديد</button></div>
+</div>
+<script>
+(()=>{
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),stage=document.getElementById('stage');
+const timeEl=document.getElementById('time'),scoreEl=document.getElementById('score'),familyEl=document.getElementById('family'),msg=document.getElementById('msg'),overlay=document.getElementById('overlay');
+const seedInput=document.getElementById('seed'),difficulty=document.getElementById('difficulty');
+let W=0,H=0,dpr=1,running=false,ended=false,last=0,elapsed=0,playerLane=1,targetLane=1,score=0,hits=0,shake=0,flash=0,seed=173,family=0,diff=0,gates=[],spawnClock=0,spawnIndex=0,safeLane=1,touchX=null;
+function resize(){dpr=Math.min(2,devicePixelRatio||1);W=stage.clientWidth;H=stage.clientHeight;canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+function rngFactory(s){let x=(s|0)||1;return()=>{x^=x<<13;x^=x>>>17;x^=x<<5;return((x>>>0)/4294967296)}}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function buildFamily(seedValue){family=Math.abs((seedValue*1103515245+12345)>>>0)%50;familyEl.textContent='F'+String(family+1).padStart(2,'0');const r=rngFactory((seedValue^(family*0x45d9f3b))|0);const pattern=[];let lane=1;for(let i=0;i<80;i++){const mode=family%10;let move=0;if(mode===0)move=i%2?1:-1;else if(mode===1)move=i%3===0?(r()<.5?-1:1):0;else if(mode===2)move=r()<.7?(r()<.5?-1:1):0;else if(mode===3)move=i%4===0?(lane===0?1:lane===2?-1:(r()<.5?-1:1)):0;else move=r()<(.28+(family%5)*.07)?(r()<.5?-1:1):0;lane=clamp(lane+move,0,2);pattern.push(lane)}return pattern}
+let safePattern=[];
+function validatePattern(p){if(!Array.isArray(p)||p.length<40)throw Error('invalid family');for(let i=0;i<p.length;i++){if(p[i]<0||p[i]>2)throw Error('invalid safe lane');if(i&&Math.abs(p[i]-p[i-1])>1)throw Error('unreachable lane jump')}return true}
+function newGate(){const safe=safePattern[spawnIndex%safePattern.length];safeLane=safe;const block=[0,1,2].filter(x=>x!==safe);gates.push({z:1.02,safe,block,checked:false,index:spawnIndex});spawnIndex++}
+function reset(){seed=parseInt(seedInput.value||'173',10)|0;diff=parseInt(difficulty.value,10)||0;safePattern=buildFamily(seed);validatePattern(safePattern);running=true;ended=false;elapsed=0;last=performance.now();playerLane=1;targetLane=1;score=0;hits=0;shake=0;flash=0;gates=[];spawnClock=.3;spawnIndex=0;scoreEl.textContent='0';timeEl.textContent='20.0';overlay.style.display='none';newGate();requestAnimationFrame(loop)}
+function finish(){running=false;ended=true;overlay.style.display='flex';overlay.innerHTML='<div class="card"><div class="logo">TUNNEL <em>RUSH</em></div><div class="sub">انتهت الجولة التجريبية</div><div class="result">'+score+' بوابة</div><div class="sub">اصطدامات: '+hits+' · F'+String(family+1).padStart(2,'0')+'</div><button id="again" class="play">إعادة التجربة</button></div>';document.getElementById('again').onclick=reset}
+function move(dir){if(!running)return;targetLane=clamp(targetLane+dir,0,2)}
+function show(text,good){msg.textContent=text;msg.className='message show '+(good?'good':'bad');clearTimeout(show.t);show.t=setTimeout(()=>msg.className='message',430)}
+document.getElementById('left').onclick=()=>move(-1);document.getElementById('right').onclick=()=>move(1);document.getElementById('play').onclick=reset;document.getElementById('restart').onclick=()=>{seedInput.value=((parseInt(seedInput.value||'1',10)+7919)%999999);reset()};
+stage.addEventListener('pointerdown',e=>{touchX=e.clientX});stage.addEventListener('pointerup',e=>{if(touchX==null)return;const dx=e.clientX-touchX;if(Math.abs(dx)>25)move(dx>0?1:-1);touchX=null});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft')move(-1);if(e.key==='ArrowRight')move(1)});
+function projX(lane,z){const center=W/2;const near=W*.31,far=W*.025;const spread=far+(near-far)*(1-z);return center+(lane-1)*spread}
+function laneWidth(z){return 18+(W*.21-18)*(1-z)}
+function yForZ(z){const horizon=H*.23,near=H*.91;return horizon+(near-horizon)*Math.pow(1-z,1.35)}
+function drawTunnel(t){ctx.save();if(shake>0){ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake)}ctx.fillStyle='#020711';ctx.fillRect(0,0,W,H);const cx=W/2,hy=H*.23;const pulse=.5+.5*Math.sin(t*.0018);ctx.strokeStyle='rgba(38,220,255,'+(.18+.07*pulse)+')';ctx.lineWidth=1;for(let i=0;i<18;i++){const a=(i/18)*Math.PI*2+t*.00015;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*18,hy+Math.sin(a)*8);ctx.lineTo(cx+Math.cos(a)*W*.72,hy+Math.sin(a)*H*.85);ctx.stroke()}for(let j=0;j<15;j++){const z=(j/15+t*.00025)%1;const y=yForZ(z),rw=24+(W*.86-24)*(1-z),rh=12+(H*.72-12)*(1-z);ctx.strokeStyle='rgba(34,151,201,'+(0.06+(1-z)*.18)+')';ctx.beginPath();ctx.ellipse(cx,y,rw*.5,rh*.5,0,0,Math.PI*2);ctx.stroke()}for(let lane=0;lane<3;lane++){ctx.strokeStyle='rgba(90,220,255,.22)';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(projX(lane,1),hy);ctx.lineTo(projX(lane,0),H*.95);ctx.stroke()}ctx.restore()}
+function drawGate(g){const z=g.z;if(z<0||z>1.05)return;const y=yForZ(z),lw=laneWidth(z),h=18+(H*.28)*(1-z);for(const lane of [0,1,2]){const x=projX(lane,z);if(lane===g.safe){ctx.strokeStyle='rgba(54,255,202,'+(0.12+(1-z)*.35)+')';ctx.lineWidth=Math.max(1,3*(1-z));ctx.strokeRect(x-lw*.46,y-h*.52,lw*.92,h)}else{const grad=ctx.createLinearGradient(x-lw/2,y-h/2,x+lw/2,y+h/2);grad.addColorStop(0,'rgba(255,55,89,'+(.3+(1-z)*.55)+')');grad.addColorStop(1,'rgba(106,15,37,'+(.35+(1-z)*.6)+')');ctx.fillStyle=grad;ctx.fillRect(x-lw*.46,y-h*.52,lw*.92,h);ctx.strokeStyle='rgba(255,129,148,'+(.25+(1-z)*.65)+')';ctx.lineWidth=Math.max(1,2.2*(1-z));ctx.strokeRect(x-lw*.46,y-h*.52,lw*.92,h);ctx.beginPath();ctx.moveTo(x-lw*.38,y-h*.38);ctx.lineTo(x+lw*.38,y+h*.38);ctx.moveTo(x+lw*.38,y-h*.38);ctx.lineTo(x-lw*.38,y+h*.38);ctx.stroke()}}}
+function drawPlayer(){playerLane+=(targetLane-playerLane)*.18;const x=projX(playerLane,0),y=H*.89;ctx.save();ctx.shadowColor='#45edff';ctx.shadowBlur=22;ctx.fillStyle='#eaffff';ctx.beginPath();ctx.moveTo(x,y-20);ctx.lineTo(x-12,y+13);ctx.lineTo(x,y+8);ctx.lineTo(x+12,y+13);ctx.closePath();ctx.fill();ctx.fillStyle='#22dff4';ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();ctx.restore()}
+function update(dt){elapsed+=dt;const remain=Math.max(0,20-elapsed);timeEl.textContent=remain.toFixed(1);if(remain<=0){finish();return}const speed=(diff===2?.56:diff===1?.49:.43)+(family%5)*.004;spawnClock-=dt;if(spawnClock<=0){newGate();spawnClock=(diff===2?.72:diff===1?.82:.94)+((family%4)*.025)}for(const g of gates){g.z-=speed*dt;if(!g.checked&&g.z<.10){g.checked=true;const lane=Math.round(playerLane);if(lane===g.safe){score++;scoreEl.textContent=score;show('PASS +1',true)}else{hits++;shake=12;flash=.18;show('HIT',false)}}}gates=gates.filter(g=>g.z>-.15);shake=Math.max(0,shake-dt*40);flash=Math.max(0,flash-dt)}
+function render(t){drawTunnel(t);for(const g of gates)drawGate(g);drawPlayer();if(flash>0){ctx.fillStyle='rgba(255,38,72,'+(flash*1.8)+')';ctx.fillRect(0,0,W,H)}}
+function loop(now){if(!running)return;const dt=Math.min(.033,(now-last)/1000);last=now;update(dt);render(now);if(running)requestAnimationFrame(loop)}
+render(performance.now());
+})();
+</script>
+</body>
+</html>
