@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/minigames/data/game_registry.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
+import 'package:game/features/minigames/domain/mini_game_engine.dart';
 
 void main() {
   test('registry ids are unique and all categories are represented', () {
@@ -9,6 +10,9 @@ void main() {
 
     expect(ids.toSet().length, ids.length);
     expect(categories, containsAll(MiniGameCategory.values));
+    for (final game in GameRegistry.games) {
+      expect(() => MiniGameEngineRegistry.engineFor(game.id), returnsNormally);
+    }
   });
 
   test('same seed produces the same balanced eight-game sequence', () {
@@ -22,19 +26,19 @@ void main() {
     expect(categories, containsAll(MiniGameCategory.values));
   });
 
-  test('registry sequence matches the server cross-platform vector', () {
+  test('registry v4 sequence matches the server cross-platform vector', () {
     final sequence = GameRegistry.sequence(seed: 20260818, count: 8);
 
     expect(
       sequence.map((game) => game.id).toList(),
       const [
-        'number_order',
-        'direction_swipe',
         'odd_one_out',
-        'memory_flash',
-        'symbol_pair',
         'tap_target',
-        'shape_count',
+        'quick_math',
+        'reaction_stop',
+        'direction_swipe',
+        'number_order',
+        'memory_flash',
         'color_match',
       ],
     );
