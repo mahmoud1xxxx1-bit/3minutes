@@ -149,7 +149,7 @@ class _MoleStrikeGameState extends State<MoleStrikeGame> {
 
     final accuracy = MoleStrikePlan.goal /
         (MoleStrikePlan.goal + _mistakes).clamp(MoleStrikePlan.goal, 9999);
-    final score = math.max(20, 100 - (_mistakes * 5));
+    final score = math.max(20, 100 - (_mistakes * 5)).toInt();
 
     widget.onComplete(
       MiniGameResult(
@@ -182,7 +182,9 @@ class _MoleStrikeGameState extends State<MoleStrikeGame> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _StatusPill(label: '${copy.moleStrikeHits}: $_hits/${MoleStrikePlan.goal}'),
+                _StatusPill(
+                  label: '${copy.moleStrikeHits}: $_hits/${MoleStrikePlan.goal}',
+                ),
                 const SizedBox(width: 8),
                 _StatusPill(label: 'F$family'),
               ],
@@ -270,7 +272,8 @@ class _MoleSlot extends StatelessWidget {
             height: 28,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                borderRadius: const BorderRadius.all(Radius.elliptical(60, 22)),
+                borderRadius:
+                    const BorderRadius.all(Radius.elliptical(60, 22)),
                 gradient: RadialGradient(
                   colors: [
                     const Color(0xFF020612),
@@ -282,7 +285,12 @@ class _MoleSlot extends StatelessWidget {
                   stops: const [0, .62, 1],
                 ),
                 boxShadow: warning
-                    ? [BoxShadow(color: colors.primary.withValues(alpha: .30), blurRadius: 12)]
+                    ? [
+                        BoxShadow(
+                          color: colors.primary.withValues(alpha: .30),
+                          blurRadius: 12,
+                        ),
+                      ]
                     : const [],
               ),
             ),
@@ -300,7 +308,9 @@ class _MoleSlot extends StatelessWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Positioned.fill(child: CustomPaint(painter: _SquirrelPainter())),
+                    const Positioned.fill(
+                      child: CustomPaint(painter: _SquirrelPainter()),
+                    ),
                     if (decoy)
                       Positioned(
                         top: 2,
@@ -313,7 +323,11 @@ class _MoleSlot extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                           alignment: Alignment.center,
-                          child: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                   ],
@@ -364,7 +378,15 @@ class _SquirrelPainter extends CustomPainter {
     canvas.drawOval(const Rect.fromLTWH(25, 55, 8, 5), pink);
     canvas.drawOval(const Rect.fromLTWH(55, 55, 8, 5), pink);
     canvas.drawOval(const Rect.fromLTWH(37, 67, 15, 22), nut);
-    canvas.drawArc(const Rect.fromLTWH(34, 64, 21, 10), math.pi, math.pi, false, dark..style = PaintingStyle.stroke..strokeWidth = 3);
+    canvas.drawArc(
+      const Rect.fromLTWH(34, 64, 21, 10),
+      math.pi,
+      math.pi,
+      false,
+      dark
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
 
     canvas.restore();
   }
