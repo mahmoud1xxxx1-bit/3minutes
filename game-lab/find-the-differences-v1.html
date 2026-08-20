@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Find the Differences V1</title>
+<style>
+:root{--bg:#050912;--panel:#0b1424;--line:#284663;--cyan:#63edf5;--text:#f4f8ff;--muted:#94a7be;--good:#52ef9f;--bad:#ff627a;--gold:#ffcc68}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Tahoma,sans-serif;color:var(--text)}
+body{display:flex;justify-content:center;background:radial-gradient(circle at 50% 0,#152945 0,#09111f 38%,#03070d 100%)}
+.app{width:min(100vw,560px);height:100dvh;display:flex;flex-direction:column;padding:8px;gap:7px}
+.hud{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;direction:ltr}
+.pill{background:linear-gradient(180deg,#10213a,#081426);border:1px solid #294764;border-radius:14px;padding:6px;text-align:center;box-shadow:0 8px 24px #0006}.pill b{display:block;font-size:18px;color:var(--cyan);line-height:1.05}.pill span{font-size:9px;color:var(--muted);font-weight:800;letter-spacing:.2px}
+.game{position:relative;flex:1;min-height:0;border:1px solid #284663;border-radius:22px;overflow:hidden;background:#050b14;box-shadow:inset 0 0 50px #0008,0 20px 50px #0006}
+.pair{height:100%;display:grid;grid-template-rows:1fr 1fr;gap:6px;padding:6px}
+.frame{position:relative;min-height:0;border-radius:16px;overflow:hidden;border:1px solid #31516e;background:#101826}.frame canvas{width:100%;height:100%;display:block;touch-action:none}.tag{position:absolute;top:8px;right:8px;z-index:3;width:28px;height:28px;border-radius:10px;display:grid;place-items:center;background:#061321d9;border:1px solid #4b6c86;color:#dffaff;font-weight:1000;box-shadow:0 5px 16px #0008}.status{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);z-index:10;opacity:0;pointer-events:none;padding:9px 15px;border-radius:999px;background:#07111eea;border:1px solid #355b78;font-weight:1000;transition:.15s}.status.show{opacity:1;transform:translate(-50%,-50%) scale(1)}.status.good{color:var(--good);border-color:#2b8b65}.status.bad{color:var(--bad);border-color:#8f3949}
+.overlay{position:absolute;inset:0;z-index:20;background:#030811ed;display:flex;align-items:center;justify-content:center;padding:20px}.overlay.hidden{display:none}.card{width:min(400px,95%);padding:21px;border-radius:24px;background:linear-gradient(180deg,#12233d,#081426);border:1px solid #315575;box-shadow:0 30px 90px #000c;text-align:center}.title{font-size:28px;font-weight:1000;letter-spacing:.2px}.title em{font-style:normal;color:var(--cyan)}.desc{font-size:13px;line-height:1.8;color:#a5b6ca;margin:9px 0 14px}.row{display:flex;gap:8px;direction:ltr}.row input,.row select{min-width:0;flex:1;background:#071426;border:1px solid #2c4e6d;border-radius:12px;color:white;padding:10px}.play{margin-top:10px;width:100%;height:52px;border:0;border-radius:16px;background:linear-gradient(90deg,#26dbe6,#7df6fb);color:#03111c;font-weight:1000;font-size:16px;cursor:pointer;box-shadow:0 9px 24px #28d9e42b}.small{font-size:10px;color:#7f93ad;margin-top:10px}.result{font-size:34px;font-weight:1000;color:var(--cyan);margin:7px 0}.foot{font-size:10px;color:#8297af;text-align:center;padding:1px 0 2px}
+@media (min-width:700px) and (orientation:landscape){.app{width:min(100vw,980px)}.pair{grid-template-rows:1fr;grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hud">
+    <div class="pill"><b id="time">20.0</b><span>الوقت</span></div>
+    <div class="pill"><b id="found">0/5</b><span>المكتشف</span></div>
+    <div class="pill"><b id="mistakes">0</b><span>الأخطاء</span></div>
+    <div class="pill"><b id="family">F01</b><span>العائلة</span></div>
+  </div>
+  <div class="game" id="game">
+    <div class="pair">
+      <div class="frame"><canvas id="a"></canvas><div class="tag">A</div></div>
+      <div class="frame"><canvas id="b"></canvas><div class="tag">B</div></div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="overlay" id="overlay">
+      <div class="card" id="card">
+        <div class="title">FIND <em>5 DIFFERENCES</em></div>
+        <div class="desc">صورتان متشابهتان. اكتشف <b>5 اختلافات</b> خلال 20 ثانية. اضغط على الاختلاف في أي صورة. الضغط الخاطئ يُسجل كخطأ في نتيجة اللعبة.</div>
+        <div class="row"><input id="seed" value="314159" inputmode="numeric"><select id="difficulty"><option value="0">Normal</option><option value="1">Hard</option><option value="2">Expert</option></select></div>
+        <button class="play" id="play" type="button">ابدأ التجربة</button>
+        <div class="small">Prototype • 48 عائلة deterministic • بدون ملفات خارجية</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">اضغط على الاختلاف في الصورة A أو B</div>
+</div>
+<script>
+(()=>{'use strict';
+const ca=document.getElementById('a'),cb=document.getElementById('b'),overlay=document.getElementById('overlay'),card=document.getElementById('card'),status=document.getElementById('status');
+const timeEl=document.getElementById('time'),foundEl=document.getElementById('found'),mistEl=document.getElementById('mistakes'),famEl=document.getElementById('family');
+let running=false,last=0,remain=20,found=0,mistakes=0,family=0,difficulty=0,rnd=Math.random,selected=[],foundIds=new Set(),theme=0;
+function rngFactory(seed){let s=(seed>>>0)||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
+function fit(c){const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,1.7);c.width=Math.max(1,Math.round(r.width*d));c.height=Math.max(1,Math.round(r.height*d));const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
+const DIFFS=[{id:'clock',x:.80,y:.18,r:.085},{id:'plant',x:.18,y:.27,r:.11},{id:'picture',x:.48,y:.20,r:.10},{id:'lamp',x:.74,y:.52,r:.11},{id:'mug',x:.27,y:.68,r:.10},{id:'books',x:.47,y:.58,r:.12},{id:'drawer',x:.58,y:.78,r:.10},{id:'moon',x:.16,y:.15,r:.09},{id:'rug',x:.46,y:.88,r:.11},{id:'shelf',x:.87,y:.36,r:.09},{id:'chair',x:.15,y:.74,r:.10},{id:'note',x:.68,y:.69,r:.09}];
+function pickDiffs(){const arr=DIFFS.slice();for(let i=arr.length-1;i>0;i--){const j=(rnd()*(i+1))|0;[arr[i],arr[j]]=[arr[j],arr[i]]}selected=arr.slice(0,5)}
+function isDiff(id){return selected.some(d=>d.id===id)}
+function rr(ctx,x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function drawScene(c,variant){const {x:ctx,w,h}=fit(c);const sx=w/1000,sy=h/520;ctx.save();ctx.scale(sx,sy);const T=[['#172944','#0d1c31','#263d59','#ffcc68'],['#1d2740','#11182a','#36405b','#64e1ff'],['#261e35','#151121','#49314c','#ff83b7'],['#172b2d','#0d1b1e','#2f4b4b','#7cf0b3']][theme%4];const g=ctx.createLinearGradient(0,0,0,520);g.addColorStop(0,T[0]);g.addColorStop(1,T[1]);ctx.fillStyle=g;ctx.fillRect(0,0,1000,520);rr(ctx,70,42,210,145,16,'#071526','#47657a');ctx.fillStyle='#0b2c45';ctx.fillRect(82,54,186,121);ctx.strokeStyle='#5c7587';ctx.beginPath();ctx.moveTo(175,54);ctx.lineTo(175,175);ctx.moveTo(82,115);ctx.lineTo(268,115);ctx.stroke();ctx.fillStyle='#f5e7a8';ctx.beginPath();ctx.arc(125,85,25,0,Math.PI*2);ctx.fill();if(variant&&isDiff('moon')){ctx.fillStyle='#0b2c45';ctx.beginPath();ctx.arc(139,78,25,0,Math.PI*2);ctx.fill()}else{ctx.fillStyle='#d7e9ff';ctx.beginPath();ctx.arc(139,78,17,0,Math.PI*2);ctx.fill()}rr(ctx,392,48,190,112,14,'#0b1321','#6e8194');ctx.fillStyle='#223955';ctx.fillRect(407,63,160,82);ctx.fillStyle=T[3];ctx.beginPath();ctx.moveTo(487,75);ctx.lineTo(499,104);ctx.lineTo(532,106);ctx.lineTo(506,125);ctx.lineTo(516,140);ctx.lineTo(487,128);ctx.lineTo(458,140);ctx.lineTo(468,125);ctx.lineTo(442,106);ctx.lineTo(475,104);ctx.closePath();ctx.fill();if(variant&&isDiff('picture')){ctx.fillStyle='#223955';ctx.beginPath();ctx.arc(487,109,18,0,Math.PI*2);ctx.fill()}ctx.fillStyle='#102033';ctx.beginPath();ctx.arc(810,92,48,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#91a8ba';ctx.lineWidth=5;ctx.stroke();ctx.strokeStyle='#e8f5ff';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(810,92);ctx.lineTo(810,63);ctx.moveTo(810,92);ctx.lineTo(variant&&isDiff('clock')?785:833,variant&&isDiff('clock')?107:106);ctx.stroke();rr(ctx,825,170,120,18,6,'#765039');rr(ctx,850,189,8,65,4,'#765039');rr(ctx,915,189,8,65,4,'#765039');ctx.fillStyle=variant&&isDiff('shelf')?'#ff6b7d':'#64d7c5';ctx.fillRect(848,140,25,30);ctx.fillStyle='#f2c86b';ctx.fillRect(879,132,18,38);ctx.fillStyle='#8aa8ef';ctx.fillRect(903,145,24,25);ctx.fillStyle='#101924';ctx.fillRect(0,382,1000,138);ctx.strokeStyle='#26374a';for(let x=0;x<1000;x+=80){ctx.beginPath();ctx.moveTo(x,382);ctx.lineTo(x-20,520);ctx.stroke()}rr(ctx,205,286,590,42,12,'#6a4935','#9c7054');rr(ctx,242,326,36,143,8,'#563a2d');rr(ctx,720,326,36,143,8,'#563a2d');rr(ctx,475,326,155,110,10,'#4d342a','#8f674f');ctx.fillStyle=variant&&isDiff('drawer')?'#ffcc68':'#b88964';ctx.beginPath();ctx.arc(552,370,8,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(552,408,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#c0d8df';ctx.lineWidth=10;ctx.beginPath();ctx.moveTo(738,287);ctx.lineTo(738,230);ctx.lineTo(694,196);ctx.stroke();ctx.fillStyle=variant&&isDiff('lamp')?'#ff6d82':'#62e0e8';ctx.beginPath();ctx.moveTo(652,194);ctx.lineTo(724,194);ctx.lineTo(708,230);ctx.lineTo(667,230);ctx.closePath();ctx.fill();rr(ctx,112,230,90,64,10,'#70452f');ctx.strokeStyle='#4dbd78';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(157,232);ctx.lineTo(145,181);ctx.moveTo(157,232);ctx.lineTo(181,188);ctx.moveTo(157,232);ctx.lineTo(125,199);ctx.stroke();ctx.fillStyle=variant&&isDiff('plant')?'#f06a84':'#68d88c';for(const [x,y] of [[143,177],[182,185],[122,197],[161,202]]){ctx.beginPath();ctx.ellipse(x,y,17,9,-.4,0,Math.PI*2);ctx.fill()}const bookColors=['#ea6c76','#5fb6ed','#f2c45c'];if(variant&&isDiff('books'))bookColors.reverse();for(let i=0;i<3;i++)rr(ctx,405+i*52,245,45,40,5,bookColors[i]);rr(ctx,245,246,62,40,8,'#eff7ff');ctx.strokeStyle='#eff7ff';ctx.lineWidth=8;ctx.beginPath();if(variant&&isDiff('mug'))ctx.arc(244,265,17,Math.PI/2,Math.PI*1.5);else ctx.arc(308,265,17,-Math.PI/2,Math.PI/2);ctx.stroke();ctx.fillStyle=T[3];ctx.fillRect(256,257,35,5);rr(ctx,625,250,82,52,5,variant&&isDiff('note')?'#8ee6ff':'#f5e18a');ctx.strokeStyle='#6a7580';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(637,265);ctx.lineTo(690,265);ctx.moveTo(637,276);ctx.lineTo(680,276);ctx.stroke();rr(ctx,96,332,130,28,12,'#354b60');rr(ctx,112,357,102,88,14,variant&&isDiff('chair')?'#355f77':'#2b3d51');rr(ctx,126,444,16,50,5,'#233242');rr(ctx,186,444,16,50,5,'#233242');ctx.fillStyle=variant&&isDiff('rug')?'#476bb4':'#744b74';ctx.beginPath();ctx.ellipse(485,466,210,33,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffffff22';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#ffffff12';for(let i=0;i<6;i++){ctx.beginPath();ctx.arc(330+i*58,198+(i%2)*18,4+(family+i)%4,0,Math.PI*2);ctx.fill()}for(const d of selected){if(!foundIds.has(d.id))continue;ctx.strokeStyle='#57f0a5';ctx.lineWidth=7;ctx.shadowColor='#57f0a5';ctx.shadowBlur=16;ctx.beginPath();ctx.arc(d.x*1000,d.y*520,d.r*700,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}ctx.restore()}
+function redraw(){drawScene(ca,false);drawScene(cb,true)}
+function feedback(ok){status.textContent=ok?'وجدتها!':'ليست اختلافًا';status.className='status show '+(ok?'good':'bad');setTimeout(()=>status.className='status',260)}
+function handleTap(e,c){if(!running)return;const r=c.getBoundingClientRect(),nx=(e.clientX-r.left)/r.width,ny=(e.clientY-r.top)/r.height;let hit=null,best=99;for(const d of selected){if(foundIds.has(d.id))continue;const dx=nx-d.x,dy=ny-d.y,dist=Math.hypot(dx,dy);const allowance=d.r*([1.25,1.05,.92][difficulty]);if(dist<allowance&&dist<best){best=dist;hit=d}}if(hit){foundIds.add(hit.id);found++;foundEl.textContent=found+'/5';feedback(true);redraw();if(found>=5)finish(true)}else{mistakes++;mistEl.textContent=mistakes;feedback(false)}}
+function start(){const seed=(parseInt(document.getElementById('seed').value,10)||1)>>>0;difficulty=+document.getElementById('difficulty').value||0;rnd=rngFactory(seed);family=seed%48;theme=(family/12)|0;remain=20;found=0;mistakes=0;foundIds.clear();pickDiffs();foundEl.textContent='0/5';mistEl.textContent='0';famEl.textContent='F'+String(family+1).padStart(2,'0');timeEl.textContent='20.0';overlay.classList.add('hidden');running=true;last=performance.now();redraw()}
+function finish(done){if(!running)return;running=false;overlay.classList.remove('hidden');card.innerHTML=`<div class="title">${done?'اكتملت الجولة':'انتهى الوقت'}</div><div class="result">${found}/5</div><div class="desc">الأخطاء: <b>${mistakes}</b><br>Family: <b>F${String(family+1).padStart(2,'0')}</b><br>هذه بيانات الجولة الخام فقط؛ حساب نقاط المباراة يبقى من نظام التطبيق.</div><button class="play" type="button" onclick="location.reload()">تجربة جديدة</button>`}
+function loop(now){requestAnimationFrame(loop);if(running){const dt=Math.min(.05,(now-last)/1000||0);last=now;remain-=dt;timeEl.textContent=Math.max(0,remain).toFixed(1);if(remain<=0)finish(false)}}
+ca.addEventListener('pointerdown',e=>handleTap(e,ca));cb.addEventListener('pointerdown',e=>handleTap(e,cb));window.addEventListener('resize',redraw);document.getElementById('play').onclick=start;redraw();requestAnimationFrame(loop);
+})();
+</script>
+</body></html>
