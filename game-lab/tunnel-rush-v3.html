@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
 <title>Tunnel Rush V3</title>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;overflow:hidden;background:#050a14;color:#eef7ff;font-family:system-ui,-apple-system,Segoe UI,Tahoma,sans-serif}.app{height:100dvh;display:flex;flex-direction:column;background:radial-gradient(circle at 50% 0,#13223c 0,#07101d 42%,#03070d 100%)}.hud{padding:9px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;z-index:5}.pill{background:#09162acb;border:1px solid #23415f;border-radius:14px;padding:7px;text-align:center;box-shadow:0 8px 24px #0006}.pill b{display:block;font-size:18px;color:#73f5ff}.pill span{font-size:9px;color:#8ea3bf;font-weight:800}.stage{position:relative;flex:1;min-height:0;overflow:hidden}.stage canvas{display:block;width:100%;height:100%;touch-action:none}.tip{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:#071322d9;border:1px solid #255071;border-radius:999px;padding:8px 14px;font-size:11px;color:#b7c8dd;font-weight:800;white-space:nowrap;pointer-events:none}.flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}.flash.good{background:#35ffb51d}.flash.bad{background:#ff385424}.flash.show{opacity:1}.toast{position:absolute;left:50%;top:15%;transform:translate(-50%,-50%) scale(.9);opacity:0;padding:8px 14px;border-radius:999px;background:#07111ddd;border:1px solid #2b4f72;font-size:13px;font-weight:1000;transition:.15s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}.toast.good{color:#68ffbd;border-color:#2c916c}.toast.bad{color:#ff7589;border-color:#963c50}.overlay{position:absolute;inset:0;z-index:9;background:#030811e9;display:flex;align-items:center;justify-content:center;padding:22px}.card{width:min(390px,94vw);padding:22px;border-radius:24px;background:linear-gradient(180deg,#10213b,#081426);border:1px solid #2a4e70;box-shadow:0 30px 90px #000b;text-align:center}.title{font-size:28px;font-weight:1000}.title em{font-style:normal;color:#53edff}.desc{font-size:13px;line-height:1.8;color:#9db1ca;margin:9px 0 15px}.row{display:flex;gap:8px;direction:ltr}.row input,.row select{min-width:0;flex:1;background:#071426;border:1px solid #294b6c;border-radius:12px;color:#fff;padding:10px}.play{margin-top:10px;width:100%;height:52px;border:0;border-radius:16px;background:linear-gradient(90deg,#18d9e9,#75f4ff);color:#03111d;font-size:16px;font-weight:1000;cursor:pointer}.legend{display:flex;justify-content:center;gap:8px;margin-top:12px}.dot{width:18px;height:18px;border-radius:50%;border:2px solid #fff3}.result{font-size:30px;font-weight:1000;color:#71f5ff;margin:8px 0}.hidden{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;overflow:hidden;background:#050a14;color:#eef7ff;font-family:system-ui,-apple-system,Segoe UI,Tahoma,sans-serif}.app{height:100dvh;display:flex;flex-direction:column;background:radial-gradient(circle at 50% 0,#13223c 0,#07101d 42%,#03070d 100%)}.hud{padding:9px 10px;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;z-index:5}.pill{background:#09162acb;border:1px solid #23415f;border-radius:14px;padding:7px;text-align:center}.pill b{display:block;font-size:18px;color:#73f5ff}.pill span{font-size:9px;color:#8ea3bf;font-weight:800}.stage{position:relative;flex:1;min-height:0;overflow:hidden}.stage canvas{display:block;width:100%;height:100%;touch-action:none}.tip{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:#071322d9;border:1px solid #255071;border-radius:999px;padding:8px 14px;font-size:11px;color:#b7c8dd;font-weight:800;white-space:nowrap;pointer-events:none}.flash{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}.flash.good{background:#35ffb51d}.flash.bad{background:#ff385424}.flash.show{opacity:1}.toast{position:absolute;left:50%;top:15%;transform:translate(-50%,-50%) scale(.9);opacity:0;padding:8px 14px;border-radius:999px;background:#07111ddd;border:1px solid #2b4f72;font-size:13px;font-weight:1000;transition:.15s;pointer-events:none}.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}.toast.good{color:#68ffbd;border-color:#2c916c}.toast.bad{color:#ff7589;border-color:#963c50}.overlay{position:absolute;inset:0;z-index:9;background:#030811e9;display:flex;align-items:center;justify-content:center;padding:22px}.card{width:min(390px,94vw);padding:22px;border-radius:24px;background:linear-gradient(180deg,#10213b,#081426);border:1px solid #2a4e70;box-shadow:0 30px 90px #000b;text-align:center}.title{font-size:28px;font-weight:1000}.title em{font-style:normal;color:#53edff}.desc{font-size:13px;line-height:1.8;color:#9db1ca;margin:9px 0 15px}.row{display:flex;gap:8px;direction:ltr}.row input,.row select{min-width:0;flex:1;background:#071426;border:1px solid #294b6c;border-radius:12px;color:#fff;padding:10px}.play{margin-top:10px;width:100%;height:52px;border:0;border-radius:16px;background:linear-gradient(90deg,#18d9e9,#75f4ff);color:#03111d;font-size:16px;font-weight:1000;cursor:pointer}.legend{display:flex;justify-content:center;gap:8px;margin-top:12px}.dot{width:18px;height:18px;border-radius:50%;border:2px solid #fff3}.result{font-size:30px;font-weight:1000;color:#71f5ff;margin:8px 0}.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -17,84 +17,38 @@
     <div class="pill"><b id="family">F01</b><span>الخوارزمية</span></div>
   </div>
   <div class="stage" id="stage">
-    <div class="flash" id="flash"></div>
-    <div class="toast" id="toast"></div>
+    <canvas id="game"></canvas>
+    <div class="flash" id="flash"></div><div class="toast" id="toast"></div>
     <div class="tip">اسحب يمين/يسار حول النفق • المس فقط لون مركبتك</div>
-    <div class="overlay" id="overlay">
-      <div class="card">
-        <div class="title">TUNNEL <em>RUSH V3</em></div>
-        <div class="desc">لون مركبتك ثابت. اندفع داخل النفق والمس <b>12 هدفًا من نفس لون المركبة</b>. لمس لون مختلف يُحسب خطأ ويكسر الـCombo.</div>
-        <div class="row"><input id="seed" value="314159" inputmode="numeric"/><select id="difficulty"><option value="0">Normal</option><option value="1">Hard</option><option value="2">Expert</option></select></div>
-        <button class="play" id="play">ابدأ التجربة</button>
-        <div class="legend" id="legend"></div>
-      </div>
-    </div>
+    <div class="overlay" id="overlay"><div class="card" id="card">
+      <div class="title">TUNNEL <em>RUSH V3</em></div>
+      <div class="desc">لون مركبتك ثابت. اندفع داخل النفق والمس <b>12 هدفًا من نفس لون المركبة</b>. لمس لون مختلف يُحسب خطأ ويكسر الـCombo.</div>
+      <div class="row"><input id="seed" value="314159" inputmode="numeric"/><select id="difficulty"><option value="0">Normal</option><option value="1">Hard</option><option value="2">Expert</option></select></div>
+      <button class="play" id="play" type="button">ابدأ التجربة</button><div class="legend" id="legend"></div>
+    </div></div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.min.js"></script>
 <script>
-(()=>{
-'use strict';
-const COLORS=[0x24d98b,0x31b7ff,0xff4f72,0xffcc4a];
+(function(){'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),stage=document.getElementById('stage'),overlay=document.getElementById('overlay'),card=document.getElementById('card');
+const timeEl=document.getElementById('time'),hitsEl=document.getElementById('hits'),mistEl=document.getElementById('mistakes'),famEl=document.getElementById('family'),toast=document.getElementById('toast'),flash=document.getElementById('flash'),legend=document.getElementById('legend');
 const CSS=['#24d98b','#31b7ff','#ff4f72','#ffcc4a'];
-const stage=document.getElementById('stage'),overlay=document.getElementById('overlay'),playBtn=document.getElementById('play');
-const timeEl=document.getElementById('time'),hitsEl=document.getElementById('hits'),mistEl=document.getElementById('mistakes'),famEl=document.getElementById('family');
-const toast=document.getElementById('toast'),flash=document.getElementById('flash'),legend=document.getElementById('legend');
-let renderer,scene,camera,craft,tunnelGroup,targets=[],running=false,last=0,remaining=20,hits=0,mistakes=0,combo=0,family=0,targetColor=0,angle=0,targetAngle=0,spawnClock=0,wave=0,difficulty=0,shake=0;
-let pointerDown=false,lastX=0;
-function rngFactory(seed){let s=(seed>>>0)||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
-let rnd=Math.random;
-function init3d(){
- if(renderer)return;
- renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setClearColor(0x030811,1);stage.insertBefore(renderer.domElement,stage.firstChild);
- scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x030811,.028);
- camera=new THREE.PerspectiveCamera(68,1,.1,100);camera.position.set(0,0,8.8);camera.lookAt(0,0,-10);
- scene.add(new THREE.AmbientLight(0x8acfff,1.2));const key=new THREE.PointLight(0xffffff,10,35);key.position.set(0,3,7);scene.add(key);
- tunnelGroup=new THREE.Group();scene.add(tunnelGroup);
- const ringMat=new THREE.MeshBasicMaterial({color:0x17486a,transparent:true,opacity:.42,wireframe:true});
- for(let i=0;i<22;i++){const g=new THREE.TorusGeometry(4.4,.035,6,48);const m=new THREE.Mesh(g,ringMat);m.position.z=-i*3;m.rotation.z=i*.13;tunnelGroup.add(m)}
- for(let a=0;a<12;a++){const geo=new THREE.BufferGeometry();const th=a/12*Math.PI*2;geo.setFromPoints([new THREE.Vector3(Math.cos(th)*4.4,Math.sin(th)*4.4,4),new THREE.Vector3(Math.cos(th)*4.4,Math.sin(th)*4.4,-65)]);tunnelGroup.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:0x123c58,transparent:true,opacity:.5})))}
- craft=new THREE.Group();
- const body=new THREE.Mesh(new THREE.ConeGeometry(.28,.9,5),new THREE.MeshStandardMaterial({color:COLORS[0],emissive:COLORS[0],emissiveIntensity:.8,metalness:.35,roughness:.28}));body.rotation.x=-Math.PI/2;craft.add(body);
- const wingMat=new THREE.MeshStandardMaterial({color:0xdffcff,emissive:0x2adfff,emissiveIntensity:.45,metalness:.4,roughness:.25});
- const w1=new THREE.Mesh(new THREE.BoxGeometry(.8,.08,.32),wingMat);w1.position.z=.12;craft.add(w1);
- const flame=new THREE.PointLight(0x4affc2,6,4);flame.position.z=.6;craft.add(flame);scene.add(craft);
- resize();addEventListener('resize',resize);
- renderer.domElement.addEventListener('pointerdown',e=>{pointerDown=true;lastX=e.clientX;renderer.domElement.setPointerCapture(e.pointerId)});
- renderer.domElement.addEventListener('pointermove',e=>{if(!pointerDown||!running)return;const dx=e.clientX-lastX;lastX=e.clientX;targetAngle-=dx*.012});
- renderer.domElement.addEventListener('pointerup',()=>pointerDown=false);renderer.domElement.addEventListener('pointercancel',()=>pointerDown=false);
- addEventListener('keydown',e=>{if(!running)return;if(e.key==='ArrowLeft'||e.key==='a')targetAngle+=.18;if(e.key==='ArrowRight'||e.key==='d')targetAngle-=.18});
- requestAnimationFrame(loop);
-}
-function resize(){if(!renderer)return;const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
-function clearTargets(){for(const t of targets){scene.remove(t.mesh);t.mesh.geometry.dispose();t.mesh.material.dispose()}targets=[]}
-function makeTarget(colorIndex,theta,z,kind){
- const group=new THREE.Group();
- let mesh;
- if(kind===0){mesh=new THREE.Mesh(new THREE.BoxGeometry(1.15,.42,.22),new THREE.MeshStandardMaterial({color:COLORS[colorIndex],emissive:COLORS[colorIndex],emissiveIntensity:1.0,metalness:.25,roughness:.3}))}
- else if(kind===1){mesh=new THREE.Mesh(new THREE.TorusGeometry(.48,.16,12,28),new THREE.MeshStandardMaterial({color:COLORS[colorIndex],emissive:COLORS[colorIndex],emissiveIntensity:1.1,metalness:.2,roughness:.25}))}
- else{mesh=new THREE.Mesh(new THREE.OctahedronGeometry(.48),new THREE.MeshStandardMaterial({color:COLORS[colorIndex],emissive:COLORS[colorIndex],emissiveIntensity:1.15,metalness:.35,roughness:.22}))}
- group.add(mesh);group.userData.spin=(rnd()-.5)*1.8;group.position.set(Math.cos(theta)*3.05,Math.sin(theta)*3.05,z);group.rotation.z=theta;scene.add(group);targets.push({mesh:group,colorIndex,theta,z,checked:false});
-}
-function spawnWave(){
- const base=(family*0.37+wave*1.41)% (Math.PI*2);const step=[1.75,1.38,1.15][difficulty];
- let correctSlot=Math.floor(rnd()*3);const used=new Set();
- for(let i=0;i<3;i++){
-  let ci;if(i===correctSlot)ci=targetColor;else{do{ci=Math.floor(rnd()*COLORS.length)}while(ci===targetColor||used.has(ci));used.add(ci)}
-  const theta=base+(i-1)*step+(rnd()-.5)*.18;makeTarget(ci,theta,-36-i*.3,(family+wave+i)%3);
- }
- wave++;
-}
-function updateCraft(dt){angle+=(targetAngle-angle)*Math.min(1,dt*9);const r=3.05;craft.position.set(Math.cos(angle)*r,Math.sin(angle)*r,3.7);craft.rotation.z=angle-Math.PI/2;craft.rotation.y=Math.sin(performance.now()*.004)*.08;}
-function feedback(ok){toast.textContent=ok?'مطابق!':'لون خاطئ!';toast.className='toast show '+(ok?'good':'bad');flash.className='flash show '+(ok?'good':'bad');setTimeout(()=>{toast.className='toast';flash.className='flash'},180);if(!ok)shake=.22}
-function circularDiff(a,b){let d=Math.atan2(Math.sin(a-b),Math.cos(a-b));return Math.abs(d)}
-function updateTargets(dt){const speed=[18,21,24][difficulty];for(let i=targets.length-1;i>=0;i--){const t=targets[i];t.z+=speed*dt;t.mesh.position.z=t.z;t.mesh.rotation.z+=t.mesh.userData.spin*dt;const scale=1+Math.max(0,(t.z+12)/28)*.12;t.mesh.scale.setScalar(scale);if(!t.checked&&t.z>3.0){t.checked=true;if(circularDiff(angle,t.theta)<.34){const ok=t.colorIndex===targetColor;if(ok){hits++;combo++;feedback(true)}else{mistakes++;combo=0;feedback(false)}hitsEl.textContent=hits+'/12';mistEl.textContent=mistakes;if(hits>=12){finish(true);return}}}if(t.z>9){scene.remove(t.mesh);targets.splice(i,1)}}}
-function loop(now){requestAnimationFrame(loop);if(!renderer)return;const dt=Math.min(.04,(now-last)/1000||0);last=now;
- if(running){remaining-=dt;spawnClock-=dt;if(spawnClock<=0){spawnWave();spawnClock=[.82,.72,.64][difficulty]}updateCraft(dt);updateTargets(dt);for(const r of tunnelGroup.children){if(r.isMesh){r.position.z+=dt*[15,18,21][difficulty];if(r.position.z>5)r.position.z-=66;r.rotation.z+=dt*.08}}timeEl.textContent=Math.max(0,remaining).toFixed(1);if(remaining<=0)finish(false)}
- const sx=shake>0?(rnd()-.5)*.16:0,sy=shake>0?(rnd()-.5)*.16:0;camera.position.x=sx;camera.position.y=sy;camera.lookAt(0,0,-10);shake=Math.max(0,shake-dt);renderer.render(scene,camera)}
-function start(){init3d();const seed=(parseInt(document.getElementById('seed').value,10)||1)>>>0;difficulty=parseInt(document.getElementById('difficulty').value,10)||0;rnd=rngFactory(seed);family=(seed%50);targetColor=Math.floor(rnd()*COLORS.length);remaining=20;hits=0;mistakes=0;combo=0;wave=0;angle=targetAngle=(rnd()*Math.PI*2);spawnClock=.25;clearTargets();hitsEl.textContent='0/12';mistEl.textContent='0';famEl.textContent='F'+String(family+1).padStart(2,'0');timeEl.textContent='20.0';craft.children[0].material.color.setHex(COLORS[targetColor]);craft.children[0].material.emissive.setHex(COLORS[targetColor]);craft.children[2].color.setHex(COLORS[targetColor]);legend.innerHTML=CSS.map((c,i)=>'<span class="dot" style="background:'+c+';'+(i===targetColor?'box-shadow:0 0 18px '+c+';outline:2px solid white':'')+'"></span>').join('');overlay.classList.add('hidden');running=true;last=performance.now()}
-function finish(completed){if(!running)return;running=false;const score=Math.max(0,hits*1000-mistakes*350);overlay.classList.remove('hidden');overlay.querySelector('.card').innerHTML='<div class="title">'+(completed?'اكتملت الجولة':'انتهى الوقت')+'</div><div class="result">'+hits+'/12</div><div class="desc">الأخطاء: <b>'+mistakes+'</b><br>النتيجة التجريبية: <b>'+score+'</b><br>Family: F'+String(family+1).padStart(2,'0')+'</div><button class="play" onclick="location.reload()">تجربة جديدة</button>'}
-playBtn.addEventListener('click',start);init3d();legend.innerHTML=CSS.map(c=>'<span class="dot" style="background:'+c+'"></span>').join('');
+let W=0,H=0,cx=0,cy=0,R=0,running=false,last=0,remaining=20,hits=0,mistakes=0,combo=0,family=0,targetColor=0,angle=0,targetAngle=0,difficulty=0,wave=0,spawnClock=0,targets=[],rnd=Math.random,pointer=false,lastX=0,shake=0;
+function resize(){const d=Math.min(devicePixelRatio||1,1.8);W=stage.clientWidth;H=stage.clientHeight;canvas.width=Math.round(W*d);canvas.height=Math.round(H*d);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(d,0,0,d,0,0);cx=W/2;cy=H*.48;R=Math.min(W,H)*.36}
+function rngFactory(seed){let s=(seed>>>0)||1;return function(){s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
+function wrap(a){while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a}function diff(a,b){return Math.abs(wrap(a-b))}
+function project(theta,z){const p=Math.max(0,Math.min(1,(z+38)/41));const scale=.12+p*.98;return{x:cx+Math.cos(theta)*R*scale,y:cy+Math.sin(theta)*R*.74*scale,scale,p}}
+function spawnWave(){const base=(family*.37+wave*1.19)%(Math.PI*2),step=[1.62,1.38,1.18][difficulty],correct=Math.floor(rnd()*3),used={};for(let i=0;i<3;i++){let ci;if(i===correct)ci=targetColor;else{do{ci=Math.floor(rnd()*4)}while(ci===targetColor||used[ci]);used[ci]=1}targets.push({theta:base+(i-1)*step+(rnd()-.5)*.12,z:-38-i*.45,color:ci,kind:(family+wave+i)%3,checked:false,spin:(rnd()-.5)*1.4})}wave++}
+function feedback(ok){toast.textContent=ok?'مطابق! +1':'لون خاطئ!';toast.className='toast show '+(ok?'good':'bad');flash.className='flash show '+(ok?'good':'bad');setTimeout(()=>{toast.className='toast';flash.className='flash'},170);if(!ok)shake=.18}
+function update(dt){remaining-=dt;spawnClock-=dt;if(spawnClock<=0){spawnWave();spawnClock=[.88,.75,.64][difficulty]}angle+=wrap(targetAngle-angle)*Math.min(1,dt*9);const speed=[19,22,25][difficulty];for(let i=targets.length-1;i>=0;i--){const t=targets[i];t.z+=speed*dt;t.theta+=t.spin*dt*.09;if(!t.checked&&t.z>1.2){t.checked=true;if(diff(angle,t.theta)<.31){const ok=t.color===targetColor;if(ok){hits++;combo++}else{mistakes++;combo=0}feedback(ok);hitsEl.textContent=hits+'/12';mistEl.textContent=mistakes;if(hits>=12){finish(true);return}}}if(t.z>4.5)targets.splice(i,1)}timeEl.textContent=Math.max(0,remaining).toFixed(1);if(remaining<=0)finish(false)}
+function drawTunnel(t){ctx.fillStyle='#020611';ctx.fillRect(0,0,W,H);const ox=shake>0?(rnd()-.5)*8:0,oy=shake>0?(rnd()-.5)*8:0;ctx.save();ctx.translate(ox,oy);for(let k=0;k<17;k++){let q=((k/17)+(t*.00018*[1,1.25,1.5][difficulty]))%1;let rr=R*(.08+q*.98);ctx.strokeStyle='rgba(32,116,162,'+(0.08+q*.24)+')';ctx.lineWidth=1+q*1.2;ctx.beginPath();ctx.ellipse(cx,cy,rr,rr*.74,0,0,Math.PI*2);ctx.stroke()}for(let i=0;i<16;i++){const a=i/16*Math.PI*2+t*.00005;ctx.strokeStyle='rgba(31,105,145,.22)';ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*R*.08,cy+Math.sin(a)*R*.06);ctx.lineTo(cx+Math.cos(a)*R*1.04,cy+Math.sin(a)*R*.77);ctx.stroke()}ctx.restore()}
+function drawTarget(t){const p=project(t.theta,t.z);if(p.p<=0)return;const s=(16+38*p.p);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(t.theta+t.z*.02);ctx.shadowColor=CSS[t.color];ctx.shadowBlur=10+18*p.p;ctx.strokeStyle=CSS[t.color];ctx.fillStyle=CSS[t.color];ctx.lineWidth=5*p.scale+1;if(t.kind===0){ctx.globalAlpha=.82;ctx.fillRect(-s*.65,-s*.18,s*1.3,s*.36);ctx.strokeStyle='rgba(255,255,255,.6)';ctx.strokeRect(-s*.65,-s*.18,s*1.3,s*.36)}else if(t.kind===1){ctx.globalAlpha=.9;ctx.beginPath();ctx.arc(0,0,s*.48,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,s*.28,0,Math.PI*2);ctx.stroke()}else{ctx.globalAlpha=.9;ctx.beginPath();ctx.moveTo(0,-s*.55);ctx.lineTo(s*.5,0);ctx.lineTo(0,s*.55);ctx.lineTo(-s*.5,0);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(255,255,255,.7)';ctx.stroke()}ctx.restore()}
+function drawCraft(){const p=project(angle,3.2),s=28;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(angle+Math.PI/2);ctx.shadowColor=CSS[targetColor];ctx.shadowBlur=26;ctx.fillStyle=CSS[targetColor];ctx.strokeStyle='#eaffff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-s);ctx.lineTo(s*.58,s*.42);ctx.lineTo(s*.2,s*.24);ctx.lineTo(0,s*.55);ctx.lineTo(-s*.2,s*.24);ctx.lineTo(-s*.58,s*.42);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#cffff4';ctx.beginPath();ctx.moveTo(0,s*.55);ctx.lineTo(8,s*.92);ctx.lineTo(-8,s*.92);ctx.closePath();ctx.fill();ctx.restore()}
+function draw(now){drawTunnel(now);const ordered=targets.slice().sort((a,b)=>a.z-b.z);for(const t of ordered)drawTarget(t);drawCraft();ctx.fillStyle='rgba(255,255,255,.8)';ctx.font='700 11px system-ui';ctx.textAlign='center';ctx.fillText('لون المركبة: '+['أخضر','أزرق','أحمر','ذهبي'][targetColor],cx,22)}
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.04,(now-last)/1000||0);last=now;if(running)update(dt);shake=Math.max(0,shake-dt);draw(now)}
+function start(){const seed=(parseInt(document.getElementById('seed').value,10)||1)>>>0;difficulty=parseInt(document.getElementById('difficulty').value,10)||0;rnd=rngFactory(seed);family=seed%50;targetColor=Math.floor(rnd()*4);remaining=20;hits=0;mistakes=0;combo=0;wave=0;spawnClock=.15;targets=[];angle=targetAngle=rnd()*Math.PI*2;hitsEl.textContent='0/12';mistEl.textContent='0';famEl.textContent='F'+String(family+1).padStart(2,'0');timeEl.textContent='20.0';legend.innerHTML=CSS.map((c,i)=>'<span class="dot" style="background:'+c+';'+(i===targetColor?'box-shadow:0 0 18px '+c+';outline:2px solid white':'')+'"></span>').join('');overlay.classList.add('hidden');running=true;last=performance.now()}
+function finish(done){if(!running)return;running=false;const score=Math.max(0,hits*1000-mistakes*350);overlay.classList.remove('hidden');card.innerHTML='<div class="title">'+(done?'اكتملت الجولة':'انتهى الوقت')+'</div><div class="result">'+hits+'/12</div><div class="desc">الأخطاء: <b>'+mistakes+'</b><br>النتيجة التجريبية: <b>'+score+'</b><br>Family: F'+String(family+1).padStart(2,'0')+'</div><button class="play" id="again" type="button">تجربة جديدة</button>';document.getElementById('again').onclick=()=>location.reload()}
+canvas.addEventListener('pointerdown',e=>{pointer=true;lastX=e.clientX;try{canvas.setPointerCapture(e.pointerId)}catch(_){}});canvas.addEventListener('pointermove',e=>{if(!pointer||!running)return;const dx=e.clientX-lastX;lastX=e.clientX;targetAngle-=dx*.012});canvas.addEventListener('pointerup',()=>pointer=false);canvas.addEventListener('pointercancel',()=>pointer=false);window.addEventListener('keydown',e=>{if(!running)return;if(e.key==='ArrowLeft'||e.key==='a')targetAngle+=.22;if(e.key==='ArrowRight'||e.key==='d')targetAngle-=.22});window.addEventListener('resize',resize);document.getElementById('play').addEventListener('click',start);resize();legend.innerHTML=CSS.map(c=>'<span class="dot" style="background:'+c+'"></span>').join('');requestAnimationFrame(loop);
 })();
 </script>
 </body></html>
