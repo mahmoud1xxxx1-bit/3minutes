@@ -178,6 +178,7 @@ class _PathRushGameState extends State<PathRushGame>
                   left: 20,
                   right: 20,
                   child: Row(
+                    textDirection: TextDirection.ltr,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _StartButton(number: 3, selected: _selectedLane == 0, enabled: !_locked, onTap: () => _choose(3)),
