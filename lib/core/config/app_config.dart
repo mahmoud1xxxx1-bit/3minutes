@@ -8,7 +8,7 @@ class AppConfig {
 
   static const String appName = '3 Minutes';
   static const Duration matchDuration = Duration(minutes: 3);
-  static const int gamesPerMatch = 8;
+  static const int gamesPerMatch = 4;
 
   // Single source of truth for trusted server features.
   // Change to Blaze only after Cloud Functions and security review are live.

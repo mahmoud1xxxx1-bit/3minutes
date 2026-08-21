@@ -18,7 +18,7 @@ import 'package:game/features/progression/domain/player_progression.dart';
 void main() {
   test('match configuration stays fixed at three minutes', () {
     expect(AppConfig.matchDuration, const Duration(minutes: 3));
-    expect(AppConfig.gamesPerMatch, 8);
+    expect(AppConfig.gamesPerMatch, 4);
   });
 
   test('player profile map keeps safe defaults', () {
@@ -42,11 +42,11 @@ void main() {
   });
 
   test('same match seed produces identical eight-game order', () {
-    final firstPhone = GameRegistry.sequence(seed: 314159, count: 8);
-    final secondPhone = GameRegistry.sequence(seed: 314159, count: 8);
+    final firstPhone = GameRegistry.sequence(seed: 314159, count: 4);
+    final secondPhone = GameRegistry.sequence(seed: 314159, count: 4);
     expect(firstPhone.map((game) => game.id), secondPhone.map((game) => game.id));
     expect(firstPhone.length, AppConfig.gamesPerMatch);
-    expect(firstPhone.map((game) => game.id).toSet().length, 8);
+    expect(firstPhone.map((game) => game.id).toSet().length, 4);
   });
 
   test('registry refuses a match larger than available games', () {
@@ -58,7 +58,7 @@ void main() {
 
   test('match runtime keeps a strict 180 second deadline', () {
     final start = DateTime.utc(2026, 1, 1, 12);
-    final runtime = MatchRuntime(seed: 7, startedAt: start, gameCount: 8);
+    final runtime = MatchRuntime(seed: 7, startedAt: start, gameCount: 4);
     expect(runtime.endsAt, start.add(const Duration(minutes: 3)));
     expect(runtime.remaining(start), const Duration(minutes: 3));
     expect(runtime.remaining(runtime.endsAt), Duration.zero);
@@ -69,7 +69,7 @@ void main() {
     final runtime = MatchRuntime(
       seed: 9,
       startedAt: DateTime.utc(2026, 1, 1),
-      gameCount: 8,
+      gameCount: 4,
     );
     final progress = runtime.recordResult(
       const MiniGameResult(
@@ -110,10 +110,10 @@ void main() {
     final runtime = MatchRuntime(
       seed: 12345,
       startedAt: DateTime.utc(2026, 1, 1),
-      gameCount: 8,
+      gameCount: 4,
       initialProgress: saved,
     );
-    final sequence = GameRegistry.sequence(seed: 12345, count: 8);
+    final sequence = GameRegistry.sequence(seed: 12345, count: 4);
     expect(runtime.progress.completedGames, 3);
     expect(runtime.progress.totalScore, 280);
     expect(runtime.progress.elapsedMs, 34000);
@@ -123,16 +123,16 @@ void main() {
   test('settlement waits for opponent before three minute deadline', () {
     final countdown = DateTime.utc(2026, 1, 1, 12);
     const finished = MatchProgress(
-      completedGames: 8,
-      totalScore: 800,
-      accuracyTotal: 8,
+      completedGames: 4,
+      totalScore: 400,
+      accuracyTotal: 4,
       mistakes: 0,
       elapsedMs: 60000,
     );
     const stillPlaying = MatchProgress(
-      completedGames: 5,
-      totalScore: 500,
-      accuracyTotal: 5,
+      completedGames: 2,
+      totalScore: 200,
+      accuracyTotal: 2,
       mistakes: 0,
       elapsedMs: 50000,
     );
@@ -140,7 +140,7 @@ void main() {
       MatchSettlement.isSettled(
         playerA: finished,
         playerB: stillPlaying,
-        gameCount: 8,
+        gameCount: 4,
         countdownStartedAt: countdown,
         now: countdown.add(const Duration(seconds: 120)),
       ),
@@ -150,7 +150,7 @@ void main() {
       MatchSettlement.isSettled(
         playerA: finished,
         playerB: stillPlaying,
-        gameCount: 8,
+        gameCount: 4,
         countdownStartedAt: countdown,
         now: countdown.add(const Duration(seconds: 183)),
       ),
@@ -161,7 +161,7 @@ void main() {
   test('settlement finishes immediately when both players complete', () {
     final countdown = DateTime.utc(2026, 1, 1, 12);
     const complete = MatchProgress(
-      completedGames: 8,
+      completedGames: 4,
       totalScore: 700,
       accuracyTotal: 7.5,
       mistakes: 1,
@@ -171,7 +171,7 @@ void main() {
       MatchSettlement.isSettled(
         playerA: complete,
         playerB: complete,
-        gameCount: 8,
+        gameCount: 4,
         countdownStartedAt: countdown,
         now: countdown.add(const Duration(seconds: 40)),
       ),
@@ -181,21 +181,21 @@ void main() {
 
   test('outcome prioritizes progress before score', () {
     const playerA = MatchProgress(
-      completedGames: 5,
+      completedGames: 4,
       totalScore: 10,
       accuracyTotal: 4,
       mistakes: 0,
       elapsedMs: 50000,
     );
     const playerB = MatchProgress(
-      completedGames: 4,
+      completedGames: 2,
       totalScore: 9999,
       accuracyTotal: 4,
       mistakes: 0,
       elapsedMs: 1000,
     );
     expect(
-      MatchOutcomeResolver.compare(playerA: playerA, playerB: playerB, gameCount: 8),
+      MatchOutcomeResolver.compare(playerA: playerA, playerB: playerB, gameCount: 4),
       MatchOutcome.playerA,
     );
   });

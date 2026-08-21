@@ -6,7 +6,7 @@ import 'package:game/features/minigames/data/game_registry.dart';
 void main() {
   test('ranked evidence accepts the deterministic match sequence', () {
     const matchSeed = 424242;
-    final games = GameRegistry.sequence(seed: matchSeed, count: 8);
+    final games = GameRegistry.sequence(seed: matchSeed, count: 4);
     final evidence = <MiniGameEvidence>[
       for (var index = 0; index < games.length; index++)
         MiniGameEvidence(
@@ -26,7 +26,7 @@ void main() {
     expect(
       MiniGameEvidencePolicy.isValidMatchEvidence(
         matchSeed: matchSeed,
-        gameCount: 8,
+        gameCount: 4,
         evidence: evidence,
       ),
       isTrue,
@@ -35,7 +35,7 @@ void main() {
 
   test('ranked evidence rejects a forged game id or seed', () {
     const matchSeed = 99;
-    final games = GameRegistry.sequence(seed: matchSeed, count: 8);
+    final games = GameRegistry.sequence(seed: matchSeed, count: 4);
     final forged = [
       MiniGameEvidence(
         gameId: games.first.id,
@@ -51,10 +51,11 @@ void main() {
     expect(
       MiniGameEvidencePolicy.isValidMatchEvidence(
         matchSeed: matchSeed,
-        gameCount: 8,
+        gameCount: 4,
         evidence: forged,
       ),
       isFalse,
     );
   });
 }
+

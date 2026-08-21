@@ -7,16 +7,6 @@ class GameRegistry {
   static const int version = 8;
 
   static const List<MiniGameDescriptor> games = [
-    MiniGameDescriptor(id: 'tap_target', title: '', category: MiniGameCategory.precision),
-    MiniGameDescriptor(id: 'quick_math', title: '', category: MiniGameCategory.logic),
-    MiniGameDescriptor(id: 'color_match', title: '', category: MiniGameCategory.reaction),
-    MiniGameDescriptor(id: 'odd_one_out', title: '', category: MiniGameCategory.logic),
-    MiniGameDescriptor(id: 'memory_flash', title: '', category: MiniGameCategory.memory),
-    MiniGameDescriptor(id: 'direction_swipe', title: '', category: MiniGameCategory.reaction),
-    MiniGameDescriptor(id: 'number_order', title: '', category: MiniGameCategory.memory),
-    MiniGameDescriptor(id: 'shape_count', title: '', category: MiniGameCategory.logic),
-    MiniGameDescriptor(id: 'reaction_stop', title: '', category: MiniGameCategory.reaction),
-    MiniGameDescriptor(id: 'symbol_pair', title: '', category: MiniGameCategory.precision),
     MiniGameDescriptor(id: 'mole_strike', title: '', category: MiniGameCategory.reaction),
     MiniGameDescriptor(id: 'follow_the_cup', title: '', category: MiniGameCategory.memory),
     MiniGameDescriptor(id: 'path_rush', title: '', category: MiniGameCategory.logic),

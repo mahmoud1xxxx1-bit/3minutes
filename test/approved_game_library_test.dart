@@ -3,7 +3,7 @@ import 'package:game/features/minigames/data/game_registry.dart';
 
 void main() {
   test('approved mini-game library includes new Find the Differences scenes', () {
-    expect(GameRegistry.games.length, 14);
+    expect(GameRegistry.games.length, 4);
     expect(GameRegistry.version, 8);
     for (final id in [
       'mole_strike',
@@ -15,3 +15,4 @@ void main() {
     }
   });
 }
+

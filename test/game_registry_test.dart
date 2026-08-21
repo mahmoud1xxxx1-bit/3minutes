@@ -14,27 +14,23 @@ void main() {
     }
   });
 
-  test('same seed produces the same balanced eight-game sequence', () {
-    final first = GameRegistry.sequence(seed: 20260818, count: 8);
-    final second = GameRegistry.sequence(seed: 20260818, count: 8);
+  test('same seed produces the same balanced four-game sequence', () {
+    final first = GameRegistry.sequence(seed: 20260818, count: 4);
+    final second = GameRegistry.sequence(seed: 20260818, count: 4);
     final categories = first.map((game) => game.category).toSet();
     expect(first.map((game) => game.id), second.map((game) => game.id));
-    expect(first.length, 8);
-    expect(first.map((game) => game.id).toSet().length, 8);
+    expect(first.length, 4);
+    expect(first.map((game) => game.id).toSet().length, 4);
     expect(categories, containsAll(MiniGameCategory.values));
   });
 
   test('registry v8 sequence matches the cross-platform vector', () {
-    final sequence = GameRegistry.sequence(seed: 20260818, count: 8);
+    final sequence = GameRegistry.sequence(seed: 20260818, count: 4);
     expect(sequence.map((game) => game.id).toList(), const [
-      'number_order',
-      'color_match',
-      'odd_one_out',
+      'mole_strike',
       'follow_the_cup',
-      'symbol_pair',
-      'tap_target',
-      'quick_math',
-      'reaction_stop',
+      'find_differences',
+      'path_rush',
     ]);
   });
 }
