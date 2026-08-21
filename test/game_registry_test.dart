@@ -24,17 +24,17 @@ void main() {
     expect(categories, containsAll(MiniGameCategory.values));
   });
 
-  test('registry v7 sequence matches the cross-platform vector', () {
+  test('registry v8 sequence matches the cross-platform vector', () {
     final sequence = GameRegistry.sequence(seed: 20260818, count: 8);
     expect(sequence.map((game) => game.id).toList(), const [
-      'odd_one_out',
-      'direction_swipe',
-      'follow_the_cup',
-      'memory_flash',
-      'tap_target',
+      'number_order',
       'color_match',
-      'reaction_stop',
+      'odd_one_out',
+      'follow_the_cup',
+      'symbol_pair',
+      'tap_target',
       'quick_math',
+      'reaction_stop',
     ]);
   });
 }
