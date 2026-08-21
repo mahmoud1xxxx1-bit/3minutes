@@ -9,18 +9,18 @@ import 'package:game/features/progression/domain/player_progression.dart';
 
 void main() {
   group('ranked authority policies', () {
-    test('valid four-game progress passes integrity checks', () {
+    test('valid eight-game progress passes integrity checks', () {
       const progress = MatchProgress(
-        completedGames: 4,
-        totalScore: 400,
-        accuracyTotal: 3.8,
+        completedGames: 8,
+        totalScore: 800,
+        accuracyTotal: 7.2,
         mistakes: 2,
         elapsedMs: 120000,
       );
 
       final report = MatchIntegrityPolicy.validateProgress(
         progress: progress,
-        gameCount: 4,
+        gameCount: 8,
       );
 
       expect(report.valid, isTrue);
@@ -29,7 +29,7 @@ void main() {
 
     test('impossible progress is rejected with explicit reasons', () {
       const progress = MatchProgress(
-        completedGames: 5,
+        completedGames: 9,
         totalScore: -1,
         accuracyTotal: 12,
         mistakes: -2,
@@ -38,7 +38,7 @@ void main() {
 
       final report = MatchIntegrityPolicy.validateProgress(
         progress: progress,
-        gameCount: 4,
+        gameCount: 8,
       );
 
       expect(report.valid, isFalse);
@@ -86,4 +86,3 @@ void main() {
     });
   });
 }
-
