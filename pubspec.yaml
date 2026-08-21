@@ -37,4 +37,4 @@ flutter:
   assets:
     - assets/ranks/
     - assets/avatars/
-    - assets/find_differences/puzzles_1_to_30.zip
+    - assets/find_differences/archive_b64/
