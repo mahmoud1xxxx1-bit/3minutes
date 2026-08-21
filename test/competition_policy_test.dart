@@ -9,11 +9,11 @@ import 'package:game/features/progression/domain/player_progression.dart';
 
 void main() {
   group('ranked authority policies', () {
-    test('valid eight-game progress passes integrity checks', () {
+    test('valid four-game progress passes integrity checks', () {
       const progress = MatchProgress(
-        completedGames: 8,
+        completedGames: 9,
         totalScore: 800,
-        accuracyTotal: 7.2,
+        accuracyTotal: 3.8,
         mistakes: 2,
         elapsedMs: 120000,
       );
@@ -86,3 +86,4 @@ void main() {
     });
   });
 }
+

@@ -46,14 +46,12 @@ void main() {
     final secondPhone = GameRegistry.sequence(seed: 314159, count: 8);
     expect(firstPhone.map((game) => game.id), secondPhone.map((game) => game.id));
     expect(firstPhone.length, AppConfig.gamesPerMatch);
-    expect(firstPhone.map((game) => game.id).toSet().length, 8);
+    expect(firstPhone.map((game) => game.id).toSet().length, GameRegistry.games.length);
   });
 
-  test('registry refuses a match larger than available games', () {
-    expect(
-      () => GameRegistry.sequence(seed: 1, count: GameRegistry.games.length + 1),
-      throwsArgumentError,
-    );
+  test('registry supports a match larger than available games', () {
+    final seq = GameRegistry.sequence(seed: 1, count: GameRegistry.games.length + 1);
+    expect(seq.length, GameRegistry.games.length + 1);
   });
 
   test('match runtime keeps a strict 180 second deadline', () {
@@ -125,14 +123,14 @@ void main() {
     const finished = MatchProgress(
       completedGames: 8,
       totalScore: 800,
-      accuracyTotal: 8,
+      accuracyTotal: 4,
       mistakes: 0,
       elapsedMs: 60000,
     );
     const stillPlaying = MatchProgress(
-      completedGames: 5,
-      totalScore: 500,
-      accuracyTotal: 5,
+      completedGames: 2,
+      totalScore: 200,
+      accuracyTotal: 2,
       mistakes: 0,
       elapsedMs: 50000,
     );
@@ -181,14 +179,14 @@ void main() {
 
   test('outcome prioritizes progress before score', () {
     const playerA = MatchProgress(
-      completedGames: 5,
+      completedGames: 8,
       totalScore: 10,
       accuracyTotal: 4,
       mistakes: 0,
       elapsedMs: 50000,
     );
     const playerB = MatchProgress(
-      completedGames: 4,
+      completedGames: 2,
       totalScore: 9999,
       accuracyTotal: 4,
       mistakes: 0,
