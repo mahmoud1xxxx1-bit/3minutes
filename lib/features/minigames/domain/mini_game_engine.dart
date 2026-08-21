@@ -18,6 +18,7 @@ class MiniGameEngineRegistry {
     'path_rush': MiniGameEngine.choice,
     'tap_target': MiniGameEngine.target,
     'mole_strike': MiniGameEngine.target,
+    'find_differences': MiniGameEngine.target,
     'number_order': MiniGameEngine.sequence,
     'memory_flash': MiniGameEngine.sequence,
     'follow_the_cup': MiniGameEngine.sequence,
