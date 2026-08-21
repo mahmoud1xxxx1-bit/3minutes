@@ -100,19 +100,13 @@ class Puzzle43 extends PuzzleDefinition {
         c.beginPath(); c.arc(360, 420, 8, 0, math.pi*2); c.fill();
       }
     ),
-    Difference(
-      'connectingLineMissing',
-      const Rect.fromLTWH(380, 410, 90, 20),
-      const Offset(425, 420),
+        Difference(
+      'extraNode',
+      const Rect.fromLTWH(380, 400, 40, 40),
+      const Offset(400, 420),
       (HtmlCanvas c) {
-        c.fillStyle = '#fafafa';
-        c.fillRect(380, 415, 90, 10); // Erase line
-        // Fix background grid
-        c.strokeStyle = '#eeeeee'; c.lineWidth = 1;
-        for(int i=38; i<=47; i++) {
-          c.beginPath(); c.moveTo(i*10, 415); c.lineTo(i*10, 425); c.stroke();
-        }
-        c.beginPath(); c.moveTo(380, 420); c.lineTo(470, 420); c.stroke();
+        c.fillStyle = '#e91e63';
+        c.beginPath(); c.arc(400, 420, 8, 0, 3.14159265*2); c.fill();
       }
     ),
     Difference(

@@ -105,13 +105,13 @@ class Puzzle34 extends PuzzleDefinition {
         c.beginPath(); c.moveTo(500, 150); c.lineTo(550, 150); c.lineTo(525, 200); c.stroke();
       }
     ),
-    Difference(
-      'missingWallCable',
-      const Rect.fromLTWH(210, 250, 20, 150),
-      const Offset(220, 325),
+        Difference(
+      'missingLitWindow',
+      const Rect.fromLTWH(90, 100, 50, 50),
+      const Offset(115, 125),
       (HtmlCanvas c) {
-        c.fillStyle = '#111118';
-        c.fillRect(215, 245, 10, 160); // Paint over cable
+        c.fillStyle = '#222233'; // Unlit window color
+        c.fillRect(100, 110, 30, 30);
       }
     ),
     Difference(
@@ -123,28 +123,16 @@ class Puzzle34 extends PuzzleDefinition {
         c.fillRect(275, 540, 50, 20); // Paint over reflection
       }
     ),
-    Difference(
-      'lampGlowRadius',
-      const Rect.fromLTWH(255, 150, 200, 200),
-      const Offset(355, 250),
+        Difference(
+      'vendingMachineScreen',
+      const Rect.fromLTWH(100, 350, 100, 70),
+      const Offset(150, 390),
       (HtmlCanvas c) {
-        // Erase old glow area by redrawing buildings
-        c.fillStyle = '#0a0a14'; c.fillRect(255, 150, 200, 200);
-        c.fillStyle = '#111118'; c.fillRect(50, 150, 200, 350); c.fillRect(400, 150, 55, 350);
-        // Redraw cables
-        c.strokeStyle = '#000'; c.lineWidth = 4;
-        c.beginPath(); c.moveTo(0, 100); c.quadraticCurveTo(200, 150, 400, 80); c.stroke();
-        c.beginPath(); c.moveTo(250, 200); c.quadraticCurveTo(450, 300, 800, 150); c.stroke();
-        c.beginPath(); c.moveTo(220, 250); c.lineTo(220, 400); c.stroke();
-        // Redraw lamp post
-        c.fillStyle = '#424242';
-        c.fillRect(350, 250, 10, 250);
-        c.beginPath(); c.arc(355, 250, 15, math.pi, 0); c.fill();
-        // Smaller glow
-        final glow = c.createRadialGradient(355, 250, 5, 355, 250, 50);
-        glow..addColorStop(0, 'rgba(255, 235, 59, 0.6)')..addColorStop(1, 'rgba(255, 235, 59, 0)');
-        c.fillStyle = glow;
-        c.beginPath(); c.arc(355, 250, 50, 0, math.pi*2); c.fill();
+        c.fillStyle = '#ffb74d'; // Orange screen
+        c.fillRect(110, 360, 80, 60);
+        c.fillStyle = '#ff5252'; c.fillRect(115, 365, 10, 20);
+        c.fillStyle = '#448aff'; c.fillRect(135, 365, 10, 20);
+        c.fillStyle = '#69f0ae'; c.fillRect(155, 365, 10, 20);
       }
     ),
     Difference(

@@ -118,18 +118,12 @@ class Puzzle42 extends PuzzleDefinition {
   @override
   List<Difference> get differences => [
     Difference(
-      'missingChimneySmoke',
-      const Rect.fromLTWH(420, 280, 80, 120),
-      const Offset(460, 330),
+      'extraFootprint',
+      const Rect.fromLTWH(290, 540, 40, 40),
+      const Offset(310, 560),
       (HtmlCanvas c) {
-        c.fillStyle = '#0d47a1'; // Background color (sky approximation)
-        c.fillRect(420, 280, 80, 120);
-        // Redraw mountains behind it
-        c.fillStyle = '#e0e0e0';
-        c.beginPath(); c.moveTo(0, 400); c.lineTo(200, 150); c.lineTo(450, 400); c.fill();
-        c.beginPath(); c.moveTo(300, 400); c.lineTo(550, 100); c.lineTo(800, 400); c.fill();
-        c.fillStyle = '#bdbdbd';
-        c.beginPath(); c.moveTo(200, 150); c.lineTo(250, 250); c.lineTo(450, 400); c.fill();
+        c.fillStyle = '#cfd8dc';
+        c.beginPath(); c.ellipse(310, 560, 8, 4, 0.5, 0, math.pi*2); c.fill();
       }
     ),
     Difference(
@@ -153,45 +147,33 @@ class Puzzle42 extends PuzzleDefinition {
       }
     ),
     Difference(
-      'weatherVaneAngle',
-      const Rect.fromLTWH(570, 280, 60, 30),
-      const Offset(600, 295),
+      'extraStar',
+      const Rect.fromLTWH(480, 180, 40, 40),
+      const Offset(500, 200),
       (HtmlCanvas c) {
-        c.fillStyle = '#1056b0'; // Sky color approx
-        c.fillRect(575, 285, 50, 15); // Erase arrow
-        c.strokeStyle = '#212121'; c.lineWidth = 2;
-        // Arrow pointing Left
-        c.beginPath(); c.moveTo(615, 295); c.lineTo(585, 295); c.stroke();
-        c.beginPath(); c.moveTo(585, 295); c.lineTo(590, 290); c.stroke();
-        c.beginPath(); c.moveTo(585, 295); c.lineTo(590, 300); c.stroke();
+        c.fillStyle = '#ffffff';
+        c.beginPath();
+        c.moveTo(500, 190);
+        c.lineTo(505, 205);
+        c.lineTo(520, 205);
+        c.lineTo(508, 215);
+        c.lineTo(512, 230);
+        c.lineTo(500, 220);
+        c.lineTo(488, 230);
+        c.lineTo(492, 215);
+        c.lineTo(480, 205);
+        c.lineTo(495, 205);
+        c.fill();
       }
     ),
     Difference(
-      'pineTreeBranchMissing',
-      const Rect.fromLTWH(640, 310, 80, 180),
-      const Offset(680, 400),
+      'moonCrater',
+      const Rect.fromLTWH(670, 70, 40, 40),
+      const Offset(690, 90),
       (HtmlCanvas c) {
-        c.fillStyle = '#ffffff'; c.fillRect(630, 300, 100, 200); // Erase tree
-        c.fillStyle = '#0d47a1'; c.fillRect(630, 300, 100, 50); // Erase top in sky
-        // Redraw tree with 3 branches instead of 4
-        double x = 680, y = 480, scale = 1.4;
-        c.fillStyle = '#795548'; c.fillRect(x - 5*scale, y - 20*scale, 10*scale, 40*scale);
-        c.fillStyle = '#1b5e20';
-        for(int i=1; i<4; i++) { // Skip top branch
-          c.beginPath(); 
-          c.moveTo(x, y - (120 - i*20)*scale); 
-          c.lineTo(x + (30 + i*10)*scale, y - (40 - i*20)*scale); 
-          c.lineTo(x - (30 + i*10)*scale, y - (40 - i*20)*scale); 
-          c.fill();
-        }
-        c.fillStyle = '#ffffff';
-        for(int i=1; i<4; i++) {
-          c.beginPath(); 
-          c.moveTo(x, y - (120 - i*20)*scale); 
-          c.lineTo(x + (20 + i*8)*scale, y - (50 - i*20)*scale); 
-          c.lineTo(x, y - (60 - i*20)*scale); 
-          c.fill();
-        }
+        c.fillStyle = '#dcb873'; // Darker moon color
+        c.beginPath(); c.arc(690, 90, 12, 0, math.pi*2); c.fill();
+        c.beginPath(); c.arc(710, 110, 8, 0, math.pi*2); c.fill();
       }
     )
   ];

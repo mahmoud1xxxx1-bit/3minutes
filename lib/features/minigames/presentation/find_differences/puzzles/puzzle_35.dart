@@ -110,19 +110,25 @@ class Puzzle35 extends PuzzleDefinition {
         c.beginPath(); c.ellipse(600, 570, 30, 60, -0.3, 0, math.pi*2); c.fill();
       }
     ),
-    Difference(
-      'lightRayAngle',
-      const Rect.fromLTWH(450, 300, 150, 300),
-      const Offset(525, 450), // midpoint
+            Difference(
+      'extraStarfish',
+      const Rect.fromLTWH(500, 500, 60, 60),
+      const Offset(530, 530),
       (HtmlCanvas c) {
-        // Erase old ray area
-        final bg = c.createLinearGradient(0, 0, 0, 600);
-        bg..addColorStop(0, '#0277bd')..addColorStop(1, '#013a5e');
-        c.fillStyle = bg;
-        c.beginPath(); c.moveTo(700, 0); c.lineTo(750, 0); c.lineTo(500, 600); c.lineTo(470, 600); c.fill();
-        // Redraw ray at new angle
-        c.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        c.beginPath(); c.moveTo(700, 0); c.lineTo(750, 0); c.lineTo(600, 600); c.lineTo(570, 600); c.fill();
+        c.save();
+        c.translate(530, 530);
+        c.fillStyle = '#ff5252';
+        c.beginPath();
+        double a0 = -math.pi / 2;
+        c.moveTo(math.cos(a0)*20, math.sin(a0)*20);
+        for(int i=0; i<5; i++) {
+          double a = i * math.pi * 2 / 5 - math.pi / 2;
+          c.lineTo(math.cos(a)*20, math.sin(a)*20);
+          a += math.pi / 5;
+          c.lineTo(math.cos(a)*8, math.sin(a)*8);
+        }
+        c.fill();
+        c.restore();
       }
     )
   ];

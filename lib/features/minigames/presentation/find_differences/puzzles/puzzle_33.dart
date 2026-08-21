@@ -84,12 +84,7 @@ class Puzzle33 extends PuzzleDefinition {
       c.fillStyle = '#cddc39';
     }
     
-    // The specific firefly to hide: i=15 -> x=95, y=465
-    // Actually let's just explicitly draw one to hide
-    c.fillStyle = '#cddc39';
-    c.beginPath(); c.arc(400, 450, 3, 0, math.pi * 2); c.fill();
-    c.fillStyle = 'rgba(205, 220, 57, 0.2)';
-    c.beginPath(); c.arc(400, 450, 10, 0, math.pi * 2); c.fill();
+
 
     // Mushrooms at base
     c.fillStyle = '#d32f2f';
@@ -103,12 +98,14 @@ class Puzzle33 extends PuzzleDefinition {
   @override
   List<Difference> get differences => [
     Difference(
-      'missingFirefly',
+      'extraFirefly',
       const Rect.fromLTWH(380, 430, 40, 40),
       const Offset(400, 450),
       (HtmlCanvas c) {
-        c.fillStyle = '#051205'; // Background color to erase
-        c.fillRect(385, 435, 30, 30);
+        c.fillStyle = '#cddc39';
+        c.beginPath(); c.arc(400, 450, 3, 0, math.pi * 2); c.fill();
+        c.fillStyle = 'rgba(205, 220, 57, 0.2)';
+        c.beginPath(); c.arc(400, 450, 10, 0, math.pi * 2); c.fill();
       }
     ),
     Difference(
@@ -126,15 +123,11 @@ class Puzzle33 extends PuzzleDefinition {
         }
       }
     ),
-    Difference(
-      'flippedVine',
+        Difference(
+      'extraVine',
       const Rect.fromLTWH(310, 190, 60, 120),
       const Offset(340, 250),
       (HtmlCanvas c) {
-        // Erase old
-        c.fillStyle = '#071807'; // Approximation of bg
-        c.fillRect(310, 190, 60, 120);
-        // Draw new flipped vine
         c.strokeStyle = '#558b2f';
         c.lineWidth = 6;
         c.beginPath(); c.moveTo(350, 200); c.quadraticCurveTo(380, 250, 360, 300); c.stroke();
