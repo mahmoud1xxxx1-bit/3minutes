@@ -23,6 +23,8 @@ dependencies:
   flutter_svg: ^2.3.0
   audioplayers: ^6.8.1
   shared_preferences: ^2.5.5
+  webview_flutter: ^4.13.0
+  archive: ^4.0.7
 
 dev_dependencies:
   flutter_test:
@@ -35,3 +37,4 @@ flutter:
   assets:
     - assets/ranks/
     - assets/avatars/
+    - assets/find_differences/puzzles_1_to_30.zip
