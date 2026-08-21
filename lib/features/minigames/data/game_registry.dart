@@ -4,7 +4,7 @@ import '../domain/mini_game_contract.dart';
 class GameRegistry {
   const GameRegistry._();
 
-  static const int version = 6;
+  static const int version = 7;
 
   static const List<MiniGameDescriptor> games = [
     MiniGameDescriptor(id: 'tap_target', title: '', category: MiniGameCategory.precision),
@@ -20,7 +20,6 @@ class GameRegistry {
     MiniGameDescriptor(id: 'mole_strike', title: '', category: MiniGameCategory.reaction),
     MiniGameDescriptor(id: 'follow_the_cup', title: '', category: MiniGameCategory.memory),
     MiniGameDescriptor(id: 'path_rush', title: '', category: MiniGameCategory.logic),
-    MiniGameDescriptor(id: 'find_differences', title: '', category: MiniGameCategory.precision),
   ];
 
   static List<MiniGameDescriptor> sequence({required int seed, required int count}) {
