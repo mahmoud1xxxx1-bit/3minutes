@@ -3,9 +3,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../domain/mini_game_contract.dart';
-import '../domain/mole_strike_plan.dart';
-import 'mini_game_copy.dart';
+import '../../domain/mini_game_contract.dart';
+import '../../domain/mole_strike_plan.dart';
+import '../mini_game_copy.dart';
 
 class MoleStrikeGame extends StatefulWidget {
   const MoleStrikeGame({super.key, required this.config, required this.onComplete});
@@ -100,8 +100,9 @@ class _MoleStrikeGameState extends State<MoleStrikeGame> {
       Text(copy.moleStrikeInstruction, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
       const SizedBox(height: 6),
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        _StatusPill(label: '${copy.moleStrikeHits}: $_hits/${MoleStrikePlan.goal}'),
-        const SizedBox(width: 8), _StatusPill(label: 'F$family'),
+        _StatusPill(label: '${copy.followCupCorrect}: $_hits/${MoleStrikePlan.goal}'),
+        const SizedBox(width: 8),
+        _StatusPill(label: '${copy.findDifferencesMistakes}: $_mistakes'),
       ]),
       const SizedBox(height: 12),
       Expanded(child: GridView.builder(

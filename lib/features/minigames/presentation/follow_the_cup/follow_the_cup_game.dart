@@ -3,9 +3,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../domain/follow_the_cup_plan.dart';
-import '../domain/mini_game_contract.dart';
-import 'mini_game_copy.dart';
+import '../../domain/follow_the_cup_plan.dart';
+import '../../domain/mini_game_contract.dart';
+import '../mini_game_copy.dart';
 
 class FollowTheCupGame extends StatefulWidget {
   const FollowTheCupGame({super.key, required this.config, required this.onComplete});
@@ -134,7 +134,8 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> {
       const SizedBox(height: 6),
       Row(mainAxisAlignment: MainAxisAlignment.center, children: [
         _CupPill(label: '${copy.followCupCorrect}: $_correct/${FollowTheCupPlan.roundCount}'),
-        const SizedBox(width: 8), _CupPill(label: 'F$family'),
+        const SizedBox(width: 8),
+        _CupPill(label: '${copy.findDifferencesMistakes}: $_mistakes'),
       ]),
       const SizedBox(height: 10),
       Expanded(child: LayoutBuilder(builder: (context, c) {

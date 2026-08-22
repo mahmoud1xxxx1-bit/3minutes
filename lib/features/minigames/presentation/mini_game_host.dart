@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../domain/mini_game_contract.dart';
 import 'find_differences/find_differences_game.dart';
-import 'follow_the_cup_game.dart';
-import 'legacy_mini_game_host.dart' as legacy;
-import 'mole_strike_game.dart';
-import 'path_rush_game.dart';
+import 'follow_the_cup/follow_the_cup_game.dart';
+import 'mole_strike/mole_strike_game.dart';
+import 'path_rush/path_rush_game.dart';
 import 'mirror_control/mirror_control_minigame.dart';
 
 
@@ -56,10 +55,6 @@ class MiniGameHost extends StatelessWidget {
         );
     }
 
-    return legacy.MiniGameHost(
-      game: game,
-      config: config,
-      onComplete: onComplete,
-    );
+    return const Center(child: Text('Game not found'));
   }
 }

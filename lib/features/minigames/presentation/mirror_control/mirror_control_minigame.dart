@@ -340,6 +340,12 @@ class _MirrorControlMiniGameState extends State<MirrorControlMiniGame> with Sing
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(color: colors.primary.withValues(alpha: .10), borderRadius: BorderRadius.circular(999), border: Border.all(color: colors.primary.withValues(alpha: .25))),
+          child: Text('${copy.followCupCorrect}: ${engine.currentTargetIndex}/${engine.targets.length}', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w900)),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(color: colors.primary.withValues(alpha: .10), borderRadius: BorderRadius.circular(999), border: Border.all(color: colors.primary.withValues(alpha: .25))),
           child: Text('${copy.findDifferencesMistakes}: ${engine.mistakes}', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w900)),
         ),
       ]),

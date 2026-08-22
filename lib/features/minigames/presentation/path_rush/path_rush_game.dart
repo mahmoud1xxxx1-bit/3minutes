@@ -3,9 +3,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../domain/mini_game_contract.dart';
-import '../domain/path_rush_plan.dart';
-import 'mini_game_copy.dart';
+import '../../domain/mini_game_contract.dart';
+import '../../domain/path_rush_plan.dart';
+import '../mini_game_copy.dart';
 
 class PathRushGame extends StatefulWidget {
   const PathRushGame({super.key, required this.config, required this.onComplete});

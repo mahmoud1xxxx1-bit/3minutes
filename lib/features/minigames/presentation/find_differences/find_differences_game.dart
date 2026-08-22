@@ -165,7 +165,7 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
           spacing: 8,
           runSpacing: 6,
           children: [
-            _FindPill(label: '${copy.findDifferencesFound}: ${_found.length}/5'),
+            _FindPill(label: '${copy.followCupCorrect}: ${_found.length}/5'),
             _FindPill(label: '${copy.findDifferencesMistakes}: $_mistakes'),
           ],
         ),
