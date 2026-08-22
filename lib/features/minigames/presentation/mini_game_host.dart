@@ -5,6 +5,7 @@ import 'find_differences/find_differences_game.dart';
 import 'follow_the_cup/follow_the_cup_game.dart';
 import 'mole_strike/mole_strike_game.dart';
 import 'path_rush/path_rush_game.dart';
+import 'traffic_loop/traffic_loop_game.dart';
 import 'mirror_control/mirror_control_minigame.dart';
 
 
@@ -31,6 +32,12 @@ class MiniGameHost extends StatelessWidget {
         );
       case 'mole_strike':
         return MoleStrikeGame(
+          key: ValueKey('${game.id}-${config.seed}'),
+          config: config,
+          onComplete: onComplete,
+        );
+      case 'traffic_loop':
+        return TrafficLoopGame(
           key: ValueKey('${game.id}-${config.seed}'),
           config: config,
           onComplete: onComplete,
