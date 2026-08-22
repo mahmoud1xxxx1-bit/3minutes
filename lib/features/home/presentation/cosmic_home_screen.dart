@@ -21,6 +21,7 @@ import '../../match/domain/match_ticket.dart';
 import '../../match/presentation/match_history_screen.dart';
 import '../../match/presentation/match_room_screen.dart';
 import '../../match/presentation/matchmaking_screen.dart';
+import '../../match/presentation/practice_screen.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../settings/presentation/settings_screen.dart';
@@ -149,6 +150,18 @@ class CosmicHomeScreen extends StatelessWidget {
                 _QuickPlayButton(
                   profile: profile,
                   matchBackend: quickMatchBackend,
+                ),
+                const SizedBox(height: GameSpacing.sm),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PracticeScreen())),
+                  icon: const Icon(Icons.videogame_asset_rounded),
+                  label: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('تمرين فردي', style: TextStyle(fontWeight: FontWeight.w900)),
+                      Text('العب منفرداً لتجربة الألعاب بدون رانك', style: TextStyle(fontSize: 10)),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: GameSpacing.sm),
                 OutlinedButton.icon(
