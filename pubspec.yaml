@@ -35,3 +35,4 @@ flutter:
   assets:
     - assets/ranks/
     - assets/avatars/
+    - assets/mirror_control/
