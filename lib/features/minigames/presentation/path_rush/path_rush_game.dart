@@ -126,9 +126,9 @@ class _PathRushGameState extends State<PathRushGame>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _PathPill(label: '${copy.pathRushRound}: ${_roundIndex + 1}/3'),
+            _PathPill(label: '${copy.followCupCorrect}: ${_correct}/3'),
             const SizedBox(width: 8),
-            _PathPill(label: 'F$family'),
+            _PathPill(label: '${copy.findDifferencesMistakes}: $_mistakes'),
           ],
         ),
         const SizedBox(height: 10),
