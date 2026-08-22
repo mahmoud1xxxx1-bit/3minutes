@@ -114,7 +114,7 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
     
     Difference? tappedDifference;
     for (final difference in _puzzle.differences) {
-      if (difference.hitBox.contains(Offset(logicalX, logicalY))) {
+      if (difference.hitBox.inflate(30.0).contains(Offset(logicalX, logicalY))) {
         tappedDifference = difference;
         break;
       }
