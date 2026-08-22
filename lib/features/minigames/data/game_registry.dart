@@ -11,7 +11,6 @@ class GameRegistry {
     MiniGameDescriptor(id: 'follow_the_cup', title: '', category: MiniGameCategory.memory),
     MiniGameDescriptor(id: 'path_rush', title: '', category: MiniGameCategory.logic),
     MiniGameDescriptor(id: 'find_differences', title: '', category: MiniGameCategory.precision),
-    MiniGameDescriptor(id: 'traffic_loop', title: '', category: MiniGameCategory.reaction),
     MiniGameDescriptor(id: 'mirror_control', title: '', category: MiniGameCategory.precision),
   ];
 
