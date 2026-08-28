@@ -80,6 +80,28 @@ class CompetitiveEconomyService {
       <String, Object?>{'matchId': matchId},
     );
   }
+
+  Future<void> forfeitMatch(String matchId) async {
+    await _functions.httpsCallable('forfeitCompetitiveMatch').call<Object?>(
+      <String, Object?>{'matchId': matchId},
+    );
+  }
+
+  Future<CompetitiveSettlementResult> settleMatch(String matchId) async {
+    final result = await _functions.httpsCallable('settleCompetitiveMatch').call<Object?>(
+      <String, Object?>{'matchId': matchId},
+    );
+    final data = Map<String, dynamic>.from(result.data! as Map);
+    final playerA = Map<String, dynamic>.from(data['playerA'] as Map? ?? const <String, dynamic>{});
+    final playerB = Map<String, dynamic>.from(data['playerB'] as Map? ?? const <String, dynamic>{});
+    return CompetitiveSettlementResult(
+      matchId: data['matchId'] as String? ?? matchId,
+      outcome: data['outcome'] as String? ?? 'tie',
+      wager: (data['wager'] as num?)?.toInt() ?? 0,
+      playerA: CompetitiveSettlementPlayer.fromMap(playerA),
+      playerB: CompetitiveSettlementPlayer.fromMap(playerB),
+    );
+  }
 }
 
 class DailyGoldClaimResult {
@@ -123,4 +145,43 @@ class CompetitiveReadyResult {
   const CompetitiveReadyResult({required this.status, required this.bothReady});
   final String status;
   final bool bothReady;
+}
+
+class CompetitiveSettlementResult {
+  const CompetitiveSettlementResult({
+    required this.matchId,
+    required this.outcome,
+    required this.wager,
+    required this.playerA,
+    required this.playerB,
+  });
+
+  final String matchId;
+  final String outcome;
+  final int wager;
+  final CompetitiveSettlementPlayer playerA;
+  final CompetitiveSettlementPlayer playerB;
+}
+
+class CompetitiveSettlementPlayer {
+  const CompetitiveSettlementPlayer({
+    required this.uid,
+    required this.goldDelta,
+    required this.coinsDelta,
+    required this.rpDelta,
+  });
+
+  factory CompetitiveSettlementPlayer.fromMap(Map<String, dynamic> data) {
+    return CompetitiveSettlementPlayer(
+      uid: data['uid'] as String? ?? '',
+      goldDelta: (data['goldDelta'] as num?)?.toInt() ?? 0,
+      coinsDelta: (data['coinsDelta'] as num?)?.toInt() ?? 0,
+      rpDelta: (data['rpDelta'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  final String uid;
+  final int goldDelta;
+  final int coinsDelta;
+  final int rpDelta;
 }
