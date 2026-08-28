@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../competition/data/competition_backend.dart';
+import '../../competition/data/competitive_leaderboard_repository.dart';
 import '../../competition/domain/rank_tier.dart';
-import '../../competition/presentation/leaderboard_screen.dart';
+import '../../competition/presentation/competitive_leaderboard_screen.dart';
 import '../../competition/presentation/rank_badge.dart';
 import '../../competition/presentation/season_star_badge.dart';
 import '../../economy/data/competitive_economy_service.dart';
@@ -209,7 +210,10 @@ class CompetitiveHomeScreen extends StatelessWidget {
                               label: ar ? 'المتصدرون' : 'Leaderboards',
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
-                                  builder: (_) => LeaderboardScreen(competitionBackend: competitionBackend),
+                                  builder: (_) => CompetitiveLeaderboardScreen(
+                                    uid: user.uid,
+                                    repository: CompetitiveLeaderboardRepository(),
+                                  ),
                                 ),
                               ),
                             ),
