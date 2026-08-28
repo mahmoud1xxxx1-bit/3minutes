@@ -48,27 +48,22 @@ jobs:
           cache: true
 
       - name: Restore stable debug signing key
+        if: github.event_name == 'workflow_dispatch'
         id: debug-key-cache
         uses: actions/cache@v5
         with:
           path: ~/.android/debug.keystore
           key: 3minutes-ci-debug-keystore-v1
 
-      - name: Create stable debug signing key
-        if: steps.debug-key-cache.outputs.cache-hit != 'true'
+      - name: Require stable debug signing key
+        if: github.event_name == 'workflow_dispatch' && steps.debug-key-cache.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ~/.android
-          keytool -genkeypair \
-            -keystore ~/.android/debug.keystore \
-            -storepass android \
-            -alias androiddebugkey \
-            -keypass android \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=3 Minutes CI Debug,O=3 Minutes,C=SA"
+          echo 'Stable 3 Minutes debug keystore is missing from the CI cache.'
+          echo 'Refusing to generate a random replacement because its SHA fingerprints would not match Firebase OAuth.'
+          exit 1
 
       - name: Verify debug signing fingerprints
+        if: github.event_name == 'workflow_dispatch'
         run: |
           keytool -list -v \
             -keystore ~/.android/debug.keystore \
