@@ -51,7 +51,7 @@ class _CompetitiveMatchmakingFlowState extends State<CompetitiveMatchmakingFlow>
         return CompetitiveMatchmakingViewState(
           wager: widget.wager,
           matchId: matchId,
-          opponentName: match?.opponentNameFor(widget.uid) ?? AppLocalizations.of(context).opponent,
+          opponentName: match?.opponentNameFor(widget.uid) ?? '',
         );
       });
     });
