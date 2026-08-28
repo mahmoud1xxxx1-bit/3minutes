@@ -262,7 +262,6 @@ class _CompetitiveSessionFlowState extends State<CompetitiveSessionFlow> {
             match,
             GameSelectionScreen(
               games: _slots,
-              opponentGameIds: match.opponentPicks(widget.uid).toSet(),
               onConfirm: (gameIds) async {
                 await widget.economyService.selectGames(
                   matchId: widget.matchId,
