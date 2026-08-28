@@ -12,6 +12,7 @@ class CompetitiveMatchmakingScreen extends StatefulWidget {
     required this.onCancel,
     required this.matchStream,
     required this.onMatched,
+    this.popOnCancel = true,
   });
 
   final int wager;
@@ -19,6 +20,7 @@ class CompetitiveMatchmakingScreen extends StatefulWidget {
   final Future<void> Function() onCancel;
   final Stream<CompetitiveMatchmakingViewState> matchStream;
   final ValueChanged<CompetitiveMatchmakingViewState> onMatched;
+  final bool popOnCancel;
 
   @override
   State<CompetitiveMatchmakingScreen> createState() => _CompetitiveMatchmakingScreenState();
@@ -111,7 +113,7 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
                                   setState(() => _cancelling = true);
                                   try {
                                     await widget.onCancel();
-                                    if (!context.mounted) return;
+                                    if (!context.mounted || !widget.popOnCancel) return;
                                     Navigator.of(context).pop();
                                   } finally {
                                     if (mounted) setState(() => _cancelling = false);
