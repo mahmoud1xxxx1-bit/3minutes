@@ -162,6 +162,8 @@ class _SelectionAndReadyFlow extends StatefulWidget {
 
 class _SelectionAndReadyFlowState extends State<_SelectionAndReadyFlow> {
   bool _selectionLocked = false;
+  bool _cancelling = false;
+  bool _allowPop = false;
 
   static final List<SelectableGame> _slots = List<SelectableGame>.generate(
     16,
@@ -171,6 +173,51 @@ class _SelectionAndReadyFlowState extends State<_SelectionAndReadyFlow> {
     ),
     growable: false,
   );
+
+  Future<void> _requestExit(CompetitiveMatchSnapshot match) async {
+    if (_cancelling || _allowPop) return;
+    if (match.status == 'countdown') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The match has started. Leaving now requires a forfeit.')),
+      );
+      return;
+    }
+    if (match.status != 'selectingGames' && match.status != 'waitingReady') return;
+
+    setState(() => _cancelling = true);
+    try {
+      await widget.economyService.cancelMatch(widget.matchId);
+      if (!mounted) return;
+      setState(() {
+        _allowPop = true;
+        _cancelling = false;
+      });
+      Navigator.of(context).pop();
+    } finally {
+      if (mounted && !_allowPop) setState(() => _cancelling = false);
+    }
+  }
+
+  Widget _guardExit(CompetitiveMatchSnapshot match, Widget child) {
+    return PopScope(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) unawaited(_requestExit(match));
+      },
+      child: Stack(
+        children: [
+          child,
+          if (_cancelling)
+            const Positioned.fill(
+              child: ColoredBox(
+                color: Color(0x66000000),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -188,20 +235,26 @@ class _SelectionAndReadyFlowState extends State<_SelectionAndReadyFlow> {
         }
 
         if (!_selectionLocked) {
-          return GameSelectionScreen(
-            games: _slots,
-            opponentGameIds: match.opponentPicks(widget.uid).toSet(),
-            onConfirm: (gameIds) async {
-              await widget.economyService.selectGames(
-                matchId: widget.matchId,
-                gameIds: gameIds,
-              );
-              if (mounted) setState(() => _selectionLocked = true);
-            },
+          return _guardExit(
+            match,
+            GameSelectionScreen(
+              games: _slots,
+              opponentGameIds: match.opponentPicks(widget.uid).toSet(),
+              onConfirm: (gameIds) async {
+                await widget.economyService.selectGames(
+                  matchId: widget.matchId,
+                  gameIds: gameIds,
+                );
+                if (mounted) setState(() => _selectionLocked = true);
+              },
+            ),
           );
         }
 
-        final readyStream = widget.matchRepository.watchMatch(widget.matchId).where((value) => value != null).map((value) {
+        final readyStream = widget.matchRepository
+            .watchMatch(widget.matchId)
+            .where((value) => value != null)
+            .map((value) {
           final live = value!;
           return CompetitiveReadyViewState(
             status: live.status,
@@ -212,20 +265,23 @@ class _SelectionAndReadyFlowState extends State<_SelectionAndReadyFlow> {
           );
         });
 
-        return CompetitiveReadyScreen(
-          matchId: widget.matchId,
-          playerName: match.isPlayerA(widget.uid) ? match.playerAName : match.playerBName,
-          opponentName: match.opponentNameFor(widget.uid),
-          wager: widget.wager,
-          stateStream: readyStream,
-          onReady: () async {
-            await widget.economyService.markReady(widget.matchId);
-          },
-          onStart: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Match host ready for game integration.')),
-            );
-          },
+        return _guardExit(
+          match,
+          CompetitiveReadyScreen(
+            matchId: widget.matchId,
+            playerName: match.isPlayerA(widget.uid) ? match.playerAName : match.playerBName,
+            opponentName: match.opponentNameFor(widget.uid),
+            wager: widget.wager,
+            stateStream: readyStream,
+            onReady: () async {
+              await widget.economyService.markReady(widget.matchId);
+            },
+            onStart: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Match host ready for game integration.')),
+              );
+            },
+          ),
         );
       },
     );
