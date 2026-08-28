@@ -12,12 +12,12 @@ class CompetitiveGameHostScreen extends StatefulWidget {
     super.key,
     required this.host,
     required this.isPlayerA,
-    required this.onDone,
+    this.onDone,
   });
 
   final CompetitiveGameHost host;
   final bool isPlayerA;
-  final VoidCallback onDone;
+  final VoidCallback? onDone;
 
   @override
   State<CompetitiveGameHostScreen> createState() => _CompetitiveGameHostScreenState();
@@ -100,7 +100,7 @@ class _CompetitiveGameHostScreenState extends State<CompetitiveGameHostScreen> {
         goldDelta: mine.goldDelta,
         coinsDelta: mine.coinsDelta,
         rpDelta: mine.rpDelta,
-        onContinue: widget.onDone,
+        onContinue: widget.onDone ?? () => Navigator.of(context).pop(),
       );
     }
 
