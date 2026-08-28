@@ -13,6 +13,8 @@ import '../../economy/data/competitive_wallet_repository.dart';
 import '../../economy/data/economy_backend.dart';
 import '../../economy/presentation/avatar_artwork.dart';
 import '../../economy/presentation/daily_gold_mail_screen.dart';
+import '../../match/data/competitive_history_repository.dart';
+import '../../match/presentation/competitive_history_screen.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 
@@ -237,6 +239,18 @@ class CompetitiveHomeScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        _QuickAction(
+                          icon: Icons.history_rounded,
+                          label: ar ? 'سجل المباريات' : 'Match History',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => CompetitiveHistoryScreen(
+                                repository: CompetitiveHistoryRepository(),
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -294,7 +308,7 @@ class _QuickAction extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(GameRadii.card),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
             color: GameColors.surfaceGlass,
             borderRadius: BorderRadius.circular(GameRadii.card),
