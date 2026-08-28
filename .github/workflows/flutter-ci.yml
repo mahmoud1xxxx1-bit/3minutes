@@ -31,6 +31,9 @@ jobs:
       - name: Build Cloud Functions
         run: npm run --prefix functions build
 
+      - name: Test Cloud Functions
+        run: npm run --prefix functions test
+
       - name: Set up Java 21 for Firebase emulators
         uses: actions/setup-java@v4
         with:
