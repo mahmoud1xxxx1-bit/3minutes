@@ -37,6 +37,7 @@ export {
   markCompetitiveReady,
 } from "./competitive.js";
 export { cancelCompetitiveMatch } from "./competitive_cancel.js";
+export { recoverCompetitiveQueue } from "./competitive_recovery.js";
 export { settleCompetitiveMatch } from "./competitive_settlement.js";
 
 export { settleRankedMatch } from "./settlement.js";
