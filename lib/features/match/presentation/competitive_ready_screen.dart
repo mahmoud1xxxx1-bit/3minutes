@@ -49,6 +49,13 @@ class _CompetitiveReadyScreenState extends State<CompetitiveReadyScreen> {
     super.dispose();
   }
 
+  int? _countdownSeconds(DateTime? startsAt) {
+    final milliseconds = startsAt?.difference(_now).inMilliseconds;
+    if (milliseconds == null) return null;
+    if (milliseconds <= 0) return 0;
+    return (milliseconds / 1000).ceil();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,13 +67,7 @@ class _CompetitiveReadyScreenState extends State<CompetitiveReadyScreen> {
             stream: widget.stateStream,
             builder: (context, snapshot) {
               final state = snapshot.data ?? const CompetitiveReadyViewState();
-              final startsAt = state.startsAt;
-              final countdown = startsAt == null ? null : startsAt.difference(_now);
-              final seconds = countdown == null
-                  ? null
-                  : countdown.inMilliseconds <= 0
-                      ? 0
-                      : (countdown.inMilliseconds / 1000).ceil();
+              final seconds = _countdownSeconds(state.startsAt);
 
               if (state.status == 'countdown' && seconds == 0 && !_started) {
                 _started = true;
