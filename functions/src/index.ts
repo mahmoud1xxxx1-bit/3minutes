@@ -36,6 +36,7 @@ export {
   selectCompetitiveGames,
   markCompetitiveReady,
 } from "./competitive.js";
+export { settleCompetitiveMatch } from "./competitive_settlement.js";
 
 export { settleRankedMatch } from "./settlement.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
