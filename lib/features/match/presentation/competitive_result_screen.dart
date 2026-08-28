@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
 
+enum CompetitiveResultOutcome { victory, defeat, draw }
+
 class GameResultLine {
   const GameResultLine({
     required this.name,
@@ -16,7 +18,7 @@ class GameResultLine {
 class CompetitiveResultScreen extends StatelessWidget {
   const CompetitiveResultScreen({
     super.key,
-    required this.won,
+    required this.outcome,
     required this.games,
     required this.goldDelta,
     required this.coinsDelta,
@@ -24,7 +26,7 @@ class CompetitiveResultScreen extends StatelessWidget {
     required this.onContinue,
   });
 
-  final bool won;
+  final CompetitiveResultOutcome outcome;
   final List<GameResultLine> games;
   final int goldDelta;
   final int coinsDelta;
@@ -36,6 +38,12 @@ class CompetitiveResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final victory = outcome == CompetitiveResultOutcome.victory;
+    final draw = outcome == CompetitiveResultOutcome.draw;
+    final title = victory ? 'VICTORY' : draw ? 'DRAW' : 'DEFEAT';
+    final icon = victory ? Icons.emoji_events_rounded : draw ? Icons.handshake_rounded : Icons.shield_outlined;
+    final accent = victory ? GameColors.rewardGoldBright : draw ? GameColors.accentBright : GameColors.textSoft;
+
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       body: Container(
@@ -44,20 +52,12 @@ class CompetitiveResultScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(GameSpacing.lg),
             children: [
-              Icon(
-                won ? Icons.emoji_events_rounded : Icons.shield_outlined,
-                size: 76,
-                color: won ? GameColors.rewardGoldBright : GameColors.textSoft,
-              ),
+              Icon(icon, size: 76, color: accent),
               const SizedBox(height: 12),
               Text(
-                won ? 'VICTORY' : 'DEFEAT',
+                title,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: won ? GameColors.rewardGoldBright : GameColors.textStrong,
-                ),
+                style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: accent),
               ),
               Text('$myTotal  —  $opponentTotal', textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
