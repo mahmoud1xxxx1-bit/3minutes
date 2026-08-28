@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:three_minutes/features/match/domain/competitive_match_rules.dart';
+import 'package:game/features/match/domain/competitive_match_rules.dart';
 
 void main() {
   test('competitive rules keep the approved wager tiers', () {
