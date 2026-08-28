@@ -8,8 +8,15 @@ import 'competitive_game_host.dart';
 class GameIntegrationCatalog {
   GameIntegrationCatalog._();
 
+  static const int requiredLaunchGames = 16;
+
   static GameIntegrationRegistry registry = GameIntegrationRegistry.empty();
 
   static bool supportsAll(Iterable<String> gameIds) =>
       gameIds.every(registry.supports);
+
+  static int get installedGameCount => registry.supportedGameIds.length;
+
+  static bool get isCompetitionReady =>
+      installedGameCount >= requiredLaunchGames;
 }
