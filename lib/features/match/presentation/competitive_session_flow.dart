@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../economy/data/competitive_economy_service.dart';
+import '../application/competitive_game_host.dart';
+import '../application/game_integration_catalog.dart';
 import '../data/competitive_match_firestore_repository.dart';
+import 'competitive_game_host_screen.dart';
 import 'competitive_matchmaking_screen.dart';
 import 'competitive_ready_screen.dart';
 import 'game_selection_screen.dart';
@@ -120,6 +123,7 @@ class _CompetitiveSessionFlowState extends State<CompetitiveSessionFlow> {
   bool _working = false;
   bool _allowPop = false;
   bool _settlementStarted = false;
+  bool _hostOpened = false;
 
   static final List<SelectableGame> _slots = List<SelectableGame>.generate(
     16,
@@ -183,6 +187,49 @@ class _CompetitiveSessionFlowState extends State<CompetitiveSessionFlow> {
     } finally {
       if (mounted && !_allowPop) setState(() => _working = false);
     }
+  }
+
+  Future<void> _launchHost(CompetitiveMatchSnapshot match) async {
+    if (_hostOpened || !mounted) return;
+    final deadline = match.deadline;
+    if (deadline == null || match.gameOrder.length != 4) return;
+
+    if (!GameIntegrationCatalog.supportsAll(match.gameOrder)) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('GAME INTEGRATION REQUIRED'),
+          content: const Text(
+            'The competitive platform is ready, but the selected games are not installed in the Game Integration Catalog yet.',
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    _hostOpened = true;
+    final host = CompetitiveGameHost(
+      matchId: widget.matchId,
+      playerId: widget.uid,
+      gameOrder: match.gameOrder,
+      deadline: deadline,
+      registry: GameIntegrationCatalog.registry,
+      backend: CompetitiveEconomyResultBackend(widget.economyService),
+    );
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => CompetitiveGameHostScreen(
+          host: host,
+          isPlayerA: match.isPlayerA(widget.uid),
+        ),
+      ),
+    );
   }
 
   Future<void> _requestExit(CompetitiveMatchSnapshot match) async {
@@ -298,11 +345,7 @@ class _CompetitiveSessionFlowState extends State<CompetitiveSessionFlow> {
             onReady: () async {
               await widget.economyService.markReady(widget.matchId);
             },
-            onStart: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Match host ready for game integration.')),
-              );
-            },
+            onStart: () => unawaited(_launchHost(match)),
           ),
         );
       },
