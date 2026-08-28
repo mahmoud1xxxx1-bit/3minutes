@@ -3,6 +3,7 @@ import { randomInt } from "node:crypto";
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
+import { registeredCompetitiveGameIds } from "./competitive_game_policy.js";
 import {
   COMPETITIVE_DURATION_MS,
   COMPETITIVE_PICKS_PER_PLAYER,
@@ -11,6 +12,7 @@ import {
 } from "./competitive_policy.js";
 
 const REGION = "me-central2";
+const REQUIRED_LAUNCH_GAMES = 16;
 const CALLABLE_OPTIONS = {
   region: REGION,
   enforceAppCheck: true,
@@ -92,6 +94,12 @@ export const claimDailyGold = onCall(CALLABLE_OPTIONS, async (request) => {
 
 export const enterGoldWager = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
+  if (registeredCompetitiveGameIds().length < REQUIRED_LAUNCH_GAMES) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Competitive wagering is locked until the complete game package is registered.",
+    );
+  }
   const wager = intValue(request.data?.wager);
   if (!isCompetitiveWager(wager)) {
     throw new HttpsError("invalid-argument", "Unsupported wager.");
