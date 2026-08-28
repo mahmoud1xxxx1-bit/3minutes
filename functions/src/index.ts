@@ -29,6 +29,27 @@ export {
   settleQuickMatch,
 } from "./quick.js";
 export { getQuickTicket } from "./quick_ticket.js";
+export {
+  claimDailyGold,
+  enterGoldWager,
+  leaveGoldWager,
+  selectCompetitiveGames,
+  markCompetitiveReady,
+} from "./competitive.js";
+export { cancelCompetitiveMatch } from "./competitive_cancel.js";
+export { forfeitCompetitiveMatch } from "./competitive_forfeit.js";
+export { getCompetitiveMatchHistory } from "./competitive_history.js";
+export { enrichCompetitiveMatchHistory } from "./competitive_history_enrich.js";
+export {
+  syncGoldLeaderboard,
+  syncRpLeaderboard,
+} from "./competitive_leaderboard_sync.js";
+export { recoverCompetitiveQueue } from "./competitive_recovery.js";
+export {
+  submitCompetitiveGameResult,
+  finalizeCompetitiveResults,
+} from "./competitive_results.js";
+export { settleCompetitiveMatch } from "./competitive_settlement.js";
 
 export { settleRankedMatch } from "./settlement.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
