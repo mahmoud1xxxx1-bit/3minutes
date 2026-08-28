@@ -16,11 +16,23 @@ class CompetitiveEconomyService {
     );
   }
 
+  Future<CompetitiveRecoveryResult> recoverQueue() async {
+    final result = await _functions.httpsCallable('recoverCompetitiveQueue').call<Object?>();
+    final data = Map<String, dynamic>.from(result.data! as Map);
+    return CompetitiveRecoveryResult(
+      status: data['status'] as String? ?? 'none',
+      released: (data['released'] as num?)?.toInt() ?? 0,
+      matchId: data['matchId'] as String?,
+      wager: (data['wager'] as num?)?.toInt(),
+    );
+  }
+
   Future<WagerEntryResult> enterWager({
     required int wager,
     required String displayName,
     required String avatarId,
   }) async {
+    await recoverQueue();
     final result = await _functions.httpsCallable('enterGoldWager').call<Object?>(
       <String, Object?>{
         'wager': wager,
@@ -75,6 +87,21 @@ class DailyGoldClaimResult {
   final int amount;
   final int gold;
   final String dayKey;
+}
+
+class CompetitiveRecoveryResult {
+  const CompetitiveRecoveryResult({
+    required this.status,
+    required this.released,
+    required this.matchId,
+    required this.wager,
+  });
+  final String status;
+  final int released;
+  final String? matchId;
+  final int? wager;
+
+  bool get hasActiveMatch => status == 'matched' && matchId != null && wager != null;
 }
 
 class WagerEntryResult {
