@@ -18,6 +18,7 @@ const CALLABLE_OPTIONS = {
 } as const;
 
 const db = getFirestore();
+const walletRefFor = (uid: string) => db.collection("competitiveWallets").doc(uid);
 
 function requireUid(uid: string | undefined): string {
   if (!uid) throw new HttpsError("unauthenticated", "Authentication required.");
@@ -53,18 +54,24 @@ function parseGameIds(value: unknown): string[] {
 export const claimDailyGold = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const key = dayKey();
-  const playerRef = db.collection("players").doc(uid);
-  const mailRef = playerRef.collection("dailyGoldMail").doc(key);
-  const ledgerRef = playerRef.collection("goldTransactions").doc(`daily_${key}`);
+  const walletRef = walletRefFor(uid);
+  const mailRef = walletRef.collection("dailyGoldMail").doc(key);
+  const ledgerRef = walletRef.collection("goldTransactions").doc(`daily_${key}`);
 
   return db.runTransaction(async (tx) => {
-    const [playerSnap, mailSnap] = await Promise.all([tx.get(playerRef), tx.get(mailRef)]);
+    const [walletSnap, mailSnap] = await Promise.all([tx.get(walletRef), tx.get(mailRef)]);
     if (mailSnap.exists && mailSnap.data()?.claimed === true) {
       throw new HttpsError("already-exists", "Daily GOLD already claimed.");
     }
-    const current = intValue(playerSnap.data()?.gold);
+    const current = intValue(walletSnap.data()?.gold);
     const next = current + DAILY_GOLD_GRANT;
-    tx.set(playerRef, { gold: next, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(walletRef, {
+      uid,
+      gold: next,
+      heldGold: intValue(walletSnap.data()?.heldGold),
+      updatedAt: FieldValue.serverTimestamp(),
+      ...(walletSnap.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
+    }, { merge: true });
     tx.set(mailRef, {
       amount: DAILY_GOLD_GRANT,
       dayKey: key,
@@ -100,17 +107,22 @@ export const enterGoldWager = onCall(CALLABLE_OPTIONS, async (request) => {
   const queue = db.collection("competitiveQueue");
   const matches = db.collection("competitiveMatches");
   const ticketRef = queue.doc(uid);
-  const playerRef = db.collection("players").doc(uid);
-  const ledgerRef = playerRef.collection("goldTransactions").doc(`hold_${Date.now()}`);
+  const walletRef = walletRefFor(uid);
+  const ledgerRef = walletRef.collection("goldTransactions").doc(`hold_${Date.now()}`);
 
   await db.runTransaction(async (tx) => {
-    const [playerSnap, ticketSnap] = await Promise.all([tx.get(playerRef), tx.get(ticketRef)]);
+    const [walletSnap, ticketSnap] = await Promise.all([tx.get(walletRef), tx.get(ticketRef)]);
     if (ticketSnap.exists) throw new HttpsError("already-exists", "Player already queued.");
-    const gold = intValue(playerSnap.data()?.gold);
-    const heldGold = intValue(playerSnap.data()?.heldGold);
+    const gold = intValue(walletSnap.data()?.gold);
+    const heldGold = intValue(walletSnap.data()?.heldGold);
     if (gold - heldGold < wager) throw new HttpsError("failed-precondition", "Not enough GOLD.");
 
-    tx.set(playerRef, { heldGold: heldGold + wager, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(walletRef, {
+      uid,
+      gold,
+      heldGold: heldGold + wager,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
     tx.set(ticketRef, {
       uid,
       wager,
@@ -204,18 +216,21 @@ export const enterGoldWager = onCall(CALLABLE_OPTIONS, async (request) => {
 export const leaveGoldWager = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const ticketRef = db.collection("competitiveQueue").doc(uid);
-  const playerRef = db.collection("players").doc(uid);
+  const walletRef = walletRefFor(uid);
 
   return db.runTransaction(async (tx) => {
-    const [ticketSnap, playerSnap] = await Promise.all([tx.get(ticketRef), tx.get(playerRef)]);
+    const [ticketSnap, walletSnap] = await Promise.all([tx.get(ticketRef), tx.get(walletRef)]);
     if (!ticketSnap.exists) return { released: 0 };
     const data = ticketSnap.data()!;
     if (data.status !== "searching") {
       throw new HttpsError("failed-precondition", "Matched wager cannot be cancelled here.");
     }
     const wager = intValue(data.wager);
-    const held = intValue(playerSnap.data()?.heldGold);
-    tx.set(playerRef, { heldGold: Math.max(0, held - wager), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    const held = intValue(walletSnap.data()?.heldGold);
+    tx.set(walletRef, {
+      heldGold: Math.max(0, held - wager),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
     tx.delete(ticketRef);
     return { released: wager };
   });
