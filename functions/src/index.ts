@@ -36,6 +36,7 @@ export {
   selectCompetitiveGames,
   markCompetitiveReady,
 } from "./competitive.js";
+export { cancelCompetitiveMatch } from "./competitive_cancel.js";
 export { settleCompetitiveMatch } from "./competitive_settlement.js";
 
 export { settleRankedMatch } from "./settlement.js";
