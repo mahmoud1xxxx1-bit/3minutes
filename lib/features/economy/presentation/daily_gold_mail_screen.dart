@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/competitive_economy_service.dart';
 import '../data/competitive_wallet_repository.dart';
 
@@ -25,12 +26,12 @@ class _DailyGoldMailScreenState extends State<DailyGoldMailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(ar ? 'البريد' : 'Mail'),
+        title: Text(l10n.mail),
       ),
       body: Container(
         decoration: const BoxDecoration(gradient: GameColors.arenaGradient),
@@ -42,29 +43,34 @@ class _DailyGoldMailScreenState extends State<DailyGoldMailScreen> {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(GameSpacing.lg),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: GameDurations.normal,
                   width: double.infinity,
                   padding: const EdgeInsets.all(26),
                   decoration: BoxDecoration(
                     color: GameColors.surfaceGlass,
                     borderRadius: BorderRadius.circular(GameRadii.panel),
-                    border: Border.all(color: GameColors.rewardGold),
-                    boxShadow: GameShadows.goldGlow,
+                    border: Border.all(color: claimed ? GameColors.success : GameColors.rewardGold),
+                    boxShadow: claimed ? GameShadows.card : GameShadows.goldGlow,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.mark_email_unread_rounded,
-                          size: 62, color: GameColors.rewardGoldBright),
+                      Icon(
+                        claimed ? Icons.mark_email_read_rounded : Icons.mark_email_unread_rounded,
+                        size: 62,
+                        color: claimed ? GameColors.success : GameColors.rewardGoldBright,
+                      ),
                       const SizedBox(height: 16),
                       Text(
-                        ar ? 'ذهب يومي' : 'DAILY GOLD',
+                        l10n.dailyGold,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        '1,000 GOLD',
-                        style: TextStyle(
+                      Text(
+                        l10n.dailyGoldAmount,
+                        style: const TextStyle(
                           color: GameColors.rewardGoldBright,
                           fontSize: 34,
                           fontWeight: FontWeight.w900,
@@ -72,9 +78,7 @@ class _DailyGoldMailScreenState extends State<DailyGoldMailScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        claimed
-                            ? (ar ? 'تم الاستلام اليوم' : 'Claimed today')
-                            : (ar ? 'متاح اليوم' : 'Available today'),
+                        claimed ? l10n.claimedToday : l10n.availableToday,
                         style: const TextStyle(color: GameColors.textSoft),
                       ),
                       const SizedBox(height: 24),
@@ -90,13 +94,7 @@ class _DailyGoldMailScreenState extends State<DailyGoldMailScreen> {
                                     final result = await widget.economyService.claimDailyGold();
                                     if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          ar
-                                              ? 'تم إضافة ${result.amount} GOLD'
-                                              : '${result.amount} GOLD added',
-                                        ),
-                                      ),
+                                      SnackBar(content: Text(l10n.goldAdded(result.amount))),
                                     );
                                   } finally {
                                     if (mounted) setState(() => _claiming = false);
@@ -106,13 +104,17 @@ class _DailyGoldMailScreenState extends State<DailyGoldMailScreen> {
                             backgroundColor: GameColors.wagerGold,
                             foregroundColor: GameColors.backgroundDeep,
                           ),
-                          child: Text(
-                            claimed
-                                ? (ar ? 'تم الاستلام' : 'CLAIMED')
-                                : _claiming
-                                    ? (ar ? 'جارٍ الاستلام…' : 'CLAIMING…')
-                                    : (ar ? 'استلام' : 'CLAIM'),
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                          child: AnimatedSwitcher(
+                            duration: GameDurations.normal,
+                            child: Text(
+                              claimed
+                                  ? l10n.claimed
+                                  : _claiming
+                                      ? l10n.claiming
+                                      : l10n.claim,
+                              key: ValueKey('$claimed-$_claiming'),
+                              style: const TextStyle(fontWeight: FontWeight.w900),
+                            ),
                           ),
                         ),
                       ),
