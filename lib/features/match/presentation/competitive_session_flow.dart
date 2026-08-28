@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../economy/data/competitive_economy_service.dart';
 import '../application/competitive_game_host.dart';
 import '../application/game_integration_catalog.dart';
@@ -50,7 +51,7 @@ class _CompetitiveMatchmakingFlowState extends State<CompetitiveMatchmakingFlow>
         return CompetitiveMatchmakingViewState(
           wager: widget.wager,
           matchId: matchId,
-          opponentName: match?.opponentNameFor(widget.uid) ?? 'Opponent',
+          opponentName: match?.opponentNameFor(widget.uid) ?? AppLocalizations.of(context).opponent,
         );
       });
     });
@@ -157,21 +158,20 @@ class _CompetitiveSessionFlowState extends State<CompetitiveSessionFlow> {
   }
 
   Future<void> _concedeStartedMatch() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('LEAVE MATCH?'),
-            content: Text(
-              'The match has started. Leaving gives the opponent the win and your ${widget.wager} GOLD stake.',
-            ),
+            title: Text(l10n.leaveStartedMatchQuestion),
+            content: Text(l10n.leaveStartedMatchDescription(widget.wager)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('STAY'),
+                child: Text(l10n.stay),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('LEAVE MATCH'),
+                child: Text(l10n.leaveStartedMatch),
               ),
             ],
           ),
@@ -195,17 +195,16 @@ class _CompetitiveSessionFlowState extends State<CompetitiveSessionFlow> {
     if (deadline == null || match.gameOrder.length != 4) return;
 
     if (!GameIntegrationCatalog.supportsAll(match.gameOrder)) {
+      final l10n = AppLocalizations.of(context);
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('GAME INTEGRATION REQUIRED'),
-          content: const Text(
-            'The competitive platform is ready, but the selected games are not installed in the Game Integration Catalog yet.',
-          ),
+          title: Text(l10n.gameIntegrationRequired),
+          content: Text(l10n.gameIntegrationBody),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
+              child: Text(l10n.continueAction),
             ),
           ],
         ),
@@ -239,7 +238,7 @@ class _CompetitiveSessionFlowState extends State<CompetitiveSessionFlow> {
       final startsAt = match.startsAt;
       if (startsAt == null || DateTime.now().isBefore(startsAt)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Countdown is active. The match is about to start.')),
+          SnackBar(content: Text(AppLocalizations.of(context).countdownActive)),
         );
         return;
       }
