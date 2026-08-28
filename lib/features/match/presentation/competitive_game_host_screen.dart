@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../economy/data/competitive_economy_service.dart';
 import '../application/competitive_game_host.dart';
 import 'competitive_result_screen.dart';
@@ -77,6 +78,7 @@ class _CompetitiveGameHostScreenState extends State<CompetitiveGameHostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final result = _result;
     if (result != null) {
       final finalized = result.finalized;
@@ -118,15 +120,25 @@ class _CompetitiveGameHostScreenState extends State<CompetitiveGameHostScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      _progress == null ? 'GAME HOST' : 'GAME ${_progress!.gameIndex + 1}/4',
+                      _progress == null
+                          ? l10n.gameHost
+                          : l10n.gameNumber(_progress!.gameIndex + 1, _progress!.totalGames),
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
                     ),
-                    Text(
-                      '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
-                      style: const TextStyle(
-                        color: GameColors.rewardGoldBright,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: seconds <= 10 ? const Color(0x33FF5F75) : GameColors.surfaceGlass,
+                        borderRadius: BorderRadius.circular(GameRadii.pill),
+                        border: Border.all(color: seconds <= 10 ? GameColors.danger : GameColors.surfaceStrong),
+                      ),
+                      child: Text(
+                        '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          color: seconds <= 10 ? GameColors.danger : GameColors.rewardGoldBright,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                        ),
                       ),
                     ),
                   ],
@@ -135,22 +147,22 @@ class _CompetitiveGameHostScreenState extends State<CompetitiveGameHostScreen> {
                 if (_error != null) ...[
                   const Icon(Icons.extension_off_rounded, size: 64, color: GameColors.textSoft),
                   const SizedBox(height: 16),
-                  const Text(
-                    'GAME INTEGRATION REQUIRED',
+                  Text(
+                    l10n.gameIntegrationRequired,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'The competitive platform is ready. This selected game has not been connected to the Game Contract yet.',
+                  Text(
+                    l10n.gameIntegrationBody,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: GameColors.textSoft),
+                    style: const TextStyle(color: GameColors.textSoft, height: 1.45),
                   ),
                 ] else ...[
                   const CircularProgressIndicator(),
                   const SizedBox(height: 20),
                   Text(
-                    _progress?.gameId ?? 'Preparing match…',
+                    _progress?.gameId ?? l10n.preparingMatch,
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                   ),
