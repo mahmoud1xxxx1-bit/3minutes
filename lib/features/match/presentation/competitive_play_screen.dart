@@ -1,15 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/design_tokens.dart';
 import '../../economy/data/competitive_economy_service.dart';
 import '../../economy/data/competitive_wallet_repository.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../data/competitive_match_firestore_repository.dart';
-import 'competitive_matchmaking_screen.dart';
-import 'competitive_ready_screen.dart';
-import 'game_selection_screen.dart';
+import 'competitive_session_flow.dart';
 import 'wager_selection_screen.dart';
 
 class CompetitivePlayScreen extends StatefulWidget {
@@ -69,17 +66,30 @@ class _CompetitivePlayScreenState extends State<CompetitivePlayScreen> {
             final wager = recovery.wager;
 
             if (recovery.hasActiveMatch && wager != null) {
-              return _SelectionAndReadyFlow(
+              return _ResumeMatchPanel(
                 uid: widget.uid,
                 matchId: recovery.matchId!,
                 wager: wager,
                 matchRepository: widget.matchRepository,
-                economyService: widget.economyService,
+                onResume: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => CompetitiveSessionFlow(
+                        uid: widget.uid,
+                        matchId: recovery.matchId!,
+                        wager: wager,
+                        matchRepository: widget.matchRepository,
+                        economyService: widget.economyService,
+                      ),
+                    ),
+                  );
+                  if (mounted) _refreshRecovery();
+                },
               );
             }
 
             if (recovery.status == 'searching' && wager != null) {
-              return _CompetitiveFlowCoordinator(
+              return CompetitiveMatchmakingFlow(
                 uid: widget.uid,
                 wager: wager,
                 playerName: profile.gameName,
@@ -106,7 +116,7 @@ class _CompetitivePlayScreenState extends State<CompetitivePlayScreen> {
                     if (!context.mounted) return;
                     await Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => _CompetitiveFlowCoordinator(
+                        builder: (_) => CompetitiveMatchmakingFlow(
                           uid: widget.uid,
                           wager: selectedWager,
                           playerName: profile.gameName,
@@ -124,6 +134,84 @@ class _CompetitivePlayScreenState extends State<CompetitivePlayScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _ResumeMatchPanel extends StatelessWidget {
+  const _ResumeMatchPanel({
+    required this.uid,
+    required this.matchId,
+    required this.wager,
+    required this.matchRepository,
+    required this.onResume,
+  });
+
+  final String uid;
+  final String matchId;
+  final int wager;
+  final CompetitiveMatchFirestoreRepository matchRepository;
+  final Future<void> Function() onResume;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: StreamBuilder<CompetitiveMatchSnapshot?>(
+        stream: matchRepository.watchMatch(matchId),
+        builder: (context, snapshot) {
+          final match = snapshot.data;
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(26),
+                decoration: BoxDecoration(
+                  color: GameColors.surfaceGlass,
+                  borderRadius: BorderRadius.circular(GameRadii.panel),
+                  border: Border.all(color: GameColors.rewardGold),
+                  boxShadow: GameShadows.goldGlow,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.restore_rounded, size: 54, color: GameColors.accentBright),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'MATCH IN PROGRESS',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      match == null ? 'Restoring match…' : 'vs ${match.opponentNameFor(uid)}',
+                      style: const TextStyle(color: GameColors.textSoft),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${wager * 2} GOLD POT',
+                      style: const TextStyle(
+                        color: GameColors.rewardGoldBright,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: FilledButton(
+                        onPressed: match == null ? null : onResume,
+                        child: const Text('RESUME MATCH'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -150,238 +238,6 @@ class _RecoveryError extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CompetitiveFlowCoordinator extends StatefulWidget {
-  const _CompetitiveFlowCoordinator({
-    required this.uid,
-    required this.wager,
-    required this.playerName,
-    required this.initialMatchId,
-    required this.economyService,
-    required this.matchRepository,
-    this.embedded = false,
-    this.onFlowEnded,
-  });
-
-  final String uid;
-  final int wager;
-  final String playerName;
-  final String? initialMatchId;
-  final CompetitiveEconomyService economyService;
-  final CompetitiveMatchFirestoreRepository matchRepository;
-  final bool embedded;
-  final VoidCallback? onFlowEnded;
-
-  @override
-  State<_CompetitiveFlowCoordinator> createState() => _CompetitiveFlowCoordinatorState();
-}
-
-class _CompetitiveFlowCoordinatorState extends State<_CompetitiveFlowCoordinator> {
-  bool _openingMatch = false;
-
-  Stream<CompetitiveMatchmakingViewState> get _matchmakingStream {
-    return widget.matchRepository.watchQueueTicket(widget.uid).asyncExpand((ticket) {
-      final matchId = ticket?.matchId ?? widget.initialMatchId;
-      if (matchId == null) {
-        return Stream.value(CompetitiveMatchmakingViewState.searching(widget.wager));
-      }
-      return widget.matchRepository.watchMatch(matchId).map((match) {
-        return CompetitiveMatchmakingViewState(
-          wager: widget.wager,
-          matchId: matchId,
-          opponentName: match?.opponentNameFor(widget.uid) ?? 'Opponent',
-        );
-      });
-    });
-  }
-
-  Future<void> _openMatch(CompetitiveMatchmakingViewState state) async {
-    final matchId = state.matchId;
-    if (matchId == null || _openingMatch) return;
-    _openingMatch = true;
-    final first = await widget.matchRepository
-        .watchMatch(matchId)
-        .where((event) => event != null)
-        .first;
-    if (!mounted || first == null) return;
-
-    final page = _SelectionAndReadyFlow(
-      uid: widget.uid,
-      matchId: matchId,
-      wager: widget.wager,
-      matchRepository: widget.matchRepository,
-      economyService: widget.economyService,
-    );
-
-    if (widget.embedded) {
-      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
-      if (mounted) widget.onFlowEnded?.call();
-    } else {
-      await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => page));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return CompetitiveMatchmakingScreen(
-      wager: widget.wager,
-      playerName: widget.playerName,
-      matchStream: _matchmakingStream,
-      onCancel: () async {
-        await widget.economyService.leaveWager();
-        widget.onFlowEnded?.call();
-      },
-      onMatched: (state) => unawaited(_openMatch(state)),
-    );
-  }
-}
-
-class _SelectionAndReadyFlow extends StatefulWidget {
-  const _SelectionAndReadyFlow({
-    required this.uid,
-    required this.matchId,
-    required this.wager,
-    required this.matchRepository,
-    required this.economyService,
-  });
-
-  final String uid;
-  final String matchId;
-  final int wager;
-  final CompetitiveMatchFirestoreRepository matchRepository;
-  final CompetitiveEconomyService economyService;
-
-  @override
-  State<_SelectionAndReadyFlow> createState() => _SelectionAndReadyFlowState();
-}
-
-class _SelectionAndReadyFlowState extends State<_SelectionAndReadyFlow> {
-  bool _selectionLocked = false;
-  bool _cancelling = false;
-  bool _allowPop = false;
-
-  static final List<SelectableGame> _slots = List<SelectableGame>.generate(
-    16,
-    (index) => SelectableGame(
-      id: 'game_slot_${(index + 1).toString().padLeft(2, '0')}',
-      name: 'Game ${(index + 1).toString().padLeft(2, '0')}',
-    ),
-    growable: false,
-  );
-
-  Future<void> _requestExit(CompetitiveMatchSnapshot match) async {
-    if (_cancelling || _allowPop) return;
-    if (match.status == 'countdown') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('The match has started. Leaving now requires a forfeit.')),
-      );
-      return;
-    }
-    if (match.status != 'selectingGames' && match.status != 'waitingReady') return;
-
-    setState(() => _cancelling = true);
-    try {
-      await widget.economyService.cancelMatch(widget.matchId);
-      if (!mounted) return;
-      setState(() {
-        _allowPop = true;
-        _cancelling = false;
-      });
-      Navigator.of(context).pop();
-    } finally {
-      if (mounted && !_allowPop) setState(() => _cancelling = false);
-    }
-  }
-
-  Widget _guardExit(CompetitiveMatchSnapshot match, Widget child) {
-    return PopScope(
-      canPop: _allowPop,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) unawaited(_requestExit(match));
-      },
-      child: Stack(
-        children: [
-          child,
-          if (_cancelling)
-            const Positioned.fill(
-              child: ColoredBox(
-                color: Color(0x66000000),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<CompetitiveMatchSnapshot?>(
-      stream: widget.matchRepository.watchMatch(widget.matchId),
-      builder: (context, snapshot) {
-        final match = snapshot.data;
-        if (match == null) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-
-        final myPicks = match.myPicks(widget.uid);
-        if (!_selectionLocked && myPicks.length == 2) {
-          _selectionLocked = true;
-        }
-
-        if (!_selectionLocked) {
-          return _guardExit(
-            match,
-            GameSelectionScreen(
-              games: _slots,
-              opponentGameIds: match.opponentPicks(widget.uid).toSet(),
-              onConfirm: (gameIds) async {
-                await widget.economyService.selectGames(
-                  matchId: widget.matchId,
-                  gameIds: gameIds,
-                );
-                if (mounted) setState(() => _selectionLocked = true);
-              },
-            ),
-          );
-        }
-
-        final readyStream = widget.matchRepository
-            .watchMatch(widget.matchId)
-            .where((value) => value != null)
-            .map((value) {
-          final live = value!;
-          return CompetitiveReadyViewState(
-            status: live.status,
-            meReady: live.myReady(widget.uid),
-            opponentReady: live.opponentReady(widget.uid),
-            startsAt: live.startsAt,
-            deadline: live.deadline,
-          );
-        });
-
-        return _guardExit(
-          match,
-          CompetitiveReadyScreen(
-            matchId: widget.matchId,
-            playerName: match.isPlayerA(widget.uid) ? match.playerAName : match.playerBName,
-            opponentName: match.opponentNameFor(widget.uid),
-            wager: widget.wager,
-            stateStream: readyStream,
-            onReady: () async {
-              await widget.economyService.markReady(widget.matchId);
-            },
-            onStart: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Match host ready for game integration.')),
-              );
-            },
-          ),
-        );
-      },
     );
   }
 }
