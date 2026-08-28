@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../domain/competitive_match_rules.dart';
 
 class WagerSelectionScreen extends StatefulWidget {
@@ -23,11 +24,12 @@ class _WagerSelectionScreenState extends State<WagerSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text('CHOOSE YOUR WAGER'),
+        title: Text(l10n.chooseWager),
         centerTitle: true,
       ),
       body: Container(
@@ -40,7 +42,8 @@ class _WagerSelectionScreenState extends State<WagerSelectionScreen> {
               children: [
                 const SizedBox(height: GameSpacing.md),
                 Text(
-                  'Your GOLD  ${widget.goldBalance}',
+                  l10n.yourGold(widget.goldBalance),
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: GameColors.rewardGoldBright,
                     fontSize: 18,
@@ -80,9 +83,13 @@ class _WagerSelectionScreenState extends State<WagerSelectionScreen> {
                         borderRadius: BorderRadius.circular(GameRadii.button),
                       ),
                     ),
-                    child: Text(
-                      _busy ? 'SEARCHING…' : 'FIND OPPONENT',
-                      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                    child: AnimatedSwitcher(
+                      duration: GameDurations.normal,
+                      child: Text(
+                        _busy ? l10n.searching : l10n.findOpponent,
+                        key: ValueKey(_busy),
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                      ),
                     ),
                   ),
                 ),
@@ -108,14 +115,14 @@ class _WagerCard extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
 
-  String get subtitle => switch (wager) {
-        180 => 'QUICK MATCH',
-        500 => 'COMPETITIVE',
-        _ => 'HIGH STAKES',
-      };
-
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final subtitle = switch (wager) {
+      180 => l10n.quickMatch,
+      500 => l10n.competitive,
+      _ => l10n.highStakes,
+    };
     return Opacity(
       opacity: enabled ? 1 : .42,
       child: InkWell(
@@ -144,11 +151,16 @@ class _WagerCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('$wager GOLD', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 2),
                     Text(subtitle, style: const TextStyle(fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
-              if (selected) const Icon(Icons.check_circle_rounded, size: 30),
+              AnimatedOpacity(
+                duration: GameDurations.normal,
+                opacity: selected ? 1 : 0,
+                child: const Icon(Icons.check_circle_rounded, size: 30),
+              ),
             ],
           ),
         ),
