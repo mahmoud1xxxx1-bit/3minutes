@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../competition/data/competition_backend.dart';
 import '../../competition/data/competitive_leaderboard_repository.dart';
 import '../../competition/domain/rank_tier.dart';
@@ -44,7 +45,7 @@ class CompetitiveHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final l10n = AppLocalizations.of(context);
     return StreamBuilder<PlayerProfile?>(
       stream: profileRepository.watchProfile(user.uid),
       builder: (context, profileSnapshot) {
@@ -111,7 +112,7 @@ class CompetitiveHomeScreen extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              tooltip: ar ? 'البريد' : 'Mail',
+                              tooltip: l10n.mail,
                               onPressed: () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
                                   builder: (_) => DailyGoldMailScreen(
@@ -130,7 +131,7 @@ class CompetitiveHomeScreen extends StatelessWidget {
                           children: [
                             Expanded(
                               child: _BalanceCard(
-                                label: 'COINS',
+                                label: l10n.coins.toUpperCase(),
                                 value: inventory?.coins ?? 0,
                                 icon: Icons.monetization_on_rounded,
                                 color: GameColors.coin,
@@ -160,13 +161,14 @@ class CompetitiveHomeScreen extends StatelessWidget {
                             children: [
                               const Icon(Icons.timer_rounded, size: 54, color: GameColors.accentBright),
                               const SizedBox(height: 10),
-                              const Text(
-                                '3 MINUTES',
-                                style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                              Text(
+                                l10n.appName.toUpperCase(),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2),
                               ),
                               const SizedBox(height: 5),
                               Text(
-                                ar ? 'خصم حقيقي • أربع ألعاب • شيء على المحك' : 'Real opponent • 4 games • Something at stake',
+                                l10n.competitiveTagline,
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(color: GameColors.textSoft),
                               ),
@@ -185,7 +187,7 @@ class CompetitiveHomeScreen extends StatelessWidget {
                                   ),
                                   icon: const Icon(Icons.play_arrow_rounded, size: 30),
                                   label: Text(
-                                    ar ? 'العب الآن' : 'PLAY',
+                                    l10n.playNow,
                                     style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
                                   ),
                                 ),
@@ -202,14 +204,10 @@ class CompetitiveHomeScreen extends StatelessWidget {
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                           children: [
-                            _QuickAction(
-                              icon: Icons.military_tech_rounded,
-                              label: ar ? 'الرتبة' : 'Rank',
-                              onTap: onRank,
-                            ),
+                            _QuickAction(icon: Icons.military_tech_rounded, label: l10n.rank, onTap: onRank),
                             _QuickAction(
                               icon: Icons.leaderboard_rounded,
-                              label: ar ? 'المتصدرون' : 'Leaderboards',
+                              label: l10n.leaderboards,
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
                                   builder: (_) => CompetitiveLeaderboardScreen(
@@ -219,14 +217,10 @@ class CompetitiveHomeScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            _QuickAction(
-                              icon: Icons.storefront_rounded,
-                              label: ar ? 'المتجر' : 'Shop',
-                              onTap: onShop,
-                            ),
+                            _QuickAction(icon: Icons.storefront_rounded, label: l10n.shop, onTap: onShop),
                             _QuickAction(
                               icon: Icons.mail_rounded,
-                              label: ar ? 'البريد' : 'Mail',
+                              label: l10n.mail,
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
                                   builder: (_) => DailyGoldMailScreen(
@@ -242,7 +236,7 @@ class CompetitiveHomeScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         _QuickAction(
                           icon: Icons.history_rounded,
-                          label: ar ? 'سجل المباريات' : 'Match History',
+                          label: l10n.matchHistory,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) => CompetitiveHistoryScreen(
@@ -278,6 +272,7 @@ class _BalanceCard extends StatelessWidget {
           color: GameColors.surfaceGlass,
           borderRadius: BorderRadius.circular(GameRadii.card),
           border: Border.all(color: GameColors.surfaceStrong),
+          boxShadow: GameShadows.card,
         ),
         child: Row(
           children: [
@@ -313,9 +308,11 @@ class _QuickAction extends StatelessWidget {
             color: GameColors.surfaceGlass,
             borderRadius: BorderRadius.circular(GameRadii.card),
             border: Border.all(color: GameColors.surfaceStrong),
+            boxShadow: GameShadows.card,
           ),
           child: Row(
             children: [
+              const SizedBox(width: 2),
               Icon(icon, color: GameColors.accentBright),
               const SizedBox(width: 10),
               Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w800))),
