@@ -45,9 +45,12 @@ export const getCompetitiveMatchHistory = onCall(CALLABLE_OPTIONS, async (reques
         goldDelta: intValue(data.goldDelta),
         coinsDelta: intValue(data.coinsDelta),
         rpDelta: intValue(data.rpDelta),
+        myTotalScore: intValue(data.myTotalScore),
+        opponentTotalScore: intValue(data.opponentTotalScore),
         gameOrder: Array.isArray(data.gameOrder)
           ? data.gameOrder.filter((value): value is string => typeof value === "string")
           : [],
+        gameResults: Array.isArray(data.gameResults) ? data.gameResults : [],
         completedAtMs: completedAt instanceof Timestamp ? completedAt.toMillis() : null,
       };
     }),
