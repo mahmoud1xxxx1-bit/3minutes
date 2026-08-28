@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 
 class CompetitiveMatchmakingScreen extends StatefulWidget {
   const CompetitiveMatchmakingScreen({
@@ -46,6 +47,7 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       body: Container(
@@ -62,10 +64,14 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
                 child: Column(
                   children: [
                     const Spacer(),
-                    Text(
-                      matched ? 'OPPONENT FOUND' : 'FINDING OPPONENT',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                    AnimatedSwitcher(
+                      duration: GameDurations.reveal,
+                      child: Text(
+                        matched ? l10n.opponentFound.toUpperCase() : l10n.findingOpponent.toUpperCase(),
+                        key: ValueKey(matched),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -76,7 +82,7 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
                         boxShadow: GameShadows.goldGlow,
                       ),
                       child: Text(
-                        '${widget.wager * 2} GOLD POT',
+                        l10n.goldPot(widget.wager * 2),
                         style: const TextStyle(
                           color: GameColors.backgroundDeep,
                           fontWeight: FontWeight.w900,
@@ -87,15 +93,15 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
                     const SizedBox(height: 44),
                     Row(
                       children: [
-                        Expanded(child: _PlayerCard(name: widget.playerName, label: 'YOU')),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text('VS', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+                        Expanded(child: _PlayerCard(name: widget.playerName, label: l10n.you.toUpperCase())),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(l10n.vs, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
                         ),
                         Expanded(
                           child: _PlayerCard(
-                            name: matched ? state.opponentName : 'SEARCHING…',
-                            label: matched ? 'READY' : 'ONLINE',
+                            name: matched ? state.opponentName : l10n.searching,
+                            label: matched ? l10n.ready.toUpperCase() : l10n.online,
                             searching: !matched,
                           ),
                         ),
@@ -119,7 +125,7 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
                                     if (mounted) setState(() => _cancelling = false);
                                   }
                                 },
-                          child: Text(_cancelling ? 'CANCELLING…' : 'CANCEL SEARCH'),
+                          child: Text(_cancelling ? l10n.cancelling : l10n.cancelSearch),
                         ),
                       ),
                   ],
@@ -142,13 +148,15 @@ class _PlayerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: GameDurations.normal,
       height: 180,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: GameColors.surfaceGlass,
         borderRadius: BorderRadius.circular(GameRadii.panel),
         border: Border.all(color: searching ? GameColors.violet : GameColors.accentBright),
+        boxShadow: searching ? GameShadows.card : GameShadows.primaryGlow,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -158,10 +166,15 @@ class _PlayerCard extends StatelessWidget {
           else
             const Icon(Icons.person_rounded, size: 54, color: GameColors.accentBright),
           const SizedBox(height: 14),
-          Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w900)),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 5),
-          Text(label, style: const TextStyle(color: GameColors.textSoft, fontSize: 12)),
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.textSoft, fontSize: 12)),
         ],
       ),
     );
