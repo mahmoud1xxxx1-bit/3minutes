@@ -13,12 +13,10 @@ class GameSelectionScreen extends StatefulWidget {
   const GameSelectionScreen({
     super.key,
     required this.games,
-    required this.opponentGameIds,
     required this.onConfirm,
   });
 
   final List<SelectableGame> games;
-  final Set<String> opponentGameIds;
   final Future<void> Function(List<String>) onConfirm;
 
   @override
@@ -54,45 +52,43 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
                 itemCount: widget.games.length,
                 itemBuilder: (context, index) {
                   final game = widget.games[index];
-                  final blocked = widget.opponentGameIds.contains(game.id);
                   final selected = _selected.contains(game.id);
-                  return Opacity(
-                    opacity: blocked ? .3 : 1,
-                    child: InkWell(
-                      onTap: blocked
-                          ? null
-                          : () {
-                              setState(() {
-                                if (selected) {
-                                  _selected.remove(game.id);
-                                } else if (_selected.length < CompetitiveMatchRules.picksPerPlayer) {
-                                  _selected.add(game.id);
-                                }
-                              });
-                            },
-                      borderRadius: BorderRadius.circular(GameRadii.card),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: selected ? GameColors.accentSoft : GameColors.surfaceGlass,
-                          borderRadius: BorderRadius.circular(GameRadii.card),
-                          border: Border.all(
-                            color: selected ? GameColors.accentBright : GameColors.surfaceStrong,
-                            width: selected ? 2 : 1,
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        if (selected) {
+                          _selected.remove(game.id);
+                        } else if (_selected.length < CompetitiveMatchRules.picksPerPlayer) {
+                          _selected.add(game.id);
+                        }
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(GameRadii.card),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: selected ? GameColors.accentSoft : GameColors.surfaceGlass,
+                        borderRadius: BorderRadius.circular(GameRadii.card),
+                        border: Border.all(
+                          color: selected ? GameColors.accentBright : GameColors.surfaceStrong,
+                          width: selected ? 2 : 1,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            selected ? Icons.check_circle_rounded : Icons.sports_esports_rounded,
+                            color: selected ? GameColors.accentBright : GameColors.textSoft,
+                            size: 34,
                           ),
-                        ),
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(selected ? Icons.check_circle_rounded : Icons.sports_esports_rounded,
-                                color: selected ? GameColors.accentBright : GameColors.textSoft,
-                                size: 34),
-                            const SizedBox(height: 10),
-                            Text(game.name, textAlign: TextAlign.center,
-                                style: const TextStyle(fontWeight: FontWeight.w800)),
-                            if (blocked) const Text('OPPONENT PICK', style: TextStyle(fontSize: 10)),
-                          ],
-                        ),
+                          const SizedBox(height: 10),
+                          Text(
+                            game.name,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ],
                       ),
                     ),
                   );
