@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 
 class CompetitiveReadyScreen extends StatefulWidget {
   const CompetitiveReadyScreen({
@@ -58,6 +59,7 @@ class _CompetitiveReadyScreenState extends State<CompetitiveReadyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       body: Container(
@@ -80,28 +82,49 @@ class _CompetitiveReadyScreenState extends State<CompetitiveReadyScreen> {
                 padding: const EdgeInsets.all(GameSpacing.lg),
                 child: Column(
                   children: [
-                    Text(
-                      '${widget.wager * 2} GOLD POT',
-                      style: const TextStyle(
-                        color: GameColors.rewardGoldBright,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                      decoration: BoxDecoration(
+                        gradient: GameColors.goldGradient,
+                        borderRadius: BorderRadius.circular(GameRadii.pill),
+                        boxShadow: GameShadows.goldGlow,
+                      ),
+                      child: Text(
+                        l10n.goldPot(widget.wager * 2),
+                        style: const TextStyle(
+                          color: GameColors.backgroundDeep,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                     const Spacer(),
                     if (seconds != null)
-                      Text(
-                        seconds == 0 ? 'GO!' : '$seconds',
-                        style: const TextStyle(
-                          fontSize: 92,
-                          fontWeight: FontWeight.w900,
-                          color: GameColors.accentBright,
+                      AnimatedScale(
+                        scale: seconds == 0 ? 1.15 : 1,
+                        duration: GameDurations.fast,
+                        child: Text(
+                          seconds == 0 ? l10n.go : '$seconds',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 92,
+                            fontWeight: FontWeight.w900,
+                            color: GameColors.accentBright,
+                            shadows: GameShadows.primaryGlow,
+                          ),
                         ),
                       )
                     else ...[
-                      const Text(
-                        'MATCH LOBBY',
-                        style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+                      Text(
+                        l10n.matchLobby,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        l10n.readyInstructions,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: GameColors.textSoft),
                       ),
                       const SizedBox(height: 28),
                       _ReadyPlayer(name: widget.playerName, ready: state.meReady || _sentReady),
@@ -125,8 +148,16 @@ class _CompetitiveReadyScreenState extends State<CompetitiveReadyScreen> {
                                     if (mounted) setState(() => _busy = false);
                                   }
                                 },
-                          child: Text(
-                            _sentReady ? 'READY ✓' : _busy ? 'SETTING READY…' : 'READY',
+                          child: AnimatedSwitcher(
+                            duration: GameDurations.normal,
+                            child: Text(
+                              _sentReady
+                                  ? '${l10n.ready.toUpperCase()} ✓'
+                                  : _busy
+                                      ? l10n.settingReady
+                                      : l10n.ready.toUpperCase(),
+                              key: ValueKey('$_sentReady-$_busy'),
+                            ),
                           ),
                         ),
                       ),
@@ -147,31 +178,36 @@ class _ReadyPlayer extends StatelessWidget {
   final bool ready;
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: GameColors.surfaceGlass,
-          borderRadius: BorderRadius.circular(GameRadii.card),
-          border: Border.all(color: ready ? GameColors.success : GameColors.surfaceStrong),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.person_rounded),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(name, style: const TextStyle(fontWeight: FontWeight.w800)),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AnimatedContainer(
+      duration: GameDurations.normal,
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: GameColors.surfaceGlass,
+        borderRadius: BorderRadius.circular(GameRadii.card),
+        border: Border.all(color: ready ? GameColors.success : GameColors.surfaceStrong),
+        boxShadow: ready ? const [BoxShadow(color: Color(0x334DDA9A), blurRadius: 18)] : GameShadows.card,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.person_rounded, color: ready ? GameColors.success : GameColors.textSoft),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(name, style: const TextStyle(fontWeight: FontWeight.w800)),
+          ),
+          Text(
+            ready ? l10n.ready.toUpperCase() : l10n.waiting,
+            style: TextStyle(
+              color: ready ? GameColors.success : GameColors.textSoft,
+              fontWeight: FontWeight.w900,
             ),
-            Text(
-              ready ? 'READY' : 'WAITING',
-              style: TextStyle(
-                color: ready ? GameColors.success : GameColors.textSoft,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class CompetitiveReadyViewState {
