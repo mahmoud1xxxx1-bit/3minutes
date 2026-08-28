@@ -111,7 +111,8 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
                                   setState(() => _cancelling = true);
                                   try {
                                     await widget.onCancel();
-                                    if (mounted) Navigator.of(context).pop();
+                                    if (!context.mounted) return;
+                                    Navigator.of(context).pop();
                                   } finally {
                                     if (mounted) setState(() => _cancelling = false);
                                   }
