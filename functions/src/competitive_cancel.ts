@@ -91,16 +91,8 @@ export const cancelCompetitiveMatch = onCall(CALLABLE_OPTIONS, async (request) =
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    tx.set(ticketARef, {
-      status: "cancelled",
-      matchId,
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-    tx.set(ticketBRef, {
-      status: "cancelled",
-      matchId,
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
+    tx.delete(ticketARef);
+    tx.delete(ticketBRef);
 
     const payload = {
       matchId,
