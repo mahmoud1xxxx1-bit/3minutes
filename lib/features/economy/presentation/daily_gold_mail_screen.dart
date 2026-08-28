@@ -88,7 +88,7 @@ class _DailyGoldMailScreenState extends State<DailyGoldMailScreen> {
                                   setState(() => _claiming = true);
                                   try {
                                     final result = await widget.economyService.claimDailyGold();
-                                    if (!mounted) return;
+                                    if (!context.mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
