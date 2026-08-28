@@ -26,6 +26,18 @@ function intValue(value: unknown): number {
   return Number.isFinite(Number(value)) ? Math.trunc(Number(value)) : 0;
 }
 
+function displayName(profile: Record<string, unknown>): string {
+  return typeof profile.gameName === "string" && profile.gameName.trim().length > 0
+    ? profile.gameName.trim()
+    : "Player";
+}
+
+function avatarId(profile: Record<string, unknown>): string {
+  return typeof profile.avatarId === "string" && profile.avatarId.trim().length > 0
+    ? profile.avatarId.trim()
+    : "default_01";
+}
+
 export const settleCompetitiveMatch = onCall(CALLABLE_OPTIONS, async (request) => {
   const callerUid = requireUid(request.auth?.uid);
   const matchId = requireMatchId(request.data?.matchId);
@@ -165,11 +177,13 @@ export const settleCompetitiveMatch = onCall(CALLABLE_OPTIONS, async (request) =
     const rpBoardBRef = db.collection("competitiveLeaderboards").doc("rp").collection("entries").doc(playerBId);
     const goldBoardARef = db.collection("competitiveLeaderboards").doc("gold").collection("entries").doc(playerAId);
     const goldBoardBRef = db.collection("competitiveLeaderboards").doc("gold").collection("entries").doc(playerBId);
+    const identityA = { displayName: displayName(profileA), avatarId: avatarId(profileA) };
+    const identityB = { displayName: displayName(profileB), avatarId: avatarId(profileB) };
 
-    tx.set(rpBoardARef, { uid: playerAId, value: nextRpA, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    tx.set(rpBoardBRef, { uid: playerBId, value: nextRpB, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    tx.set(goldBoardARef, { uid: playerAId, value: nextGoldA, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    tx.set(goldBoardBRef, { uid: playerBId, value: nextGoldB, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(rpBoardARef, { uid: playerAId, ...identityA, value: nextRpA, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(rpBoardBRef, { uid: playerBId, ...identityB, value: nextRpB, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(goldBoardARef, { uid: playerAId, ...identityA, value: nextGoldA, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(goldBoardBRef, { uid: playerBId, ...identityB, value: nextGoldB, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 
     const payload = {
       matchId,
