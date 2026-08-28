@@ -1,12 +1,67 @@
 import '../../economy/data/competitive_economy_service.dart';
 import '../domain/game_integration_contract.dart';
 
+abstract interface class CompetitiveGameResultBackend {
+  Future<void> submitGameResult({
+    required String matchId,
+    required String gameId,
+    required int gameIndex,
+    required num rawScore,
+    required int normalizedScore,
+    required bool completed,
+    required double progress,
+    required Duration elapsed,
+    Map<String, num> stats,
+  });
+
+  Future<CompetitiveFinalizedResult> finalizeResults(String matchId);
+  Future<CompetitiveSettlementResult> settleMatch(String matchId);
+}
+
+class CompetitiveEconomyResultBackend implements CompetitiveGameResultBackend {
+  const CompetitiveEconomyResultBackend(this.service);
+
+  final CompetitiveEconomyService service;
+
+  @override
+  Future<void> submitGameResult({
+    required String matchId,
+    required String gameId,
+    required int gameIndex,
+    required num rawScore,
+    required int normalizedScore,
+    required bool completed,
+    required double progress,
+    required Duration elapsed,
+    Map<String, num> stats = const <String, num>{},
+  }) =>
+      service.submitGameResult(
+        matchId: matchId,
+        gameId: gameId,
+        gameIndex: gameIndex,
+        rawScore: rawScore,
+        normalizedScore: normalizedScore,
+        completed: completed,
+        progress: progress,
+        elapsed: elapsed,
+        stats: stats,
+      );
+
+  @override
+  Future<CompetitiveFinalizedResult> finalizeResults(String matchId) => service.finalizeResults(matchId);
+
+  @override
+  Future<CompetitiveSettlementResult> settleMatch(String matchId) => service.settleMatch(matchId);
+}
+
 class GameIntegrationRegistry {
   GameIntegrationRegistry({
     required Iterable<ThreeMinutesGame> games,
     required Iterable<GameScoreAdapter> adapters,
   })  : _games = {for (final game in games) game.gameId: game},
         _adapters = {for (final adapter in adapters) adapter.gameId: adapter};
+
+  factory GameIntegrationRegistry.empty() => GameIntegrationRegistry(games: const [], adapters: const []);
 
   final Map<String, ThreeMinutesGame> _games;
   final Map<String, GameScoreAdapter> _adapters;
@@ -45,7 +100,7 @@ class CompetitiveGameHost {
   final List<String> gameOrder;
   final DateTime deadline;
   final GameIntegrationRegistry registry;
-  final CompetitiveEconomyService backend;
+  final CompetitiveGameResultBackend backend;
 
   Future<CompetitiveHostResult> run({
     void Function(CompetitiveHostProgress progress)? onProgress,
