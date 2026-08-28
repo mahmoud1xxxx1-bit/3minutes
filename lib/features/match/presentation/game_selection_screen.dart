@@ -29,11 +29,14 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text('CHOOSE 2 GAMES  ${_selected.length}/2'),
+        title: Text(
+          '${ar ? 'اختر لعبتين' : 'CHOOSE 2 GAMES'}  ${_selected.length}/${CompetitiveMatchRules.picksPerPlayer}',
+        ),
         centerTitle: true,
       ),
       body: Container(
@@ -64,7 +67,8 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
                       });
                     },
                     borderRadius: BorderRadius.circular(GameRadii.card),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: GameDurations.normal,
                       decoration: BoxDecoration(
                         color: selected ? GameColors.accentSoft : GameColors.surfaceGlass,
                         borderRadius: BorderRadius.circular(GameRadii.card),
@@ -72,6 +76,7 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
                           color: selected ? GameColors.accentBright : GameColors.surfaceStrong,
                           width: selected ? 2 : 1,
                         ),
+                        boxShadow: selected ? GameShadows.primaryGlow : GameShadows.card,
                       ),
                       padding: const EdgeInsets.all(14),
                       child: Column(
@@ -86,6 +91,8 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
                           Text(
                             game.name,
                             textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                         ],
@@ -113,7 +120,11 @@ class _GameSelectionScreenState extends State<GameSelectionScreen> {
                               if (mounted) setState(() => _busy = false);
                             }
                           },
-                    child: Text(_busy ? 'CONFIRMING…' : 'LOCK PICKS'),
+                    child: Text(
+                      _busy
+                          ? (ar ? 'جارٍ التأكيد…' : 'CONFIRMING…')
+                          : (ar ? 'تثبيت الاختيارات' : 'LOCK PICKS'),
+                    ),
                   ),
                 ),
               ),
