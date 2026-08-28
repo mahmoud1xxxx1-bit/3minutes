@@ -39,6 +39,7 @@ export {
 export { cancelCompetitiveMatch } from "./competitive_cancel.js";
 export { forfeitCompetitiveMatch } from "./competitive_forfeit.js";
 export { getCompetitiveMatchHistory } from "./competitive_history.js";
+export { enrichCompetitiveMatchHistory } from "./competitive_history_enrich.js";
 export {
   syncGoldLeaderboard,
   syncRpLeaderboard,
