@@ -173,17 +173,50 @@ export const settleCompetitiveMatch = onCall(CALLABLE_OPTIONS, async (request) =
       updatedAt: FieldValue.serverTimestamp(),
     });
 
+    const identityA = { displayName: displayName(profileA), avatarId: avatarId(profileA) };
+    const identityB = { displayName: displayName(profileB), avatarId: avatarId(profileB) };
     const rpBoardARef = db.collection("competitiveLeaderboards").doc("rp").collection("entries").doc(playerAId);
     const rpBoardBRef = db.collection("competitiveLeaderboards").doc("rp").collection("entries").doc(playerBId);
     const goldBoardARef = db.collection("competitiveLeaderboards").doc("gold").collection("entries").doc(playerAId);
     const goldBoardBRef = db.collection("competitiveLeaderboards").doc("gold").collection("entries").doc(playerBId);
-    const identityA = { displayName: displayName(profileA), avatarId: avatarId(profileA) };
-    const identityB = { displayName: displayName(profileB), avatarId: avatarId(profileB) };
 
     tx.set(rpBoardARef, { uid: playerAId, ...identityA, value: nextRpA, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     tx.set(rpBoardBRef, { uid: playerBId, ...identityB, value: nextRpB, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     tx.set(goldBoardARef, { uid: playerAId, ...identityA, value: nextGoldA, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     tx.set(goldBoardBRef, { uid: playerBId, ...identityB, value: nextGoldB, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+
+    const historyARef = db.collection("competitiveMatchHistory").doc(playerAId).collection("matches").doc(matchId);
+    const historyBRef = db.collection("competitiveMatchHistory").doc(playerBId).collection("matches").doc(matchId);
+    const commonHistory = {
+      matchId,
+      wager,
+      pot: wager * 2,
+      gameOrder: Array.isArray(match.gameOrder) ? match.gameOrder : [],
+      completedAt: FieldValue.serverTimestamp(),
+    };
+    tx.set(historyARef, {
+      ...commonHistory,
+      result: resultA,
+      opponentUid: playerBId,
+      opponentName: identityB.displayName,
+      opponentAvatarId: identityB.avatarId,
+      goldDelta: rewardA.goldDelta,
+      coinsDelta: rewardA.coinsDelta,
+      rpDelta: nextRpA - currentRpA,
+    });
+    tx.set(historyBRef, {
+      ...commonHistory,
+      result: resultB,
+      opponentUid: playerAId,
+      opponentName: identityA.displayName,
+      opponentAvatarId: identityA.avatarId,
+      goldDelta: rewardB.goldDelta,
+      coinsDelta: rewardB.coinsDelta,
+      rpDelta: nextRpB - currentRpB,
+    });
+
+    tx.delete(db.collection("competitiveQueue").doc(playerAId));
+    tx.delete(db.collection("competitiveQueue").doc(playerBId));
 
     const payload = {
       matchId,
