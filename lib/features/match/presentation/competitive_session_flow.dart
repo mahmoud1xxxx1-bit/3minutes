@@ -67,6 +67,7 @@ class _CompetitiveMatchmakingFlowState extends State<CompetitiveMatchmakingFlow>
         .first;
     if (!mounted || match == null) return;
 
+    final navigator = Navigator.of(context);
     final page = CompetitiveSessionFlow(
       uid: widget.uid,
       matchId: matchId,
@@ -76,10 +77,10 @@ class _CompetitiveMatchmakingFlowState extends State<CompetitiveMatchmakingFlow>
     );
 
     if (widget.embedded) {
-      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+      await navigator.push(MaterialPageRoute<void>(builder: (_) => page));
       if (mounted) widget.onFlowEnded?.call();
     } else {
-      await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => page));
+      await navigator.pushReplacement(MaterialPageRoute<void>(builder: (_) => page));
     }
   }
 
