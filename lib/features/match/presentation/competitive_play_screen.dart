@@ -12,7 +12,7 @@ import 'competitive_ready_screen.dart';
 import 'game_selection_screen.dart';
 import 'wager_selection_screen.dart';
 
-class CompetitivePlayScreen extends StatelessWidget {
+class CompetitivePlayScreen extends StatefulWidget {
   const CompetitivePlayScreen({
     super.key,
     required this.uid,
@@ -29,42 +29,127 @@ class CompetitivePlayScreen extends StatelessWidget {
   final CompetitiveMatchFirestoreRepository matchRepository;
 
   @override
+  State<CompetitivePlayScreen> createState() => _CompetitivePlayScreenState();
+}
+
+class _CompetitivePlayScreenState extends State<CompetitivePlayScreen> {
+  late Future<CompetitiveRecoveryResult> _recovery;
+
+  @override
+  void initState() {
+    super.initState();
+    _recovery = widget.economyService.recoverQueue();
+  }
+
+  void _refreshRecovery() {
+    setState(() => _recovery = widget.economyService.recoverQueue());
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<PlayerProfile?>(
-      stream: profileRepository.watchProfile(uid),
+      stream: widget.profileRepository.watchProfile(widget.uid),
       builder: (context, profileSnapshot) {
         final profile = profileSnapshot.data;
-        return StreamBuilder(
-          stream: walletRepository.watchWallet(uid),
-          builder: (context, walletSnapshot) {
-            final wallet = walletSnapshot.data;
-            return WagerSelectionScreen(
-              goldBalance: wallet?.availableGold ?? 0,
-              onFindOpponent: (wager) async {
-                if (profile == null) return;
-                final result = await economyService.enterWager(
-                  wager: wager,
-                  displayName: profile.gameName,
-                  avatarId: profile.avatarId,
-                );
-                if (!context.mounted) return;
-                await Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => _CompetitiveFlowCoordinator(
-                      uid: uid,
-                      wager: wager,
-                      playerName: profile.gameName,
-                      initialMatchId: result.matchId,
-                      economyService: economyService,
-                      matchRepository: matchRepository,
-                    ),
-                  ),
+        if (profile == null) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+
+        return FutureBuilder<CompetitiveRecoveryResult>(
+          future: _recovery,
+          builder: (context, recoverySnapshot) {
+            if (recoverySnapshot.connectionState != ConnectionState.done) {
+              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            }
+            if (recoverySnapshot.hasError) {
+              return _RecoveryError(onRetry: _refreshRecovery);
+            }
+
+            final recovery = recoverySnapshot.data!;
+            final wager = recovery.wager;
+
+            if (recovery.hasActiveMatch && wager != null) {
+              return _SelectionAndReadyFlow(
+                uid: widget.uid,
+                matchId: recovery.matchId!,
+                wager: wager,
+                matchRepository: widget.matchRepository,
+                economyService: widget.economyService,
+              );
+            }
+
+            if (recovery.status == 'searching' && wager != null) {
+              return _CompetitiveFlowCoordinator(
+                uid: widget.uid,
+                wager: wager,
+                playerName: profile.gameName,
+                initialMatchId: null,
+                economyService: widget.economyService,
+                matchRepository: widget.matchRepository,
+                embedded: true,
+                onFlowEnded: _refreshRecovery,
+              );
+            }
+
+            return StreamBuilder(
+              stream: widget.walletRepository.watchWallet(widget.uid),
+              builder: (context, walletSnapshot) {
+                final wallet = walletSnapshot.data;
+                return WagerSelectionScreen(
+                  goldBalance: wallet?.availableGold ?? 0,
+                  onFindOpponent: (selectedWager) async {
+                    final result = await widget.economyService.enterWager(
+                      wager: selectedWager,
+                      displayName: profile.gameName,
+                      avatarId: profile.avatarId,
+                    );
+                    if (!context.mounted) return;
+                    await Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => _CompetitiveFlowCoordinator(
+                          uid: widget.uid,
+                          wager: selectedWager,
+                          playerName: profile.gameName,
+                          initialMatchId: result.matchId,
+                          economyService: widget.economyService,
+                          matchRepository: widget.matchRepository,
+                        ),
+                      ),
+                    );
+                    if (mounted) _refreshRecovery();
+                  },
                 );
               },
             );
           },
         );
       },
+    );
+  }
+}
+
+class _RecoveryError extends StatelessWidget {
+  const _RecoveryError({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.cloud_off_rounded, size: 48),
+              const SizedBox(height: 12),
+              const Text('Unable to restore competitive session.'),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onRetry, child: const Text('RETRY')),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -77,6 +162,8 @@ class _CompetitiveFlowCoordinator extends StatefulWidget {
     required this.initialMatchId,
     required this.economyService,
     required this.matchRepository,
+    this.embedded = false,
+    this.onFlowEnded,
   });
 
   final String uid;
@@ -85,6 +172,8 @@ class _CompetitiveFlowCoordinator extends StatefulWidget {
   final String? initialMatchId;
   final CompetitiveEconomyService economyService;
   final CompetitiveMatchFirestoreRepository matchRepository;
+  final bool embedded;
+  final VoidCallback? onFlowEnded;
 
   @override
   State<_CompetitiveFlowCoordinator> createState() => _CompetitiveFlowCoordinatorState();
@@ -113,20 +202,26 @@ class _CompetitiveFlowCoordinatorState extends State<_CompetitiveFlowCoordinator
     final matchId = state.matchId;
     if (matchId == null || _openingMatch) return;
     _openingMatch = true;
-    final first = await widget.matchRepository.watchMatch(matchId).where((event) => event != null).first;
+    final first = await widget.matchRepository
+        .watchMatch(matchId)
+        .where((event) => event != null)
+        .first;
     if (!mounted || first == null) return;
 
-    await Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => _SelectionAndReadyFlow(
-          uid: widget.uid,
-          matchId: matchId,
-          wager: widget.wager,
-          matchRepository: widget.matchRepository,
-          economyService: widget.economyService,
-        ),
-      ),
+    final page = _SelectionAndReadyFlow(
+      uid: widget.uid,
+      matchId: matchId,
+      wager: widget.wager,
+      matchRepository: widget.matchRepository,
+      economyService: widget.economyService,
     );
+
+    if (widget.embedded) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+      if (mounted) widget.onFlowEnded?.call();
+    } else {
+      await Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => page));
+    }
   }
 
   @override
@@ -135,7 +230,10 @@ class _CompetitiveFlowCoordinatorState extends State<_CompetitiveFlowCoordinator
       wager: widget.wager,
       playerName: widget.playerName,
       matchStream: _matchmakingStream,
-      onCancel: widget.economyService.leaveWager,
+      onCancel: () async {
+        await widget.economyService.leaveWager();
+        widget.onFlowEnded?.call();
+      },
       onMatched: (state) => unawaited(_openMatch(state)),
     );
   }
