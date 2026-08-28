@@ -87,6 +87,50 @@ class CompetitiveEconomyService {
     );
   }
 
+  Future<void> submitGameResult({
+    required String matchId,
+    required String gameId,
+    required int gameIndex,
+    required num rawScore,
+    required int normalizedScore,
+    required bool completed,
+    required double progress,
+    required Duration elapsed,
+    Map<String, num> stats = const <String, num>{},
+  }) async {
+    await _functions.httpsCallable('submitCompetitiveGameResult').call<Object?>(
+      <String, Object?>{
+        'matchId': matchId,
+        'gameId': gameId,
+        'gameIndex': gameIndex,
+        'rawScore': rawScore,
+        'normalizedScore': normalizedScore,
+        'completed': completed,
+        'progress': progress,
+        'elapsedMs': elapsed.inMilliseconds,
+        'stats': stats,
+      },
+    );
+  }
+
+  Future<CompetitiveFinalizedResult> finalizeResults(String matchId) async {
+    final response = await _functions.httpsCallable('finalizeCompetitiveResults').call<Object?>(
+      <String, Object?>{'matchId': matchId},
+    );
+    final data = Map<String, dynamic>.from(response.data! as Map);
+    final games = (data['gameResults'] as List? ?? const <Object?>[])
+        .whereType<Map>()
+        .map((entry) => CompetitiveGameComparison.fromMap(Map<String, dynamic>.from(entry)))
+        .toList(growable: false);
+    return CompetitiveFinalizedResult(
+      status: data['status'] as String? ?? 'awaitingSettlement',
+      outcome: data['outcome'] as String? ?? 'tie',
+      totalScoreA: (data['totalScoreA'] as num?)?.toInt() ?? 0,
+      totalScoreB: (data['totalScoreB'] as num?)?.toInt() ?? 0,
+      games: games,
+    );
+  }
+
   Future<CompetitiveSettlementResult> settleMatch(String matchId) async {
     final result = await _functions.httpsCallable('settleCompetitiveMatch').call<Object?>(
       <String, Object?>{'matchId': matchId},
@@ -145,6 +189,48 @@ class CompetitiveReadyResult {
   const CompetitiveReadyResult({required this.status, required this.bothReady});
   final String status;
   final bool bothReady;
+}
+
+class CompetitiveFinalizedResult {
+  const CompetitiveFinalizedResult({
+    required this.status,
+    required this.outcome,
+    required this.totalScoreA,
+    required this.totalScoreB,
+    required this.games,
+  });
+
+  final String status;
+  final String outcome;
+  final int totalScoreA;
+  final int totalScoreB;
+  final List<CompetitiveGameComparison> games;
+}
+
+class CompetitiveGameComparison {
+  const CompetitiveGameComparison({
+    required this.gameId,
+    required this.gameIndex,
+    required this.playerAScore,
+    required this.playerBScore,
+    required this.winner,
+  });
+
+  factory CompetitiveGameComparison.fromMap(Map<String, dynamic> data) {
+    return CompetitiveGameComparison(
+      gameId: data['gameId'] as String? ?? '',
+      gameIndex: (data['gameIndex'] as num?)?.toInt() ?? 0,
+      playerAScore: (data['playerAScore'] as num?)?.toInt() ?? 0,
+      playerBScore: (data['playerBScore'] as num?)?.toInt() ?? 0,
+      winner: data['winner'] as String? ?? 'tie',
+    );
+  }
+
+  final String gameId;
+  final int gameIndex;
+  final int playerAScore;
+  final int playerBScore;
+  final String winner;
 }
 
 class CompetitiveSettlementResult {
