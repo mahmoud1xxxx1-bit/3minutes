@@ -2,7 +2,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 class CompetitiveEconomyService {
   CompetitiveEconomyService({FirebaseFunctions? functions})
-      : _functions = functions ?? FirebaseFunctions.instance;
+      : _functions = functions ?? FirebaseFunctions.instanceFor(region: 'me-central2');
 
   final FirebaseFunctions _functions;
 
@@ -16,12 +16,24 @@ class CompetitiveEconomyService {
     );
   }
 
-  Future<WagerEntryResult> enterWager(int wager) async {
-    final result = await _functions.httpsCallable('enterGoldWager').call<Object?>({'wager': wager});
+  Future<WagerEntryResult> enterWager({
+    required int wager,
+    required String displayName,
+    required String avatarId,
+  }) async {
+    final result = await _functions.httpsCallable('enterGoldWager').call<Object?>(
+      <String, Object?>{
+        'wager': wager,
+        'displayName': displayName,
+        'avatarId': avatarId,
+      },
+    );
     final data = Map<String, dynamic>.from(result.data! as Map);
     return WagerEntryResult(
       wager: (data['wager'] as num).toInt(),
       pot: (data['pot'] as num).toInt(),
+      status: data['status'] as String? ?? 'searching',
+      matchId: data['matchId'] as String?,
     );
   }
 
@@ -29,6 +41,26 @@ class CompetitiveEconomyService {
     final result = await _functions.httpsCallable('leaveGoldWager').call<Object?>();
     final data = Map<String, dynamic>.from(result.data! as Map);
     return (data['released'] as num).toInt();
+  }
+
+  Future<void> selectGames({
+    required String matchId,
+    required List<String> gameIds,
+  }) async {
+    await _functions.httpsCallable('selectCompetitiveGames').call<Object?>(
+      <String, Object?>{'matchId': matchId, 'gameIds': gameIds},
+    );
+  }
+
+  Future<CompetitiveReadyResult> markReady(String matchId) async {
+    final result = await _functions.httpsCallable('markCompetitiveReady').call<Object?>(
+      <String, Object?>{'matchId': matchId},
+    );
+    final data = Map<String, dynamic>.from(result.data! as Map);
+    return CompetitiveReadyResult(
+      status: data['status'] as String? ?? 'waitingReady',
+      bothReady: data['bothReady'] as bool? ?? false,
+    );
   }
 }
 
@@ -40,7 +72,22 @@ class DailyGoldClaimResult {
 }
 
 class WagerEntryResult {
-  const WagerEntryResult({required this.wager, required this.pot});
+  const WagerEntryResult({
+    required this.wager,
+    required this.pot,
+    required this.status,
+    required this.matchId,
+  });
   final int wager;
   final int pot;
+  final String status;
+  final String? matchId;
+
+  bool get matched => status == 'matched' && matchId != null;
+}
+
+class CompetitiveReadyResult {
+  const CompetitiveReadyResult({required this.status, required this.bothReady});
+  final String status;
+  final bool bothReady;
 }
