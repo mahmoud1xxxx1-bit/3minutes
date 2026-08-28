@@ -27,48 +27,48 @@ export const recoverCompetitiveQueue = onCall(CALLABLE_OPTIONS, async (request) 
       tx.get(ticketRef),
       tx.get(walletRef),
     ]);
-    if (!ticketSnap.exists) return { status: "none", released: 0, matchId: null };
+    if (!ticketSnap.exists) {
+      return { status: "none", released: 0, matchId: null, wager: null };
+    }
 
     const ticket = ticketSnap.data()!;
     const status = typeof ticket.status === "string" ? ticket.status : "unknown";
     const matchId = typeof ticket.matchId === "string" ? ticket.matchId : null;
+    const wager = intValue(ticket.wager);
 
     if (status === "searching") {
       const expiry = ticket.expiresAt;
       const expired = expiry instanceof Timestamp && expiry.toMillis() <= Date.now();
       if (!expired) {
-        return { status: "searching", released: 0, matchId: null };
+        return { status: "searching", released: 0, matchId: null, wager };
       }
 
-      const wager = intValue(ticket.wager);
       const held = intValue(walletSnap.data()?.heldGold);
       const released = Math.min(held, wager);
       tx.set(walletRef, {
         heldGold: Math.max(0, held - wager),
         updatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
-      tx.set(walletRef.collection("goldTransactions").doc(`expired_${ticketSnap.id}_${Date.now()}`), {
-        currency: "gold",
-        kind: "wagerRelease",
-        amount: 0,
-        releasedHold: released,
-        reason: "queueExpired",
-        createdAt: FieldValue.serverTimestamp(),
-      });
+      tx.set(
+        walletRef.collection("goldTransactions").doc(`expired_${ticketSnap.id}_${Date.now()}`),
+        {
+          currency: "gold",
+          kind: "wagerRelease",
+          amount: 0,
+          releasedHold: released,
+          reason: "queueExpired",
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
       tx.delete(ticketRef);
-      return { status: "expired", released, matchId: null };
+      return { status: "expired", released, matchId: null, wager: null };
     }
 
     if (status === "matched" && matchId != null) {
-      return {
-        status: "matched",
-        released: 0,
-        matchId,
-        wager: intValue(ticket.wager),
-      };
+      return { status: "matched", released: 0, matchId, wager };
     }
 
     tx.delete(ticketRef);
-    return { status: "cleaned", released: 0, matchId: null };
+    return { status: "cleaned", released: 0, matchId: null, wager: null };
   });
 });
