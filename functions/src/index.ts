@@ -29,6 +29,7 @@ export {
   settleQuickMatch,
 } from "./quick.js";
 export { getQuickTicket } from "./quick_ticket.js";
+export { claimDailyGold, enterGoldWager, leaveGoldWager } from "./competitive.js";
 
 export { settleRankedMatch } from "./settlement.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
