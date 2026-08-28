@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../economy/presentation/avatar_artwork.dart';
 import '../data/competitive_history_repository.dart';
 
@@ -28,14 +29,18 @@ class _CompetitiveHistoryScreenState extends State<CompetitiveHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(ar ? 'سجل المباريات' : 'MATCH HISTORY'),
+        title: Text(l10n.matchHistory),
         actions: [
-          IconButton(onPressed: _reload, icon: const Icon(Icons.refresh_rounded)),
+          IconButton(
+            tooltip: l10n.refresh,
+            onPressed: _reload,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
         ],
       ),
       body: Container(
@@ -51,13 +56,13 @@ class _CompetitiveHistoryScreenState extends State<CompetitiveHistoryScreen> {
                 child: FilledButton.icon(
                   onPressed: _reload,
                   icon: const Icon(Icons.refresh_rounded),
-                  label: Text(ar ? 'إعادة المحاولة' : 'RETRY'),
+                  label: Text(l10n.retry),
                 ),
               );
             }
             final entries = snapshot.data ?? const <CompetitiveHistoryEntry>[];
             if (entries.isEmpty) {
-              return Center(child: Text(ar ? 'لا توجد مباريات بعد' : 'No matches yet'));
+              return Center(child: Text(l10n.noFinishedMatches));
             }
             return ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
@@ -77,12 +82,17 @@ class _HistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final resultColor = switch (entry.result) {
       'win' => GameColors.success,
       'loss' => GameColors.danger,
       _ => GameColors.warning,
     };
-    final resultLabel = entry.result.toUpperCase();
+    final resultLabel = switch (entry.result) {
+      'win' => l10n.win,
+      'loss' => l10n.loss,
+      _ => l10n.tie,
+    };
     final time = entry.completedAt;
     final dateLabel = time == null
         ? '—'
@@ -96,6 +106,7 @@ class _HistoryCard extends StatelessWidget {
         color: GameColors.surfaceGlass,
         borderRadius: BorderRadius.circular(GameRadii.card),
         border: Border.all(color: GameColors.surfaceStrong),
+        boxShadow: GameShadows.card,
       ),
       child: Column(
         children: [
@@ -111,26 +122,70 @@ class _HistoryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(entry.opponentName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w900)),
-                    Text(dateLabel,
-                        style: const TextStyle(color: GameColors.textSoft, fontSize: 12)),
+                    Text(
+                      entry.opponentName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    Text(dateLabel, style: const TextStyle(color: GameColors.textSoft, fontSize: 12)),
                   ],
                 ),
               ),
-              Text(resultLabel,
-                  style: TextStyle(color: resultColor, fontWeight: FontWeight.w900)),
+              Text(resultLabel, style: TextStyle(color: resultColor, fontWeight: FontWeight.w900)),
             ],
           ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: BoxDecoration(
+              color: GameColors.surfaceRaised,
+              borderRadius: BorderRadius.circular(GameRadii.card),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('${entry.myTotalScore}', style: const TextStyle(color: GameColors.success, fontSize: 20, fontWeight: FontWeight.w900)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(l10n.vs, style: const TextStyle(color: GameColors.textSoft)),
+                ),
+                Text('${entry.opponentTotalScore}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
+          if (entry.games.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (final game in entry.games)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        game.gameId,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: GameColors.textSoft, fontSize: 12),
+                      ),
+                    ),
+                    Text('${game.myScore}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      child: Text(l10n.vs, style: const TextStyle(color: GameColors.textSoft, fontSize: 11)),
+                    ),
+                    Text('${game.opponentScore}', style: const TextStyle(fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+          ],
           const SizedBox(height: 13),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _Value(label: 'WAGER', value: '${entry.wager}', color: GameColors.rewardGoldBright),
-              _Value(label: 'GOLD', value: _delta(entry.goldDelta), color: GameColors.rewardGoldBright),
-              _Value(label: 'COINS', value: _delta(entry.coinsDelta), color: GameColors.coin),
+              _Value(label: 'GOLD', value: '${entry.wager}', color: GameColors.rewardGoldBright),
+              _Value(label: 'GOLD Δ', value: _delta(entry.goldDelta), color: GameColors.rewardGoldBright),
+              _Value(label: l10n.coins.toUpperCase(), value: _delta(entry.coinsDelta), color: GameColors.coin),
               _Value(label: 'RP', value: _delta(entry.rpDelta), color: GameColors.rp),
             ],
           ),
@@ -151,8 +206,10 @@ class _Value extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
         children: [
-          Text(label,
-              style: const TextStyle(color: GameColors.textSoft, fontSize: 10, fontWeight: FontWeight.w700)),
+          Text(
+            label,
+            style: const TextStyle(color: GameColors.textSoft, fontSize: 10, fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 3),
           Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900)),
         ],
