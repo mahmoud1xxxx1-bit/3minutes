@@ -62,6 +62,12 @@ class CompetitiveEconomyService {
       bothReady: data['bothReady'] as bool? ?? false,
     );
   }
+
+  Future<void> cancelMatch(String matchId) async {
+    await _functions.httpsCallable('cancelCompetitiveMatch').call<Object?>(
+      <String, Object?>{'matchId': matchId},
+    );
+  }
 }
 
 class DailyGoldClaimResult {
