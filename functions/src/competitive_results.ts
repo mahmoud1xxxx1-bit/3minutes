@@ -1,6 +1,7 @@
 import { FieldValue, getFirestore, Timestamp } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
+import { validateCompetitiveGameScore } from "./competitive_game_policy.js";
 import { COMPETITIVE_GAME_COUNT } from "./competitive_policy.js";
 
 const CALLABLE_OPTIONS = {
@@ -58,6 +59,7 @@ export const submitCompetitiveGameResult = onCall(CALLABLE_OPTIONS, async (reque
   const normalizedScore = intValue(request.data?.normalizedScore, "normalizedScore");
   const rawScore = Number(request.data?.rawScore ?? normalizedScore);
   if (!Number.isFinite(rawScore)) throw new HttpsError("invalid-argument", "rawScore must be numeric.");
+  validateCompetitiveGameScore(gameId, normalizedScore, rawScore);
   const completed = request.data?.completed === true;
   const progress = progressValue(request.data?.progress);
   const elapsedMs = intValue(request.data?.elapsedMs ?? 0, "elapsedMs", 0, 180_000);
@@ -89,6 +91,13 @@ export const submitCompetitiveGameResult = onCall(CALLABLE_OPTIONS, async (reque
     const startsAt = match.startsAt;
     if (!(startsAt instanceof Timestamp) || Date.now() + 1000 < startsAt.toMillis()) {
       throw new HttpsError("failed-precondition", "Match has not started yet.");
+    }
+    const deadline = match.deadline;
+    if (!(deadline instanceof Timestamp)) {
+      throw new HttpsError("data-loss", "Match deadline is missing.");
+    }
+    if (Date.now() > deadline.toMillis()) {
+      throw new HttpsError("deadline-exceeded", "The 3-minute match clock has expired.");
     }
 
     tx.create(resultRef, {
