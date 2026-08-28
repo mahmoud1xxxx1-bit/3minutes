@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../economy/presentation/avatar_artwork.dart';
 import '../data/competitive_leaderboard_repository.dart';
 
@@ -23,12 +24,12 @@ class _CompetitiveLeaderboardScreenState extends State<CompetitiveLeaderboardScr
 
   @override
   Widget build(BuildContext context) {
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: GameColors.backgroundDeep,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text(ar ? 'لوحة المتصدرين' : 'LEADERBOARDS'),
+        title: Text(l10n.leaderboards),
       ),
       body: Container(
         decoration: const BoxDecoration(gradient: GameColors.arenaGradient),
@@ -40,12 +41,12 @@ class _CompetitiveLeaderboardScreenState extends State<CompetitiveLeaderboardScr
                 segments: const [
                   ButtonSegment(
                     value: CompetitiveLeaderboardType.rp,
-                    label: Text('RP RANKING'),
+                    label: Text('RP'),
                     icon: Icon(Icons.military_tech_rounded),
                   ),
                   ButtonSegment(
                     value: CompetitiveLeaderboardType.gold,
-                    label: Text('GOLD RANKING'),
+                    label: Text('GOLD'),
                     icon: Icon(Icons.workspace_premium_rounded),
                   ),
                 ],
@@ -57,14 +58,15 @@ class _CompetitiveLeaderboardScreenState extends State<CompetitiveLeaderboardScr
               child: StreamBuilder<List<CompetitiveLeaderboardEntry>>(
                 stream: widget.repository.watchTop(_type),
                 builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(child: Text(l10n.couldNotLoadStandings));
+                  }
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final entries = snapshot.data!;
                   if (entries.isEmpty) {
-                    return Center(
-                      child: Text(ar ? 'لا توجد نتائج بعد' : 'No rankings yet'),
-                    );
+                    return Center(child: Text(l10n.noRankedPlayers));
                   }
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 30),
@@ -78,7 +80,8 @@ class _CompetitiveLeaderboardScreenState extends State<CompetitiveLeaderboardScr
                         2 => GameColors.rankBronze,
                         _ => GameColors.textSoft,
                       };
-                      return Container(
+                      return AnimatedContainer(
+                        duration: GameDurations.normal,
                         margin: const EdgeInsets.only(bottom: 9),
                         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
                         decoration: BoxDecoration(
@@ -87,6 +90,7 @@ class _CompetitiveLeaderboardScreenState extends State<CompetitiveLeaderboardScr
                           border: Border.all(
                             color: mine ? GameColors.accentBright : GameColors.surfaceStrong,
                           ),
+                          boxShadow: index < 3 || mine ? GameShadows.card : null,
                         ),
                         child: Row(
                           children: [
