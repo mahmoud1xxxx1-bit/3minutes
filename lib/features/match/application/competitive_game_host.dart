@@ -66,6 +66,11 @@ class GameIntegrationRegistry {
   final Map<String, ThreeMinutesGame> _games;
   final Map<String, GameScoreAdapter> _adapters;
 
+  Set<String> get supportedGameIds => {
+        for (final id in _games.keys)
+          if (_adapters.containsKey(id)) id,
+      };
+
   ThreeMinutesGame game(String gameId) {
     final value = _games[gameId];
     if (value == null) throw StateError('Game $gameId is not registered.');
