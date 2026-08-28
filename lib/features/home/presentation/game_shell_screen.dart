@@ -120,7 +120,6 @@ class _GameShellScreenState extends State<GameShellScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final ar = Localizations.localeOf(context).languageCode == 'ar';
 
     return StreamBuilder<PlayerProfile?>(
       stream: widget.profileRepository.watchProfile(widget.user.uid),
@@ -205,12 +204,12 @@ class _GameShellScreenState extends State<GameShellScreen> {
                   NavigationDestination(
                     icon: const Icon(Icons.sports_esports_rounded),
                     selectedIcon: const Icon(Icons.sports_esports_rounded, color: GameColors.accentBright),
-                    label: ar ? 'العب' : 'Play',
+                    label: l10n.play,
                   ),
                   NavigationDestination(
                     icon: const Icon(Icons.military_tech_rounded),
                     selectedIcon: const Icon(Icons.military_tech_rounded, color: GameColors.accentBright),
-                    label: ar ? 'الرتبة' : 'Rank',
+                    label: l10n.rank,
                   ),
                   NavigationDestination(
                     icon: const Icon(Icons.storefront_rounded),
