@@ -59,6 +59,7 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
             builder: (context, snapshot) {
               final state = snapshot.data ?? CompetitiveMatchmakingViewState.searching(widget.wager);
               final matched = state.matchId != null;
+              final opponentName = state.opponentName.trim().isEmpty ? l10n.opponent : state.opponentName;
               return Padding(
                 padding: const EdgeInsets.all(GameSpacing.lg),
                 child: Column(
@@ -100,7 +101,7 @@ class _CompetitiveMatchmakingScreenState extends State<CompetitiveMatchmakingScr
                         ),
                         Expanded(
                           child: _PlayerCard(
-                            name: matched ? state.opponentName : l10n.searching,
+                            name: matched ? opponentName : l10n.searching,
                             label: matched ? l10n.ready.toUpperCase() : l10n.online,
                             searching: !matched,
                           ),
