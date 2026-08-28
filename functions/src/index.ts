@@ -44,6 +44,10 @@ export {
   syncRpLeaderboard,
 } from "./competitive_leaderboard_sync.js";
 export { recoverCompetitiveQueue } from "./competitive_recovery.js";
+export {
+  submitCompetitiveGameResult,
+  finalizeCompetitiveResults,
+} from "./competitive_results.js";
 export { settleCompetitiveMatch } from "./competitive_settlement.js";
 
 export { settleRankedMatch } from "./settlement.js";
