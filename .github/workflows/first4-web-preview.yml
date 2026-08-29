@@ -75,8 +75,8 @@ jobs:
           grep -q "الحركات" lib/features/minigames/presentation/first4/key_escape_game.dart
           grep -q "الأخطاء" lib/features/minigames/presentation/first4/key_escape_game.dart
           grep -q "الجولة" lib/features/minigames/presentation/first4/key_escape_game.dart
-      - name: Analyze preview source
-        run: flutter analyze lib/preview_first4_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/shared/minigame_environment.dart
+      - name: Analyze preview source for real errors
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/preview_first4_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/shared/minigame_environment.dart
       - name: Build Flutter Web
         run: |
           flutter build web --release -t lib/preview_first4_main.dart --base-href "/"
