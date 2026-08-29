@@ -29,11 +29,15 @@ jobs:
           flutter-version: '3.44.0'
           channel: stable
           cache: true
-      - name: Restore supplied original game sources
+      - name: Restore and verify supplied original game sources
         run: |
-          rm -rf /tmp/first4-original
+          rm -rf /tmp/first4-original /tmp/missing_games.tgz /tmp/missing_games.b64
+          cat preview_sources/missing_games.b64.00 preview_sources/missing_games.b64.01 preview_sources/missing_games.b64.02 preview_sources/missing_games.b64.03 preview_sources/missing_games.b64.04 preview_sources/missing_games.b64.05 > /tmp/missing_games.b64
+          test "$(wc -c < /tmp/missing_games.b64)" -eq 37996
+          base64 -d /tmp/missing_games.b64 > /tmp/missing_games.tgz
+          echo "66aff88f745e6748cbde457737ed43bcfc479534d0b0f6bd5034562b676744a3  /tmp/missing_games.tgz" | sha256sum -c -
           mkdir -p /tmp/first4-original
-          tar -xzf preview_sources/missing_games.tgz -C /tmp/first4-original
+          tar -xzf /tmp/missing_games.tgz -C /tmp/first4-original
           cp /tmp/first4-original/key_escape/key_escape_game.dart lib/features/minigames/presentation/first4/key_escape_game.dart
           cp /tmp/first4-original/key_escape/key_escape_levels.dart lib/features/minigames/presentation/first4/key_escape_levels.dart
           cp /tmp/first4-original/level_devil/level_devil_host.dart lib/features/minigames/presentation/first4/level_devil_host.dart
@@ -68,6 +72,9 @@ jobs:
           s = s.replace("_roundWon ? 'SOLVED!' : 'FAILED!'", "_roundWon ? (Localizations.localeOf(context).languageCode == 'ar' ? 'تم الحل!' : 'SOLVED!') : (Localizations.localeOf(context).languageCode == 'ar' ? 'فشل!' : 'FAILED!')")
           key.write_text(s)
           PY
+          grep -q "الحركات" lib/features/minigames/presentation/first4/key_escape_game.dart
+          grep -q "الأخطاء" lib/features/minigames/presentation/first4/key_escape_game.dart
+          grep -q "الجولة" lib/features/minigames/presentation/first4/key_escape_game.dart
       - name: Analyze preview source
         run: flutter analyze lib/preview_first4_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/shared/minigame_environment.dart
       - name: Build Flutter Web
