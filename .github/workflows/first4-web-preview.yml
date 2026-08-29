@@ -71,7 +71,29 @@ jobs:
           s = s.replace("const Text(\n                          'MISTAKES',", "Text(\n                          Localizations.localeOf(context).languageCode == 'ar' ? 'الأخطاء' : 'MISTAKES',")
           s = s.replace("_roundWon ? 'SOLVED!' : 'FAILED!'", "_roundWon ? (Localizations.localeOf(context).languageCode == 'ar' ? 'تم الحل!' : 'SOLVED!') : (Localizations.localeOf(context).languageCode == 'ar' ? 'فشل!' : 'FAILED!')")
           key.write_text(s)
+
+          main = Path('lib/preview_first4_main.dart')
+          s = main.read_text()
+          s = s.replace(
+              '          const logicalWidth = 390.0;\n          const logicalHeight = 844.0;',
+              "          final landscapeFind = _game == PreviewGame.findDifferences;\n          final logicalWidth = landscapeFind ? 844.0 : 390.0;\n          final logicalHeight = landscapeFind ? 390.0 : 844.0;",
+          )
+          s = s.replace(
+              'final scale = sx < sy ? sx.clamp(0.6, 1.0) : sy.clamp(0.6, 1.0);',
+              'final scale = sx < sy ? sx.clamp(0.35, 1.0) : sy.clamp(0.35, 1.0);',
+          )
+          main.write_text(s)
+
+          find = Path('lib/features/minigames/presentation/first4/find_differences_game.dart')
+          s = find.read_text()
+          s = s.replace(
+              "        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: CustomPaint(\n            painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n          ),\n        ),",
+              "        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: SizedBox.expand(\n            child: CustomPaint(\n              painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n            ),\n          ),\n        ),",
+          )
+          find.write_text(s)
           PY
+          grep -q "landscapeFind ? 844.0 : 390.0" lib/preview_first4_main.dart
+          grep -q "SizedBox.expand" lib/features/minigames/presentation/first4/find_differences_game.dart
           grep -q "الحركات" lib/features/minigames/presentation/first4/key_escape_game.dart
           grep -q "الأخطاء" lib/features/minigames/presentation/first4/key_escape_game.dart
           grep -q "الجولة" lib/features/minigames/presentation/first4/key_escape_game.dart
@@ -94,5 +116,5 @@ jobs:
           cp -R /tmp/first4-web/. .
           touch .nojekyll
           git add -A
-          git commit -m "deploy: original first four games Flutter Web"
+          git commit -m "deploy: first four games with landscape differences preview"
           git push origin HEAD:first4-web-live --force
