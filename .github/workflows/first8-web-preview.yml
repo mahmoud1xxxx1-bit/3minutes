@@ -1,0 +1,149 @@
+name: First 8 Games Web Preview
+
+on:
+  push:
+    branches:
+      - preview/first-4-games-web
+    paths:
+      - 'lib/preview_first8_main.dart'
+      - 'preview_sources/**'
+      - '.github/workflows/first8-web-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: first8-web-preview
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Restore first four supplied sources
+        run: |
+          rm -rf /tmp/first4-original /tmp/missing_games.tgz /tmp/missing_games.b64
+          cat preview_sources/missing_games.b64.00 preview_sources/missing_games.b64.01 preview_sources/missing_games.b64.02a preview_sources/missing_games.b64.02b preview_sources/missing_games.b64.03 preview_sources/missing_games.b64.04 preview_sources/missing_games.b64.05 > /tmp/missing_games.b64
+          test "$(wc -c < /tmp/missing_games.b64)" -eq 37996
+          base64 -d /tmp/missing_games.b64 > /tmp/missing_games.tgz
+          echo "66aff88f745e6748cbde457737ed43bcfc479534d0b0f6bd5034562b676744a3  /tmp/missing_games.tgz" | sha256sum -c -
+          mkdir -p /tmp/first4-original
+          tar -xzf /tmp/missing_games.tgz -C /tmp/first4-original
+          cp /tmp/first4-original/key_escape/key_escape_game.dart lib/features/minigames/presentation/first4/key_escape_game.dart
+          cp /tmp/first4-original/key_escape/key_escape_levels.dart lib/features/minigames/presentation/first4/key_escape_levels.dart
+          cp /tmp/first4-original/level_devil/level_devil_host.dart lib/features/minigames/presentation/first4/level_devil_host.dart
+          cp /tmp/first4-original/level_devil/troll_game.dart lib/features/minigames/presentation/first4/troll_game.dart
+          cp /tmp/first4-original/level_devil/troll_engine.dart lib/features/minigames/presentation/first4/troll_engine.dart
+
+      - name: Restore and verify games 5 to 7 supplied sources
+        run: |
+          rm -rf /tmp/games57 /tmp/games57.tgz /tmp/games57.b64
+          cat preview_sources/games_5_8_core.b64.00 preview_sources/games_5_8_core.b64.01 > /tmp/games57.b64
+          test "$(wc -c < /tmp/games57.b64)" -eq 20800
+          base64 -d /tmp/games57.b64 > /tmp/games57.tgz
+          echo "edcb5ca50be3d5ef28cd4cb49ccb4edc081eb3335d1eb431b6e4210a736cfa69  /tmp/games57.tgz" | sha256sum -c -
+          mkdir -p /tmp/games57
+          tar -xzf /tmp/games57.tgz -C /tmp/games57
+          mkdir -p lib/features/minigames/presentation/mole_strike lib/features/minigames/presentation/ninja_slice lib/features/minigames/presentation/onet_connect
+          cp /tmp/games57/mole_strike/mole_strike_game.dart lib/features/minigames/presentation/mole_strike/
+          cp /tmp/games57/ninja_slice/ninja_slice_game.dart lib/features/minigames/presentation/ninja_slice/
+          cp /tmp/games57/onet_connect/onet_connect_game.dart lib/features/minigames/presentation/onet_connect/
+
+      - run: flutter pub get
+
+      - name: Apply integration-only adapters and bilingual copy
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          cup = Path('lib/features/minigames/presentation/first4/follow_the_cup_game.dart')
+          s = cup.read_text()
+          s = s.replace('late int _ballCupIndex;', 'int _ballCupIndex = 0;')
+          s = s.replace('late List<int> _currentPositions;', 'List<int> _currentPositions = <int>[0, 1, 2];')
+          s = s.replace('late List<int> _targetPositions;', 'List<int> _targetPositions = <int>[0, 1, 2];')
+          cup.write_text(s)
+
+          key = Path('lib/features/minigames/presentation/first4/key_escape_game.dart')
+          s = key.read_text()
+          s = s.replace("  void _nextPuzzle() {\n    setState(() {", "  void _nextPuzzle() {\n    MinigameEnvironment.of(context).updateScore((((_puzzleInStage + 1) * 1000) / 3).round());\n    setState(() {")
+          s = s.replace('score: 100,', 'score: 1000,')
+          s = s.replace("'Round ${_puzzleInStage + 1} / 3'", "Localizations.localeOf(context).languageCode == 'ar' ? 'الجولة ${_puzzleInStage + 1} / 3' : 'Round ${_puzzleInStage + 1} / 3'")
+          key.write_text(s)
+
+          find = Path('lib/features/minigames/presentation/first4/find_differences_game.dart')
+          s = find.read_text()
+          s = s.replace("        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: CustomPaint(\n            painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n          ),\n        ),", "        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: SizedBox.expand(\n            child: CustomPaint(\n              painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n            ),\n          ),\n        ),")
+          find.write_text(s)
+
+          mole = Path('lib/features/minigames/presentation/mole_strike/mole_strike_game.dart')
+          s = mole.read_text()
+          s = s.replace('  int _mistakes = 0;\n  int _combo = 0;', '  int _mistakes = 0;\n  int _successfulHits = 0;\n  int _attempts = 0;\n  int _combo = 0;')
+          s = s.replace('          accuracy: 1.0,', '          accuracy: _attempts == 0 ? 0.0 : (_successfulHits / _attempts).clamp(0.0, 1.0),')
+          s = s.replace('    setState(() {\n      _mallets.add(', '    setState(() {\n      _attempts++;\n      _mallets.add(')
+          s = s.replace('      if (result == HitResult.decoy) {', '      if (result == HitResult.miss) {\n        _mistakes++;\n        _combo = 0;\n      } else if (result == HitResult.decoy) {')
+          s = s.replace('      } else if (result == HitResult.hit) {\n        _combo++;', '      } else if (result == HitResult.hit) {\n        _successfulHits++;\n        _combo++;')
+          s = s.replace('      } else if (result == HitResult.golden) {\n        _combo += 2;', '      } else if (result == HitResult.golden) {\n        _successfulHits++;\n        _combo += 2;')
+          s = s.replace("'Score: $_score'", "Localizations.localeOf(context).languageCode == 'ar' ? 'النقاط: $_score' : 'Score: $_score'")
+          s = s.replace("'Mistakes: $_mistakes'", "Localizations.localeOf(context).languageCode == 'ar' ? 'الأخطاء: $_mistakes' : 'Mistakes: $_mistakes'")
+          s = s.replace('_spawnText("GOLD!", Colors.yellowAccent);', "_spawnText(Localizations.localeOf(context).languageCode == 'ar' ? 'ذهبي!' : 'GOLD!', Colors.yellowAccent);")
+          mole.write_text(s)
+
+          ninja = Path('lib/features/minigames/presentation/ninja_slice/ninja_slice_game.dart')
+          s = ninja.read_text()
+          if "../shared/minigame_environment.dart" not in s:
+            s = s.replace("import '../../domain/mini_game_contract.dart';", "import '../../domain/mini_game_contract.dart';\nimport '../shared/minigame_environment.dart';")
+          s = s.replace('          score += 10;\n          totalSliced++;', '          score += 10;\n          MinigameEnvironment.of(context).updateScore(score.clamp(0, 1000));\n          totalSliced++;')
+          s = s.replace('            score += currentCombo * 5; // Bonus points', '            score += currentCombo * 5; // Bonus points\n            MinigameEnvironment.of(context).updateScore(score.clamp(0, 1000));')
+          s = s.replace('"COMBO x$currentCombo!"', "Localizations.localeOf(context).languageCode == 'ar' ? 'كومبو x$currentCombo!' : 'COMBO x$currentCombo!'")
+          s = s.replace('"FREEZE!"', "Localizations.localeOf(context).languageCode == 'ar' ? 'تجميد!' : 'FREEZE!'")
+          s = s.replace('"FRENZY!"', "Localizations.localeOf(context).languageCode == 'ar' ? 'هيجان!' : 'FRENZY!'")
+          s = s.replace('"SCORE: $score\\nDIFF: ${difficultyMultiplier}x"', "Localizations.localeOf(context).languageCode == 'ar' ? 'النقاط: $score\\nالصعوبة: ${difficultyMultiplier}x' : 'SCORE: $score\\nDIFF: ${difficultyMultiplier}x'")
+          s = s.replace('isVictory ? "STAGE CLEARED!" : "GAME OVER"', "isVictory ? (Localizations.localeOf(context).languageCode == 'ar' ? 'تم اجتياز المرحلة!' : 'STAGE CLEARED!') : (Localizations.localeOf(context).languageCode == 'ar' ? 'انتهت اللعبة' : 'GAME OVER')")
+          ninja.write_text(s)
+
+          onet = Path('lib/features/minigames/presentation/onet_connect/onet_connect_game.dart')
+          s = onet.read_text()
+          if "../shared/minigame_environment.dart" not in s:
+            s = s.replace("import '../../domain/mini_game_contract.dart';", "import '../../domain/mini_game_contract.dart';\nimport '../shared/minigame_environment.dart';")
+          s = s.replace('  int _score = 0;', '  int _score = 0;\n  int _mistakes = 0;')
+          old = """    if (win && widget.onComplete != null) {\n      widget.onComplete!(\n        MiniGameResult(\n          completed: true,\n          score: _score,\n          accuracy: 1.0,\n          mistakes: 0,\n          duration: DateTime.now().difference(_startTime),\n        ),\n      );\n    }"""
+          new = """    if (win && widget.onComplete != null) {\n      final elapsed = DateTime.now().difference(_startTime);\n      final speedBonus = (200 - elapsed.inSeconds * 2).clamp(0, 200);\n      final toolBonus = (_hints * 40) + (_shuffles * 60);\n      final points = (560 + speedBonus + toolBonus).clamp(0, 1000);\n      final accuracy = 28 / (28 + _mistakes);\n      widget.onComplete!(\n        MiniGameResult(\n          completed: true,\n          score: points,\n          accuracy: accuracy.clamp(0.0, 1.0),\n          mistakes: _mistakes,\n          duration: elapsed,\n        ),\n      );\n    }"""
+          s = s.replace(old, new)
+          s = s.replace('        } else {\n          _selected = tappedTile;\n        }\n      }', '        } else {\n          _mistakes++;\n          _selected = tappedTile;\n        }\n      }', 1)
+          s = s.replace('    _score += 10 * _comboCount;', "    _score += 10 * _comboCount;\n    MinigameEnvironment.of(context).updateScore(((_tiles.where((t) => t.isMatched).length / 56) * 560).round());")
+          s = s.replace('_spawnComboText("COMBO x$_comboCount!");', "_spawnComboText(Localizations.localeOf(context).languageCode == 'ar' ? 'كومبو x$_comboCount!' : 'COMBO x$_comboCount!');")
+          s = s.replace("const Text('SCORE', style:", "Text(Localizations.localeOf(context).languageCode == 'ar' ? 'النقاط' : 'SCORE', style:")
+          onet.write_text(s)
+          PY
+
+      - name: Analyze first eight preview
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/preview_first8_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/mole_strike lib/features/minigames/presentation/ninja_slice lib/features/minigames/presentation/onet_connect lib/features/minigames/presentation/shared/minigame_environment.dart
+
+      - name: Build Flutter Web
+        run: |
+          flutter build web --release -t lib/preview_first8_main.dart --base-href "/"
+          sed -i 's#<base href="/">#<base href="./">#' build/web/index.html
+
+      - name: Publish first eight web build
+        run: |
+          rm -rf /tmp/first8-web
+          mkdir -p /tmp/first8-web
+          cp -R build/web/. /tmp/first8-web/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan first8-web-live
+          git rm -rf . || true
+          git clean -fdx
+          cp -R /tmp/first8-web/. .
+          touch .nojekyll
+          git add -A
+          git commit -m "deploy: seven playable games plus mirror asset gate"
+          git push origin HEAD:first8-web-live --force
