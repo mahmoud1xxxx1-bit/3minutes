@@ -1,0 +1,1 @@
+Trigger First 8 Games Web Preview build after integrating games 5-7 sources and bilingual adapters.
