@@ -8,6 +8,7 @@ on:
       - 'lib/preview_first4_main.dart'
       - 'lib/features/minigames/presentation/first4/**'
       - 'lib/features/minigames/presentation/shared/minigame_environment.dart'
+      - 'preview_sources/**'
       - '.github/workflows/first4-web-preview.yml'
   workflow_dispatch:
 
@@ -28,8 +29,18 @@ jobs:
           flutter-version: '3.44.0'
           channel: stable
           cache: true
+      - name: Restore supplied original game sources
+        run: |
+          rm -rf /tmp/first4-original
+          mkdir -p /tmp/first4-original
+          tar -xzf preview_sources/missing_games.tgz -C /tmp/first4-original
+          cp /tmp/first4-original/key_escape/key_escape_game.dart lib/features/minigames/presentation/first4/key_escape_game.dart
+          cp /tmp/first4-original/key_escape/key_escape_levels.dart lib/features/minigames/presentation/first4/key_escape_levels.dart
+          cp /tmp/first4-original/level_devil/level_devil_host.dart lib/features/minigames/presentation/first4/level_devil_host.dart
+          cp /tmp/first4-original/level_devil/troll_game.dart lib/features/minigames/presentation/first4/troll_game.dart
+          cp /tmp/first4-original/level_devil/troll_engine.dart lib/features/minigames/presentation/first4/troll_engine.dart
       - run: flutter pub get
-      - name: Apply preview-only safety and score adapters
+      - name: Apply integration-only adapters
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -41,15 +52,21 @@ jobs:
           s = s.replace('late List<int> _targetPositions;', 'List<int> _targetPositions = <int>[0, 1, 2];')
           cup.write_text(s)
 
-          main = Path('lib/preview_first4_main.dart')
-          s = main.read_text()
+          key = Path('lib/features/minigames/presentation/first4/key_escape_game.dart')
+          s = key.read_text()
           s = s.replace(
-              'final points = result.score.clamp(0, 1000);',
-              "final points = _game == PreviewGame.findDifferences\n"
-              "        ? (result.score * 10).clamp(0, 1000)\n"
-              "        : result.score.clamp(0, 1000);",
+              "  void _nextPuzzle() {\n    setState(() {",
+              "  void _nextPuzzle() {\n    MinigameEnvironment.of(context).updateScore((((_puzzleInStage + 1) * 1000) / 3).round());\n    setState(() {",
           )
-          main.write_text(s)
+          s = s.replace('score: 100,', 'score: 1000,')
+          s = s.replace(
+              "'Round ${_puzzleInStage + 1} / 3'",
+              "Localizations.localeOf(context).languageCode == 'ar' ? 'الجولة ${_puzzleInStage + 1} / 3' : 'Round ${_puzzleInStage + 1} / 3'",
+          )
+          s = s.replace("const Text(\n                          'MOVES',", "Text(\n                          Localizations.localeOf(context).languageCode == 'ar' ? 'الحركات' : 'MOVES',")
+          s = s.replace("const Text(\n                          'MISTAKES',", "Text(\n                          Localizations.localeOf(context).languageCode == 'ar' ? 'الأخطاء' : 'MISTAKES',")
+          s = s.replace("_roundWon ? 'SOLVED!' : 'FAILED!'", "_roundWon ? (Localizations.localeOf(context).languageCode == 'ar' ? 'تم الحل!' : 'SOLVED!') : (Localizations.localeOf(context).languageCode == 'ar' ? 'فشل!' : 'FAILED!')")
+          key.write_text(s)
           PY
       - name: Analyze preview source
         run: flutter analyze lib/preview_first4_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/shared/minigame_environment.dart
@@ -70,5 +87,5 @@ jobs:
           cp -R /tmp/first4-web/. .
           touch .nojekyll
           git add -A
-          git commit -m "deploy: original first games Flutter Web"
+          git commit -m "deploy: original first four games Flutter Web"
           git push origin HEAD:first4-web-live --force
