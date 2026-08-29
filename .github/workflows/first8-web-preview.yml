@@ -44,13 +44,13 @@ jobs:
           cp /tmp/first4-original/level_devil/troll_game.dart lib/features/minigames/presentation/first4/troll_game.dart
           cp /tmp/first4-original/level_devil/troll_engine.dart lib/features/minigames/presentation/first4/troll_engine.dart
 
-      - name: Restore games 5 to 7 supplied sources
+      - name: Restore verified games 5 to 7 supplied sources
         run: |
           rm -rf /tmp/games57 /tmp/games57.tgz /tmp/games57.b64
-          cat preview_sources/games_5_8_core.b64.00 preview_sources/games_5_8_core.b64.01 > /tmp/games57.b64
-          test "$(wc -c < /tmp/games57.b64)" -eq 14979
+          cat preview_sources/games_5_7_clean.b64.00 preview_sources/games_5_7_clean.b64.01 preview_sources/games_5_7_clean.b64.02 > /tmp/games57.b64
+          test "$(wc -c < /tmp/games57.b64)" -eq 21012
           base64 -d /tmp/games57.b64 > /tmp/games57.tgz
-          echo "a7afd0ce754dde20edb53ace38444ad3e321e0c3fae3bf57b0d88d55ca3714d6  /tmp/games57.tgz" | sha256sum -c -
+          echo "670d58a61abae781273de86e943c453e527218680200ad332d8303dcafc49841  /tmp/games57.tgz" | sha256sum -c -
           mkdir -p /tmp/games57
           tar -xzf /tmp/games57.tgz -C /tmp/games57
           test -f /tmp/games57/mole_strike/mole_strike_game.dart
