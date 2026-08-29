@@ -1,4 +1,4 @@
-name: First 4 Games Web Preview
+name: First 8 Games Web Preview
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: first4-web-preview
+  group: first8-web-preview
   cancel-in-progress: true
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
           cache: true
       - name: Restore and verify supplied original game sources
         run: |
-          rm -rf /tmp/first4-original /tmp/missing_games.tgz /tmp/missing_games.b64
+          rm -rf /tmp/first4-original /tmp/missing_games.tgz /tmp/missing_games.b64 /tmp/games57
           cat preview_sources/missing_games.b64.00 preview_sources/missing_games.b64.01 preview_sources/missing_games.b64.02a preview_sources/missing_games.b64.02b preview_sources/missing_games.b64.03 preview_sources/missing_games.b64.04 preview_sources/missing_games.b64.05 > /tmp/missing_games.b64
           test "$(wc -c < /tmp/missing_games.b64)" -eq 37996
           base64 -d /tmp/missing_games.b64 > /tmp/missing_games.tgz
@@ -43,6 +43,15 @@ jobs:
           cp /tmp/first4-original/level_devil/level_devil_host.dart lib/features/minigames/presentation/first4/level_devil_host.dart
           cp /tmp/first4-original/level_devil/troll_game.dart lib/features/minigames/presentation/first4/troll_game.dart
           cp /tmp/first4-original/level_devil/troll_engine.dart lib/features/minigames/presentation/first4/troll_engine.dart
+
+          mkdir -p /tmp/games57
+          tar -xzf preview_sources/games_5_7_clean.tgz -C /tmp/games57
+          test -f /tmp/games57/mole_strike/mole_strike_game.dart
+          test -f /tmp/games57/ninja_slice/ninja_slice_game.dart
+          test -f /tmp/games57/onet_connect/onet_connect_game.dart
+          cp /tmp/games57/mole_strike/mole_strike_game.dart lib/features/minigames/presentation/first4/mole_strike_game.dart
+          cp /tmp/games57/ninja_slice/ninja_slice_game.dart lib/features/minigames/presentation/first4/ninja_slice_game.dart
+          cp /tmp/games57/onet_connect/onet_connect_game.dart lib/features/minigames/presentation/first4/onet_connect_game.dart
       - run: flutter pub get
       - name: Apply integration-only adapters
         run: |
@@ -74,6 +83,22 @@ jobs:
 
           main = Path('lib/preview_first4_main.dart')
           s = main.read_text()
+          s = s.replace("import 'features/minigames/presentation/first4/level_devil_host.dart';", "import 'features/minigames/presentation/first4/level_devil_host.dart';\nimport 'features/minigames/presentation/first4/mole_strike_game.dart';\nimport 'features/minigames/presentation/first4/ninja_slice_game.dart';\nimport 'features/minigames/presentation/first4/onet_connect_game.dart';")
+          s = s.replace("title: '3 Minutes · First 4 Games',", "title: '3 Minutes · First 8 Games',")
+          s = s.replace('enum PreviewGame { followCup, findDifferences, keyEscape, levelDevil }', 'enum PreviewGame { followCup, findDifferences, keyEscape, levelDevil, moleStrike, ninjaSlice, onetConnect }')
+          s = s.replace(
+              "      _GameCard(\n        title: t('مرحلة الشيطان', 'Level Devil'),\n        subtitle: t('3 جولات متتابعة من الفصل المختار مع فخاخ وتحكم كامل.', '3 consecutive rounds from one chapter with traps and full controls.'),\n        meta: t('3 جولات · مهارة', '3 ROUNDS · SKILL'),\n        icon: Icons.sports_esports_rounded,\n        onTap: () => _start(PreviewGame.levelDevil),\n      ),\n    ];",
+              "      _GameCard(\n        title: t('مرحلة الشيطان', 'Level Devil'),\n        subtitle: t('3 جولات متتابعة من الفصل المختار مع فخاخ وتحكم كامل.', '3 consecutive rounds from one chapter with traps and full controls.'),\n        meta: t('3 جولات · مهارة', '3 ROUNDS · SKILL'),\n        icon: Icons.sports_esports_rounded,\n        onTap: () => _start(PreviewGame.levelDevil),\n      ),\n      _GameCard(\n        title: t('ضربة الخلد', 'Mole Strike'),\n        subtitle: t('اضرب الأهداف بسرعة، حافظ على الكومبو وتجنب الأهداف الخادعة.', 'Strike targets quickly, build combos, and avoid decoys.'),\n        meta: t('30 ثانية · سرعة', '30 SEC · REFLEX'),\n        icon: Icons.sports_martial_arts_rounded,\n        onTap: () => _start(PreviewGame.moleStrike),\n      ),\n      _GameCard(\n        title: t('تقطيع النينجا', 'Ninja Slice'),\n        subtitle: t('اقطع الأهداف بحركة السحب وتجنب الأطباق الخطرة.', 'Swipe through targets and avoid dangerous plates.'),\n        meta: t('مهارة · دقة', 'SKILL · ACCURACY'),\n        icon: Icons.gesture_rounded,\n        onTap: () => _start(PreviewGame.ninjaSlice),\n      ),\n      _GameCard(\n        title: t('توصيل الأزواج', 'Onet Connect'),\n        subtitle: t('اربط الأزواج المتطابقة وأفرغ اللوحة بأقل مساعدة ممكنة.', 'Connect matching pairs and clear the board with minimal help.'),\n        meta: t('28 زوجًا · ألغاز', '28 PAIRS · PUZZLE'),\n        icon: Icons.hub_outlined,\n        onTap: () => _start(PreviewGame.onetConnect),\n      ),\n      _GameCard(\n        title: t('التحكم المعكوس', 'Mirror Control'),\n        subtitle: t('المصدر الكامل موجود، لكن التشغيل ينتظر الصور الأصلية الثلاث المطلوبة.', 'Full source is preserved; runtime awaits the three required original images.'),\n        meta: t('ينقص 3 صور أصلية', '3 ORIGINAL ASSETS MISSING'),\n        icon: Icons.flip_rounded,\n        onTap: () => showDialog<void>(\n          context: context,\n          builder: (context) => AlertDialog(\n            backgroundColor: const Color(0xFF0B1120),\n            title: Text(t('Mirror Control', 'Mirror Control')),\n            content: Text(t('لن أشغل اللعبة برسومات بديلة. أرسل player.png و enemy.png و target.png الأصلية لتفعيلها.', 'I will not run this game with replacement artwork. Send the original player.png, enemy.png and target.png to enable it.')),\n            actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(t('حسنًا', 'OK')))],\n          ),\n        ),\n      ),\n    ];"
+          )
+          s = s.replace("Text(t('الألعاب الأربع', 'FIRST FOUR GAMES')", "Text(t('الألعاب الثماني', 'FIRST EIGHT GAMES')")
+          s = s.replace(
+              "      case PreviewGame.levelDevil:\n        return t('مرحلة الشيطان', 'Level Devil');",
+              "      case PreviewGame.levelDevil:\n        return t('مرحلة الشيطان', 'Level Devil');\n      case PreviewGame.moleStrike:\n        return t('ضربة الخلد', 'Mole Strike');\n      case PreviewGame.ninjaSlice:\n        return t('تقطيع النينجا', 'Ninja Slice');\n      case PreviewGame.onetConnect:\n        return t('توصيل الأزواج', 'Onet Connect');"
+          )
+          s = s.replace(
+              "      case PreviewGame.levelDevil:\n        return LevelDevilHost(key: ValueKey('devil-$_seed'), config: config, onComplete: _finish);",
+              "      case PreviewGame.levelDevil:\n        return LevelDevilHost(key: ValueKey('devil-$_seed'), config: config, onComplete: _finish);\n      case PreviewGame.moleStrike:\n        return MoleStrikeGame(key: ValueKey('mole-$_seed'), config: config, onComplete: _finish);\n      case PreviewGame.ninjaSlice:\n        return NinjaSliceGame(key: ValueKey('ninja-$_seed'), config: config, onComplete: _finish);\n      case PreviewGame.onetConnect:\n        return OnetConnectGame(key: ValueKey('onet-$_seed'), config: config, onComplete: _finish);"
+          )
           s = s.replace(
               '          const logicalWidth = 390.0;\n          const logicalHeight = 844.0;',
               "          final landscapeFind = _game == PreviewGame.findDifferences;\n          final logicalWidth = landscapeFind ? 844.0 : 390.0;\n          final logicalHeight = landscapeFind ? 390.0 : 844.0;",
@@ -92,6 +117,10 @@ jobs:
           )
           find.write_text(s)
           PY
+          grep -q "PreviewGame.moleStrike" lib/preview_first4_main.dart
+          grep -q "PreviewGame.ninjaSlice" lib/preview_first4_main.dart
+          grep -q "PreviewGame.onetConnect" lib/preview_first4_main.dart
+          grep -q "Mirror Control" lib/preview_first4_main.dart
           grep -q "landscapeFind ? 844.0 : 390.0" lib/preview_first4_main.dart
           grep -q "SizedBox.expand" lib/features/minigames/presentation/first4/find_differences_game.dart
           grep -q "الحركات" lib/features/minigames/presentation/first4/key_escape_game.dart
@@ -105,16 +134,16 @@ jobs:
           sed -i 's#<base href="/">#<base href="./">#' build/web/index.html
       - name: Publish immutable web build branch
         run: |
-          rm -rf /tmp/first4-web
-          mkdir -p /tmp/first4-web
-          cp -R build/web/. /tmp/first4-web/
+          rm -rf /tmp/first8-web
+          mkdir -p /tmp/first8-web
+          cp -R build/web/. /tmp/first8-web/
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout --orphan first4-web-live
           git rm -rf . || true
           git clean -fdx
-          cp -R /tmp/first4-web/. .
+          cp -R /tmp/first8-web/. .
           touch .nojekyll
           git add -A
-          git commit -m "deploy: first four games with landscape differences preview"
+          git commit -m "deploy: first eight games preview (Mirror asset-gated)"
           git push origin HEAD:first4-web-live --force
