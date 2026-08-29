@@ -6,6 +6,7 @@ on:
       - preview/first-4-games-web
     paths:
       - 'lib/preview_first8_main.dart'
+      - 'lib/features/minigames/presentation/first4/**'
       - 'preview_sources/**'
       - '.github/workflows/first8-web-preview.yml'
   workflow_dispatch:
@@ -43,15 +44,18 @@ jobs:
           cp /tmp/first4-original/level_devil/troll_game.dart lib/features/minigames/presentation/first4/troll_game.dart
           cp /tmp/first4-original/level_devil/troll_engine.dart lib/features/minigames/presentation/first4/troll_engine.dart
 
-      - name: Restore and verify games 5 to 7 supplied sources
+      - name: Restore verified games 5 to 7 supplied sources
         run: |
           rm -rf /tmp/games57 /tmp/games57.tgz /tmp/games57.b64
-          cat preview_sources/games_5_8_core.b64.00 preview_sources/games_5_8_core.b64.01 > /tmp/games57.b64
-          test "$(wc -c < /tmp/games57.b64)" -eq 14979
+          cat preview_sources/games_5_7_clean.b64.00 preview_sources/games_5_7_clean.b64.01 preview_sources/games_5_7_clean.b64.02 > /tmp/games57.b64
+          test "$(wc -c < /tmp/games57.b64)" -eq 21012
           base64 -d /tmp/games57.b64 > /tmp/games57.tgz
-          echo "a7afd0ce754dde20edb53ace38444ad3e321e0c3fae3bf57b0d88d55ca3714d6  /tmp/games57.tgz" | sha256sum -c -
+          echo "670d58a61abae781273de86e943c453e527218680200ad332d8303dcafc49841  /tmp/games57.tgz" | sha256sum -c -
           mkdir -p /tmp/games57
           tar -xzf /tmp/games57.tgz -C /tmp/games57
+          test -f /tmp/games57/mole_strike/mole_strike_game.dart
+          test -f /tmp/games57/ninja_slice/ninja_slice_game.dart
+          test -f /tmp/games57/onet_connect/onet_connect_game.dart
           mkdir -p lib/features/minigames/presentation/mole_strike lib/features/minigames/presentation/ninja_slice lib/features/minigames/presentation/onet_connect
           cp /tmp/games57/mole_strike/mole_strike_game.dart lib/features/minigames/presentation/mole_strike/
           cp /tmp/games57/ninja_slice/ninja_slice_game.dart lib/features/minigames/presentation/ninja_slice/
@@ -59,7 +63,7 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Apply integration-only adapters and bilingual copy
+      - name: Apply integration-only compatibility adapters
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -83,45 +87,15 @@ jobs:
           s = s.replace("        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: CustomPaint(\n            painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n          ),\n        ),", "        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: SizedBox.expand(\n            child: CustomPaint(\n              painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n            ),\n          ),\n        ),")
           find.write_text(s)
 
-          mole = Path('lib/features/minigames/presentation/mole_strike/mole_strike_game.dart')
-          s = mole.read_text()
-          s = s.replace('  int _mistakes = 0;\n  int _combo = 0;', '  int _mistakes = 0;\n  int _successfulHits = 0;\n  int _attempts = 0;\n  int _combo = 0;')
-          s = s.replace('          accuracy: 1.0,', '          accuracy: _attempts == 0 ? 0.0 : (_successfulHits / _attempts).clamp(0.0, 1.0),')
-          s = s.replace('    setState(() {\n      _mallets.add(', '    setState(() {\n      _attempts++;\n      _mallets.add(')
-          s = s.replace('      if (result == HitResult.decoy) {', '      if (result == HitResult.miss) {\n        _mistakes++;\n        _combo = 0;\n      } else if (result == HitResult.decoy) {')
-          s = s.replace('      } else if (result == HitResult.hit) {\n        _combo++;', '      } else if (result == HitResult.hit) {\n        _successfulHits++;\n        _combo++;')
-          s = s.replace('      } else if (result == HitResult.golden) {\n        _combo += 2;', '      } else if (result == HitResult.golden) {\n        _successfulHits++;\n        _combo += 2;')
-          s = s.replace("'Score: $_score'", "Localizations.localeOf(context).languageCode == 'ar' ? 'النقاط: $_score' : 'Score: $_score'")
-          s = s.replace("'Mistakes: $_mistakes'", "Localizations.localeOf(context).languageCode == 'ar' ? 'الأخطاء: $_mistakes' : 'Mistakes: $_mistakes'")
-          s = s.replace('_spawnText("GOLD!", Colors.yellowAccent);', "_spawnText(Localizations.localeOf(context).languageCode == 'ar' ? 'ذهبي!' : 'GOLD!', Colors.yellowAccent);")
-          mole.write_text(s)
-
-          ninja = Path('lib/features/minigames/presentation/ninja_slice/ninja_slice_game.dart')
-          s = ninja.read_text()
-          if "../shared/minigame_environment.dart" not in s:
-            s = s.replace("import '../../domain/mini_game_contract.dart';", "import '../../domain/mini_game_contract.dart';\nimport '../shared/minigame_environment.dart';")
-          s = s.replace('          score += 10;\n          totalSliced++;', '          score += 10;\n          MinigameEnvironment.of(context).updateScore(score.clamp(0, 1000));\n          totalSliced++;')
-          s = s.replace('            score += currentCombo * 5; // Bonus points', '            score += currentCombo * 5; // Bonus points\n            MinigameEnvironment.of(context).updateScore(score.clamp(0, 1000));')
-          s = s.replace('"COMBO x$currentCombo!"', "Localizations.localeOf(context).languageCode == 'ar' ? 'كومبو x$currentCombo!' : 'COMBO x$currentCombo!'")
-          s = s.replace('"FREEZE!"', "Localizations.localeOf(context).languageCode == 'ar' ? 'تجميد!' : 'FREEZE!'")
-          s = s.replace('"FRENZY!"', "Localizations.localeOf(context).languageCode == 'ar' ? 'هيجان!' : 'FRENZY!'")
-          s = s.replace('"SCORE: $score\\nDIFF: ${difficultyMultiplier}x"', "Localizations.localeOf(context).languageCode == 'ar' ? 'النقاط: $score\\nالصعوبة: ${difficultyMultiplier}x' : 'SCORE: $score\\nDIFF: ${difficultyMultiplier}x'")
-          s = s.replace('isVictory ? "STAGE CLEARED!" : "GAME OVER"', "isVictory ? (Localizations.localeOf(context).languageCode == 'ar' ? 'تم اجتياز المرحلة!' : 'STAGE CLEARED!') : (Localizations.localeOf(context).languageCode == 'ar' ? 'انتهت اللعبة' : 'GAME OVER')")
-          ninja.write_text(s)
-
-          onet = Path('lib/features/minigames/presentation/onet_connect/onet_connect_game.dart')
-          s = onet.read_text()
-          if "../shared/minigame_environment.dart" not in s:
-            s = s.replace("import '../../domain/mini_game_contract.dart';", "import '../../domain/mini_game_contract.dart';\nimport '../shared/minigame_environment.dart';")
-          s = s.replace('  int _score = 0;', '  int _score = 0;\n  int _mistakes = 0;')
-          old = """    if (win && widget.onComplete != null) {\n      widget.onComplete!(\n        MiniGameResult(\n          completed: true,\n          score: _score,\n          accuracy: 1.0,\n          mistakes: 0,\n          duration: DateTime.now().difference(_startTime),\n        ),\n      );\n    }"""
-          new = """    if (win && widget.onComplete != null) {\n      final elapsed = DateTime.now().difference(_startTime);\n      final speedBonus = (200 - elapsed.inSeconds * 2).clamp(0, 200);\n      final toolBonus = (_hints * 40) + (_shuffles * 60);\n      final points = (560 + speedBonus + toolBonus).clamp(0, 1000);\n      final accuracy = 28 / (28 + _mistakes);\n      widget.onComplete!(\n        MiniGameResult(\n          completed: true,\n          score: points,\n          accuracy: accuracy.clamp(0.0, 1.0),\n          mistakes: _mistakes,\n          duration: elapsed,\n        ),\n      );\n    }"""
-          s = s.replace(old, new)
-          s = s.replace('        } else {\n          _selected = tappedTile;\n        }\n      }', '        } else {\n          _mistakes++;\n          _selected = tappedTile;\n        }\n      }', 1)
-          s = s.replace('    _score += 10 * _comboCount;', "    _score += 10 * _comboCount;\n    MinigameEnvironment.of(context).updateScore(((_tiles.where((t) => t.isMatched).length / 56) * 560).round());")
-          s = s.replace('_spawnComboText("COMBO x$_comboCount!");', "_spawnComboText(Localizations.localeOf(context).languageCode == 'ar' ? 'كومبو x$_comboCount!' : 'COMBO x$_comboCount!');")
-          s = s.replace("const Text('SCORE', style:", "Text(Localizations.localeOf(context).languageCode == 'ar' ? 'النقاط' : 'SCORE', style:")
-          onet.write_text(s)
+          for folder, filename in [
+              ('ninja_slice', 'ninja_slice_game.dart'),
+              ('onet_connect', 'onet_connect_game.dart'),
+          ]:
+              p = Path(f'lib/features/minigames/presentation/{folder}/{filename}')
+              s = p.read_text()
+              if "../shared/minigame_environment.dart" not in s and "../../domain/mini_game_contract.dart" in s:
+                  s = s.replace("import '../../domain/mini_game_contract.dart';", "import '../../domain/mini_game_contract.dart';\nimport '../shared/minigame_environment.dart';")
+              p.write_text(s)
           PY
 
       - name: Analyze first eight preview
