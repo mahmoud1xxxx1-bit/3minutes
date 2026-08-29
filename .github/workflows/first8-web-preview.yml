@@ -49,7 +49,7 @@ jobs:
           cat preview_sources/games_5_8_core.b64.00 preview_sources/games_5_8_core.b64.01 > /tmp/games57.b64
           test "$(wc -c < /tmp/games57.b64)" -eq 20800
           base64 -d /tmp/games57.b64 > /tmp/games57.tgz
-          echo "edcb5ca50be3d5ef28cd4cb49ccb4edc081eb3335d1eb431b6e4210a736cfa69  /tmp/games57.tgz" | sha256sum -c -
+          echo "a7afd0ce754dde20edb53ace38444ad3e321e0c3fae3bf57b0d88d55ca3714d6  /tmp/games57.tgz" | sha256sum -c -
           mkdir -p /tmp/games57
           tar -xzf /tmp/games57.tgz -C /tmp/games57
           mkdir -p lib/features/minigames/presentation/mole_strike lib/features/minigames/presentation/ninja_slice lib/features/minigames/presentation/onet_connect
