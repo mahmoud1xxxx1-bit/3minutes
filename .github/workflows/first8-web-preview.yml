@@ -2,11 +2,9 @@ name: First 8 Games Web Preview
 
 on:
   push:
-    branches:
-      - preview/first-4-games-web
+    branches: [preview/first-4-games-web]
     paths:
       - 'lib/preview_first8_main.dart'
-      - 'lib/features/minigames/presentation/first4/**'
       - 'preview_sources/**'
       - '.github/workflows/first8-web-preview.yml'
   workflow_dispatch:
@@ -44,13 +42,43 @@ jobs:
           cp /tmp/first4-original/level_devil/troll_game.dart lib/features/minigames/presentation/first4/troll_game.dart
           cp /tmp/first4-original/level_devil/troll_engine.dart lib/features/minigames/presentation/first4/troll_engine.dart
 
-      - name: Restore verified games 5 to 7 supplied sources
+      - name: Recover and verify exact games 5 to 7 supplied archive
         run: |
-          rm -rf /tmp/games57 /tmp/games57.tgz /tmp/games57.b64
-          cat preview_sources/games_5_7_clean.b64.00 preview_sources/games_5_7_clean.b64.01 preview_sources/games_5_7_clean.b64.02 > /tmp/games57.b64
-          test "$(wc -c < /tmp/games57.b64)" -eq 21012
-          base64 -d /tmp/games57.b64 > /tmp/games57.tgz
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib
+
+          p0 = Path('preview_sources/games_5_7_clean.b64.00').read_text()
+          p1 = Path('preview_sources/games_5_7_clean.b64.01').read_text()
+          p2 = Path('preview_sources/games_5_7_clean.b64.02').read_text()
+          target = '670d58a61abae781273de86e943c453e527218680200ad332d8303dcafc49841'
+
+          candidates = []
+          if len(p1) == 7000:
+              candidates.append(p1)
+          elif len(p1) == 7003:
+              for i in range(len(p1) - 2):
+                  candidates.append(p1[:i] + p1[i+3:])
+          else:
+              raise SystemExit(f'unexpected chunk01 length: {len(p1)}')
+
+          for fixed in candidates:
+              text = p0 + fixed + p2
+              if len(text) != 21012:
+                  continue
+              try:
+                  data = base64.b64decode(text, validate=True)
+              except Exception:
+                  continue
+              if hashlib.sha256(data).hexdigest() == target:
+                  Path('/tmp/games57.tgz').write_bytes(data)
+                  print('Recovered exact supplied archive:', target)
+                  break
+          else:
+              raise SystemExit('Could not recover archive to the supplied SHA-256')
+          PY
           echo "670d58a61abae781273de86e943c453e527218680200ad332d8303dcafc49841  /tmp/games57.tgz" | sha256sum -c -
+          rm -rf /tmp/games57
           mkdir -p /tmp/games57
           tar -xzf /tmp/games57.tgz -C /tmp/games57
           test -f /tmp/games57/mole_strike/mole_strike_game.dart
@@ -79,20 +107,12 @@ jobs:
           s = key.read_text()
           s = s.replace("  void _nextPuzzle() {\n    setState(() {", "  void _nextPuzzle() {\n    MinigameEnvironment.of(context).updateScore((((_puzzleInStage + 1) * 1000) / 3).round());\n    setState(() {")
           s = s.replace('score: 100,', 'score: 1000,')
-          s = s.replace("'Round ${_puzzleInStage + 1} / 3'", "Localizations.localeOf(context).languageCode == 'ar' ? 'الجولة ${_puzzleInStage + 1} / 3' : 'Round ${_puzzleInStage + 1} / 3'")
           key.write_text(s)
 
           find = Path('lib/features/minigames/presentation/first4/find_differences_game.dart')
           s = find.read_text()
           s = s.replace("        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: CustomPaint(\n            painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n          ),\n        ),", "        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: SizedBox.expand(\n            child: CustomPaint(\n              painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n            ),\n          ),\n        ),")
           find.write_text(s)
-
-          for folder, filename in [('ninja_slice', 'ninja_slice_game.dart'), ('onet_connect', 'onet_connect_game.dart')]:
-              p = Path(f'lib/features/minigames/presentation/{folder}/{filename}')
-              s = p.read_text()
-              if "../shared/minigame_environment.dart" not in s and "../../domain/mini_game_contract.dart" in s:
-                  s = s.replace("import '../../domain/mini_game_contract.dart';", "import '../../domain/mini_game_contract.dart';\nimport '../shared/minigame_environment.dart';")
-              p.write_text(s)
           PY
 
       - name: Analyze first eight preview
