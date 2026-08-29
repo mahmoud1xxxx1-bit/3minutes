@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../domain/mini_game_contract.dart';
 import '../../domain/path_rush_plan.dart';
 import '../mini_game_copy.dart';
+import '../shared/minigame_environment.dart';
 
 class PathRushGame extends StatefulWidget {
   const PathRushGame({super.key, required this.config, required this.onComplete});
@@ -72,8 +73,11 @@ class _PathRushGameState extends State<PathRushGame>
       _lastCorrect = ok;
       if (ok) {
         _correct++;
+        MinigameEnvironment.of(context).updateScore(_correct * 100);
+        MinigameEnvironment.of(context).playSuccess(Offset.zero);
       } else {
         _mistakes++;
+        MinigameEnvironment.of(context).playError(Offset.zero);
       }
     });
     await Future<void>.delayed(const Duration(milliseconds: 720));
@@ -110,125 +114,79 @@ class _PathRushGameState extends State<PathRushGame>
 
   @override
   Widget build(BuildContext context) {
-    final copy = MiniGameCopy.fromContext(context);
-    final family = (_round.familyIndex + 1).toString().padLeft(2, '0');
-    return Column(
-      children: [
-        Text(
-          copy.pathRushInstruction,
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w900),
+    MinigameEnvironment.of(context).updateTimeProgress((_watch.elapsedMilliseconds / 30000).clamp(0.0, 1.0));
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFF213B63)),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF07182E), Color(0xFF08182C), Color(0xFF07101E)],
         ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _PathPill(label: '${copy.followCupCorrect}: ${_correct}/3'),
-            const SizedBox(width: 8),
-            _PathPill(label: '${copy.findDifferencesMistakes}: $_mistakes'),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: const Color(0xFF213B63)),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF07182E), Color(0xFF08182C), Color(0xFF07101E)],
-              ),
-            ),
-            child: Stack(
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: 10,
+            left: 0,
+            right: 0,
+            child: Center(child: _CharacterCard(animal: _round.animal)),
+          ),
+          Positioned(
+            top: 75,
+            left: 20,
+            right: 20,
+            child: Row(
+              textDirection: TextDirection.ltr,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Positioned(
-                  top: 10,
-                  left: 0,
-                  right: 0,
-                  child: Center(child: _CharacterCard(animal: _round.animal)),
-                ),
-                Positioned(
-                  top: 90,
-                  left: 0,
-                  right: 0,
-                  child: Text(
-                    _lastCorrect == true
-                        ? 'CORRECT'
-                        : _lastCorrect == false
-                            ? 'WRONG'
-                            : copy.pathRushChoose,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      color: _lastCorrect == true
-                          ? const Color(0xFF4DDA9A)
-                          : _lastCorrect == false
-                              ? const Color(0xFFFF667E)
-                              : const Color(0xFFC4CEE0),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 110,
-                  left: 20,
-                  right: 20,
-                  child: Row(
-                    textDirection: TextDirection.ltr,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _StartButton(number: 3, selected: _selectedLane == 0, enabled: !_locked, onTap: () => _choose(3)),
-                      _StartButton(number: 2, selected: _selectedLane == 1, enabled: !_locked, onTap: () => _choose(2)),
-                      _StartButton(number: 1, selected: _selectedLane == 2, enabled: !_locked, onTap: () => _choose(1)),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  top: 158,
-                  left: 16,
-                  right: 16,
-                  bottom: 116,
-                  child: CustomPaint(
-                    painter: _MazePainter(
-                      round: _round,
-                      selectedLane: _selectedLane,
-                      progress: _runner.value,
-                      reveal: _lastCorrect != null,
-                      correct: _lastCorrect ?? false,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 14,
-                  right: 14,
-                  bottom: 10,
-                  height: 96,
-                  child: Row(
-                    textDirection: TextDirection.ltr,
-                    children: [
-                      for (var i = 0; i < 3; i++)
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: _TargetCard(
-                              target: _round.targets[i],
-                              good: _lastCorrect != null && i == _round.correctTarget,
-                              bad: _lastCorrect == false && i == _selectedTarget,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+                _StartButton(number: 4, selected: _selectedLane == 0, enabled: !_locked, onTap: () => _choose(4)),
+                _StartButton(number: 3, selected: _selectedLane == 1, enabled: !_locked, onTap: () => _choose(3)),
+                _StartButton(number: 2, selected: _selectedLane == 2, enabled: !_locked, onTap: () => _choose(2)),
+                _StartButton(number: 1, selected: _selectedLane == 3, enabled: !_locked, onTap: () => _choose(1)),
               ],
             ),
           ),
-        ),
-      ],
+          Positioned(
+            top: 138,
+            left: 0,
+            right: 0,
+            bottom: 120,
+            child: CustomPaint(
+              painter: _MazePainter(
+                round: _round,
+                selectedLane: _selectedLane,
+                progress: _runner.value,
+                reveal: _selectedLane != null,
+                correct: _lastCorrect ?? false,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 10,
+            height: 96,
+            left: 0,
+            right: 0,
+            child: Row(
+              textDirection: TextDirection.ltr,
+              children: [
+                for (var i = 0; i < 4; i++)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _TargetCard(
+                        target: _round.targets[i],
+                        good: _lastCorrect != null && i == _round.correctTarget,
+                        bad: _lastCorrect == false && i == _selectedTarget,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -296,9 +254,9 @@ class _TargetCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(target.$2, style: const TextStyle(fontSize: 38)),
-            const SizedBox(height: 2),
-            Text(target.$1, style: const TextStyle(color: Color(0xFFC4CEE0), fontWeight: FontWeight.w900, fontSize: 11)),
+            Text(target.$2, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 4),
+            Text(target.$1, style: const TextStyle(color: Color(0xFF8293B2), fontSize: 10, fontWeight: FontWeight.w900)),
           ],
         ),
       );
@@ -378,7 +336,7 @@ class _MazePainter extends CustomPainter {
     final metrics = path.computeMetrics().toList();
     if (metrics.isEmpty) return;
     final metric = metrics.first;
-    final tangent = metric.getTangentForOffset(metric.length * progress.clamp(0, 1));
+    final tangent = metric.getTangentForOffset(metric.length * progress.clamp(0.0, 1.0));
     if (tangent != null) {
       canvas.drawCircle(tangent.position, 11, Paint()..color = color.withValues(alpha: .35)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
       canvas.drawCircle(tangent.position, 8, Paint()..color = Colors.white);

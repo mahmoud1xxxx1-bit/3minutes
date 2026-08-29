@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import '../shared/minigame_environment.dart';
 import 'package:flutter/material.dart';
 import '../../domain/mini_game_contract.dart';
 import '../mini_game_copy.dart';
@@ -122,10 +123,13 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
 
     if (tappedDifference == null || _found.contains(tappedDifference!.id)) {
       setState(() => _mistakes++);
+      MinigameEnvironment.of(context).playError(localPosition);
       return;
     }
 
     setState(() => _found.add(tappedDifference!.id));
+    MinigameEnvironment.of(context).updateScore(_found.length * 200);
+    MinigameEnvironment.of(context).playSuccess(localPosition);
     
     if (_found.length >= 5) { // 5 is the fixed number of differences
       _finish();
@@ -156,24 +160,16 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
 
   @override
   Widget build(BuildContext context) {
-    final copy = MiniGameCopy.fromContext(context);
-    return Column(
-      children: [
-        const SizedBox(height: 10),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8,
-          runSpacing: 6,
-          children: [
-            _FindPill(label: '${copy.followCupCorrect}: ${_found.length}/5'),
-            _FindPill(label: '${copy.findDifferencesMistakes}: $_mistakes'),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final vertical = constraints.maxWidth < 560;
+    MinigameEnvironment.of(context).updateTimeProgress((_watch.elapsedMilliseconds / 30000).clamp(0.0, 1.0));
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C1427),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFF233B6A)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final vertical = constraints.maxWidth < 560;
               final boardA = _DifferenceBoard(
                 key: const ValueKey('find-differences-board-a'),
                 label: 'A',
@@ -210,8 +206,6 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
               );
             },
           ),
-        ),
-      ],
     );
   }
 }
@@ -333,4 +327,6 @@ class _PuzzlePainter extends CustomPainter {
            oldDelegate.found.length != found.length;
   }
 }
+
+
 

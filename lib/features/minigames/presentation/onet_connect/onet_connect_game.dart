@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -439,11 +439,11 @@ class _OnetConnectGameState extends State<OnetConnectGame> with TickerProviderSt
           
           Center(
             child: LayoutBuilder(builder: (context, constraints) {
-              double maxW = constraints.maxWidth - 200;
-              double maxH = constraints.maxHeight - 80;
+              double maxW = math.max(10.0, constraints.maxWidth - 140);
+              double maxH = math.max(10.0, constraints.maxHeight - 40);
               double padding = 12.0;
               
-              _currentTileWidth = math.min((maxW - padding*2) / _cols, (maxH - padding*2) / (_rows * 1.25));
+              _currentTileWidth = math.min(math.max(10.0, maxW - padding*2) / _cols, math.max(10.0, maxH - padding*2) / (_rows * 1.25));
               _currentTileHeight = _currentTileWidth * 1.25;
               _currentPadding = padding;
               

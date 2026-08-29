@@ -113,6 +113,7 @@ import 'painter_a105.dart';
 
 
 import '../../domain/mini_game_contract.dart';
+import '../shared/minigame_environment.dart';
 
 
 
@@ -167,9 +168,25 @@ class _MirrorControlMiniGameState extends State<MirrorControlMiniGame> with Sing
       Offset inputVector = _dragVector;
       if (inputVector.distance > 0.1) inputVector = inputVector / inputVector.distance;
       
+      int oldTargets = engine.currentTargetIndex;
+      int oldMistakes = engine.mistakes;
+
       engine.update(dt, inputVector);
+
+      if (mounted) {
+        if (engine.currentTargetIndex > oldTargets) {
+          MinigameEnvironment.of(context).updateScore(engine.currentTargetIndex * 100);
+          MinigameEnvironment.of(context).playSuccess(Offset.zero);
+        }
+        if (engine.mistakes > oldMistakes) {
+          MinigameEnvironment.of(context).playError(Offset.zero);
+        }
+        // Mirror Control usually has a 30s par time for visual
+        MinigameEnvironment.of(context).updateTimeProgress((engine.time / 30.0).clamp(0.0, 1.0));
+      }
       
       if (engine.isCompleted && !_hasCompleted) {
+        _hasCompleted = true;
         _hasCompleted = true;
         
         // Calculate Contract Result
@@ -328,41 +345,22 @@ class _MirrorControlMiniGameState extends State<MirrorControlMiniGame> with Sing
   @override
   Widget build(BuildContext context) {
     if (!_assetsLoaded) return const Center(child: CircularProgressIndicator());
-    final copy = MiniGameCopy.fromContext(context);
-    final colors = Theme.of(context).colorScheme;
     
-    return Column(children: [
-      Text(copy.isArabic ? 'اهرب من الشبح للوصول للباب' : 'Escape the ghost to reach the door', 
-           textAlign: TextAlign.center, 
-           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-      const SizedBox(height: 6),
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(color: colors.primary.withValues(alpha: .10), borderRadius: BorderRadius.circular(999), border: Border.all(color: colors.primary.withValues(alpha: .25))),
-          child: Text('${copy.followCupCorrect}: ${engine.currentTargetIndex}/${engine.targets.length}', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w900)),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(color: colors.primary.withValues(alpha: .10), borderRadius: BorderRadius.circular(999), border: Border.all(color: colors.primary.withValues(alpha: .25))),
-          child: Text('${copy.findDifferencesMistakes}: ${engine.mistakes}', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w900)),
-        ),
-      ]),
-      const SizedBox(height: 12),
-      Expanded(
-        child: GestureDetector(
-          onPanStart: (d) => _dragVector = Offset.zero,
-          onPanUpdate: (d) {
-            final scaleX = context.size!.width / GameEngine.fieldSize;
-            final scaleY = context.size!.height / GameEngine.fieldSize;
-            final scale = math.min(scaleX, scaleY);
-            _dragVector += Offset(-d.delta.dx, -d.delta.dy) / scale;
-          },
-          onPanEnd: (d) => _dragVector = Offset.zero,
-          child: CustomPaint(painter: getPainter(), size: Size.infinite),
-        ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: GestureDetector(
+        onPanStart: (d) => _dragVector = Offset.zero,
+        onPanUpdate: (d) {
+          final scaleX = context.size!.width / GameEngine.fieldSize;
+          final scaleY = context.size!.height / GameEngine.fieldSize;
+          final scale = math.min(scaleX, scaleY);
+          _dragVector += Offset(-d.delta.dx, -d.delta.dy) / scale;
+        },
+        onPanEnd: (d) => _dragVector = Offset.zero,
+        child: CustomPaint(painter: getPainter(), size: Size.infinite),
       ),
-    ]);
+    );
   }
 }
+
+

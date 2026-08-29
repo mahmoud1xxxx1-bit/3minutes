@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../../domain/mini_game_contract.dart';
@@ -288,9 +288,9 @@ class _NinjaSliceGameState extends State<NinjaSliceGame> with SingleTickerProvid
       ItemType type = ItemType.values[_rnd.nextInt(4)]; 
       
       // Bomb probability drastically scaled up to deceive the player
-      double bombChance = 0.40 + (difficultyMultiplier * 0.15); // Much higher plate ratio
+      double bombChance = 0.10 + (difficultyMultiplier * 0.05); // Much higher plate ratio
       
-      if (_rnd.nextDouble() < bombChance.clamp(0.0, 0.85)) {
+      if (_rnd.nextDouble() < bombChance.clamp(0.0, 0.40)) {
         type = ItemType.glassPlate;
       } else if (score > 50 && _rnd.nextDouble() < 0.05) {
         type = ItemType.freeze;
@@ -435,12 +435,12 @@ class _NinjaSliceGameState extends State<NinjaSliceGame> with SingleTickerProvid
 
   String _getEmoji(ItemType type) {
     switch (type) {
-      case ItemType.apple: return '🍎';
-      case ItemType.watermelon: return '🍉';
-      case ItemType.banana: return '🍌';
-      case ItemType.coconut: return '🥥';
-      case ItemType.freeze: return '🧊';
-      case ItemType.frenzy: return '🌟';
+      case ItemType.apple: return 'ðŸŽ';
+      case ItemType.watermelon: return 'ðŸ‰';
+      case ItemType.banana: return 'ðŸŒ';
+      case ItemType.coconut: return 'ðŸ¥¥';
+      case ItemType.freeze: return 'ðŸ§Š';
+      case ItemType.frenzy: return 'ðŸŒŸ';
       default: return '';
     }
   }

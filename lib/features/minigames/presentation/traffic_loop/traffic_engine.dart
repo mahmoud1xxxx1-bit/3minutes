@@ -2,19 +2,21 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-enum CarState { queue, entering, looping, exiting, destroyed }
+enum CarState { queue, entering, looping, destroyed }
+enum CarType { player, obstacle }
 
 class Car {
-  Car({required this.id, required this.color}) : state = CarState.queue;
+  Car({required this.id, required this.color, required this.type, this.state = CarState.queue});
 
   final int id;
   final Color color;
+  final CarType type;
   CarState state;
   double distance = 0.0;
-  int laps = 0;
   
   Offset position = Offset.zero;
   double rotation = 0.0;
+  bool counted = false;
 }
 
 class Particle {
@@ -29,6 +31,7 @@ class TrafficEngine {
   TrafficEngine({required this.goal, required this.seed}) {
     _initPaths();
     _random = Random(seed);
+    _spawnObstacles();
     _spawnQueue();
   }
 
@@ -38,11 +41,9 @@ class TrafficEngine {
 
   late Path loopPath;
   late Path entrancePath;
-  late Path exitPath;
 
   late PathMetric loopMetric;
   late PathMetric entranceMetric;
-  late PathMetric exitMetric;
 
   final List<Car> cars = [];
   final List<Particle> particles = [];
@@ -51,50 +52,61 @@ class TrafficEngine {
   int mistakes = 0;
   int _carIdCounter = 0;
   
-  final double carSpeed = 200.0; // logical pixels per second
-  final double carLength = 40.0;
-  final double carWidth = 24.0;
-  final double hitRadius = 25.0; // Crash radius
+  final double carSpeed = 250.0; // Faster speed for higher difficulty
+  final double carLength = 36.0;
+  final double carWidth = 20.0;
+  final double hitRadius = 22.0;
 
   void _initPaths() {
-    // 800x600 coordinate system
-    
-    // Entrance: bottom to center-bottom
+    // Entrance: from bottom to the merge point
     entrancePath = Path()
       ..moveTo(400, 700)
       ..lineTo(400, 450);
     entranceMetric = entrancePath.computeMetrics().first;
 
-    // Loop: starts at (400, 450), goes left, up, right, down, back to (400, 450)
+    // Loop: A track that circulates forever
     loopPath = Path()
       ..moveTo(400, 450)
-      ..arcToPoint(const Offset(200, 450), radius: const Radius.circular(100), clockwise: true) // left bottom
+      ..arcToPoint(const Offset(200, 450), radius: const Radius.circular(120), clockwise: true)
       ..lineTo(200, 150)
-      ..arcToPoint(const Offset(400, 150), radius: const Radius.circular(100), clockwise: true) // left top
+      ..arcToPoint(const Offset(400, 150), radius: const Radius.circular(120), clockwise: true)
       ..lineTo(400, 150)
-      ..arcToPoint(const Offset(600, 150), radius: const Radius.circular(100), clockwise: true) // right top
+      ..arcToPoint(const Offset(600, 150), radius: const Radius.circular(120), clockwise: true)
       ..lineTo(600, 450)
-      ..arcToPoint(const Offset(400, 450), radius: const Radius.circular(100), clockwise: true); // right bottom
+      ..arcToPoint(const Offset(400, 450), radius: const Radius.circular(120), clockwise: true);
     loopMetric = loopPath.computeMetrics().first;
+  }
 
-    // Exit: center-top to top
-    exitPath = Path()
-      ..moveTo(400, 150)
-      ..lineTo(400, -100);
-    exitMetric = exitPath.computeMetrics().first;
+  void _spawnObstacles() {
+    // Generate 3 to 5 obstacle cars already in the loop based on the round (goal)
+    int obstacleCount = goal == 10 ? 3 : (goal == 15 ? 4 : 5);
+    final colors = [Colors.yellowAccent, Colors.orangeAccent];
+    
+    double spacing = loopMetric.length / obstacleCount;
+    for (int i = 0; i < obstacleCount; i++) {
+      var car = Car(
+        id: ++_carIdCounter,
+        color: colors[_random.nextInt(colors.length)],
+        type: CarType.obstacle,
+        state: CarState.looping,
+      );
+      // Randomize initial position slightly but keep them spaced
+      car.distance = (i * spacing) + _random.nextDouble() * 50.0;
+      _updateCarTransform(car, loopMetric, car.distance);
+      cars.add(car);
+    }
   }
 
   void _spawnQueue() {
-    final colors = [
-      Colors.redAccent, Colors.pinkAccent, Colors.orangeAccent, 
-      Colors.blueAccent, Colors.greenAccent, Colors.yellowAccent
-    ];
-    // Keep queue filled to 5 cars
+    // The player controls blue/pink cars
+    final colors = [Colors.lightBlueAccent, Colors.pinkAccent];
     int queueCount = cars.where((c) => c.state == CarState.queue).length;
     for (int i = queueCount; i < 5; i++) {
       cars.add(Car(
         id: ++_carIdCounter,
-        color: colors[_random.nextInt(colors.length)]
+        color: colors[_random.nextInt(colors.length)],
+        type: CarType.player,
+        state: CarState.queue,
       ));
     }
     _updateQueuePositions();
@@ -104,8 +116,7 @@ class TrafficEngine {
     int index = 0;
     for (var car in cars) {
       if (car.state == CarState.queue) {
-        // Position them along the entrance path, spaced out
-        car.distance = max(0.0, entranceMetric.length - 50.0 - (index * 60.0));
+        car.distance = max(0.0, entranceMetric.length - 40.0 - (index * 50.0));
         _updateCarTransform(car, entranceMetric, car.distance);
         index++;
       }
@@ -113,7 +124,9 @@ class TrafficEngine {
   }
 
   void _updateCarTransform(Car car, PathMetric metric, double distance) {
-    final tangent = metric.getTangentForOffset(distance);
+    // Handle looping around the path length
+    double d = distance % metric.length;
+    final tangent = metric.getTangentForOffset(d);
     if (tangent != null) {
       car.position = tangent.position;
       car.rotation = tangent.angle;
@@ -121,7 +134,8 @@ class TrafficEngine {
   }
 
   bool tap() {
-    // Find the first queue car and launch it
+    if (correct >= goal) return false;
+    
     final firstQueue = cars.where((c) => c.state == CarState.queue).firstOrNull;
     if (firstQueue != null) {
       firstQueue.state = CarState.entering;
@@ -132,60 +146,36 @@ class TrafficEngine {
   }
 
   void update(double dt) {
-    // Update particles
     for (var p in particles) {
       p.position += p.velocity * dt;
-      p.life -= dt * 1.5;
+      p.life -= dt * 2.0;
     }
     particles.removeWhere((p) => p.life <= 0);
 
-    // Update cars
     for (int i = cars.length - 1; i >= 0; i--) {
       var car = cars[i];
-      if (car.state == CarState.destroyed) {
-        cars.removeAt(i);
-        continue;
-      }
-      
-      if (car.state == CarState.queue) continue;
+      if (car.state == CarState.destroyed || car.state == CarState.queue) continue;
 
       car.distance += carSpeed * dt;
 
       if (car.state == CarState.entering) {
         if (car.distance >= entranceMetric.length) {
           car.state = CarState.looping;
-          car.distance = 0.0;
+          car.distance = 0.0; // Start at the beginning of the loop
         } else {
           _updateCarTransform(car, entranceMetric, car.distance);
         }
       }
 
       if (car.state == CarState.looping) {
-        if (car.distance >= loopMetric.length) {
-          car.laps++;
-          car.distance -= loopMetric.length;
-        }
+        // Continuous loop
+        car.distance = car.distance % loopMetric.length;
+        _updateCarTransform(car, loopMetric, car.distance);
         
-        // Check if car should exit
-        // We exit at distance roughly halfway (where x=400, y=150)
-        // Let's find exactly where that is on the loop metric
-        // The loop starts at (400, 450). It goes to (200,450) -> (200,150) -> (400,150)
-        // This is exactly when it reaches (400, 150).
-        // Let's hardcode the exit threshold based on manual calculation, or just check bounds.
-        if (car.laps >= 1 && car.position.dy <= 155 && car.position.dy >= 145 && car.position.dx > 390 && car.position.dx < 410) {
-          car.state = CarState.exiting;
-          car.distance = 0.0;
-        } else {
-          _updateCarTransform(car, loopMetric, car.distance);
-        }
-      }
-
-      if (car.state == CarState.exiting) {
-        if (car.distance >= exitMetric.length) {
-          car.state = CarState.destroyed;
+        // Count it as correct if it survived the merge distance (e.g. 50 pixels into the loop)
+        if (car.type == CarType.player && !car.counted && car.distance > 50.0 && car.distance < 100.0) {
+          car.counted = true;
           correct++;
-        } else {
-          _updateCarTransform(car, exitMetric, car.distance);
         }
       }
     }
@@ -194,8 +184,7 @@ class TrafficEngine {
   }
 
   void _checkCollisions() {
-    // Only check active moving cars
-    final active = cars.where((c) => c.state != CarState.queue && c.state != CarState.destroyed).toList();
+    final active = cars.where((c) => c.state == CarState.entering || c.state == CarState.looping).toList();
     Set<int> toDestroy = {};
 
     for (int i = 0; i < active.length; i++) {
@@ -215,16 +204,22 @@ class TrafficEngine {
         if (toDestroy.contains(car.id)) {
           car.state = CarState.destroyed;
           _spawnExplosion(car.position, car.color);
-          mistakes++;
+          // Only penalize mistakes for player cars (so 1 crash between player and obstacle = 1 mistake)
+          // If two player cars crash, it counts as 2 mistakes.
+          if (car.type == CarType.player && !car.counted) {
+            mistakes++;
+          }
         }
       }
+      // Cleanup destroyed
+      cars.removeWhere((c) => c.state == CarState.destroyed);
     }
   }
 
   void _spawnExplosion(Offset pos, Color color) {
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < 30; i++) {
       final angle = _random.nextDouble() * pi * 2;
-      final speed = 50.0 + _random.nextDouble() * 200.0;
+      final speed = 50.0 + _random.nextDouble() * 150.0;
       particles.add(Particle(
         position: pos,
         velocity: Offset(cos(angle) * speed, sin(angle) * speed),
