@@ -1,0 +1,79 @@
+name: First 8 Direct Archive Preview
+
+on:
+  push:
+    branches: [preview/first-4-games-web]
+    paths:
+      - 'preview_sources/games_5_7_clean.tgz'
+      - 'lib/preview_first8_main.dart'
+      - '.github/workflows/first8-direct-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: first8-direct-preview
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Restore first four supplied sources
+        run: |
+          rm -rf /tmp/first4-original /tmp/missing_games.tgz /tmp/missing_games.b64
+          cat preview_sources/missing_games.b64.00 preview_sources/missing_games.b64.01 preview_sources/missing_games.b64.02a preview_sources/missing_games.b64.02b preview_sources/missing_games.b64.03 preview_sources/missing_games.b64.04 preview_sources/missing_games.b64.05 > /tmp/missing_games.b64
+          test "$(wc -c < /tmp/missing_games.b64)" -eq 37996
+          base64 -d /tmp/missing_games.b64 > /tmp/missing_games.tgz
+          echo "66aff88f745e6748cbde457737ed43bcfc479534d0b0f6bd5034562b676744a3  /tmp/missing_games.tgz" | sha256sum -c -
+          mkdir -p /tmp/first4-original
+          tar -xzf /tmp/missing_games.tgz -C /tmp/first4-original
+          cp /tmp/first4-original/key_escape/key_escape_game.dart lib/features/minigames/presentation/first4/key_escape_game.dart
+          cp /tmp/first4-original/key_escape/key_escape_levels.dart lib/features/minigames/presentation/first4/key_escape_levels.dart
+          cp /tmp/first4-original/level_devil/level_devil_host.dart lib/features/minigames/presentation/first4/level_devil_host.dart
+          cp /tmp/first4-original/level_devil/troll_game.dart lib/features/minigames/presentation/first4/troll_game.dart
+          cp /tmp/first4-original/level_devil/troll_engine.dart lib/features/minigames/presentation/first4/troll_engine.dart
+
+      - name: Verify and restore games 5 to 7
+        run: |
+          echo "670d58a61abae781273de86e943c453e527218680200ad332d8303dcafc49841  preview_sources/games_5_7_clean.tgz" | sha256sum -c -
+          rm -rf /tmp/games57
+          mkdir -p /tmp/games57
+          tar -xzf preview_sources/games_5_7_clean.tgz -C /tmp/games57
+          mkdir -p lib/features/minigames/presentation/mole_strike lib/features/minigames/presentation/ninja_slice lib/features/minigames/presentation/onet_connect
+          cp /tmp/games57/mole_strike/mole_strike_game.dart lib/features/minigames/presentation/mole_strike/mole_strike_game.dart
+          cp /tmp/games57/ninja_slice/ninja_slice_game.dart lib/features/minigames/presentation/ninja_slice/ninja_slice_game.dart
+          cp /tmp/games57/onet_connect/onet_connect_game.dart lib/features/minigames/presentation/onet_connect/onet_connect_game.dart
+
+      - run: flutter pub get
+
+      - name: Analyze first eight preview
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/preview_first8_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/mole_strike lib/features/minigames/presentation/ninja_slice lib/features/minigames/presentation/onet_connect lib/features/minigames/presentation/shared/minigame_environment.dart
+
+      - name: Build Flutter Web
+        run: |
+          flutter build web --release -t lib/preview_first8_main.dart --base-href "/"
+          sed -i 's#<base href="/">#<base href="./">#' build/web/index.html
+
+      - name: Publish first eight web build
+        run: |
+          rm -rf /tmp/first8-web && mkdir -p /tmp/first8-web
+          cp -R build/web/. /tmp/first8-web/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan first8-web-live
+          git rm -rf . || true
+          git clean -fdx
+          cp -R /tmp/first8-web/. .
+          touch .nojekyll
+          git add -A
+          git commit -m "deploy: first eight games direct archive preview"
+          git push origin HEAD:first8-web-live --force
