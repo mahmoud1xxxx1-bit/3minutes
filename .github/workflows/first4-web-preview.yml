@@ -12,16 +12,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: first4-web-preview
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,23 +32,21 @@ jobs:
       - name: Analyze preview source
         run: flutter analyze lib/preview_first4_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/shared/minigame_environment.dart
       - name: Build Flutter Web
-        run: flutter build web --release -t lib/preview_first4_main.dart --base-href "/3minutes/"
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/web
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        run: |
+          flutter build web --release -t lib/preview_first4_main.dart --base-href "/"
+          sed -i 's#<base href="/">#<base href="./">#' build/web/index.html
+      - name: Publish immutable web build branch
+        run: |
+          rm -rf /tmp/first4-web
+          mkdir -p /tmp/first4-web
+          cp -R build/web/. /tmp/first4-web/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan first4-web-live
+          git rm -rf . || true
+          git clean -fdx
+          cp -R /tmp/first4-web/. .
+          touch .nojekyll
+          git add -A
+          git commit -m "deploy: original first games Flutter Web"
+          git push origin HEAD:first4-web-live --force
