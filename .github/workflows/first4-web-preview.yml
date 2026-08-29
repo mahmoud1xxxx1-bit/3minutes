@@ -1,0 +1,56 @@
+name: First 4 Games Web Preview
+
+on:
+  push:
+    branches:
+      - preview/first-4-games-web
+    paths:
+      - 'lib/preview_first4_main.dart'
+      - 'lib/features/minigames/presentation/first4/**'
+      - 'lib/features/minigames/presentation/shared/minigame_environment.dart'
+      - '.github/workflows/first4-web-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: first4-web-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze preview source
+        run: flutter analyze lib/preview_first4_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/shared/minigame_environment.dart
+      - name: Build Flutter Web
+        run: flutter build web --release -t lib/preview_first4_main.dart --base-href "/3minutes/"
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
