@@ -29,6 +29,28 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Apply preview-only safety and score adapters
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          cup = Path('lib/features/minigames/presentation/first4/follow_the_cup_game.dart')
+          s = cup.read_text()
+          s = s.replace('late int _ballCupIndex;', 'int _ballCupIndex = 0;')
+          s = s.replace('late List<int> _currentPositions;', 'List<int> _currentPositions = <int>[0, 1, 2];')
+          s = s.replace('late List<int> _targetPositions;', 'List<int> _targetPositions = <int>[0, 1, 2];')
+          cup.write_text(s)
+
+          main = Path('lib/preview_first4_main.dart')
+          s = main.read_text()
+          s = s.replace(
+              'final points = result.score.clamp(0, 1000);',
+              "final points = _game == PreviewGame.findDifferences\n"
+              "        ? (result.score * 10).clamp(0, 1000)\n"
+              "        : result.score.clamp(0, 1000);",
+          )
+          main.write_text(s)
+          PY
       - name: Analyze preview source
         run: flutter analyze lib/preview_first4_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/shared/minigame_environment.dart
       - name: Build Flutter Web
