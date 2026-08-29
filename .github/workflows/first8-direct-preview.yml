@@ -45,7 +45,8 @@ jobs:
       - name: Restore games 5 to 7 from supplied archive
         run: |
           rm -rf /tmp/games57 /tmp/games57.tgz /tmp/games57.b64
-          cat preview_sources/games_5_7_clean.b64.00 preview_sources/games_5_7_clean.b64.01 preview_sources/games_5_7_clean.b64.02 > /tmp/games57.b64
+          cat preview_sources/games_5_7_clean.b64.00 preview_sources/games_5_7_clean.b64.01 preview_sources/games_5_7_clean.b64.02 preview_sources/games_5_7_clean.b64.03 > /tmp/games57.b64
+          test "$(wc -c < /tmp/games57.b64)" -eq 21012
           base64 -d /tmp/games57.b64 > /tmp/games57.tgz
           echo "670d58a61abae781273de86e943c453e527218680200ad332d8303dcafc49841  /tmp/games57.tgz" | sha256sum -c -
           mkdir -p /tmp/games57
