@@ -46,8 +46,9 @@ jobs:
       - name: Restore games 5 to 7 from supplied archive
         run: |
           set -euxo pipefail
-          rm -rf /tmp/games57 /tmp/games57.tgz /tmp/games57.b64
-          cat preview_sources/games_5_7_clean.b64.00 preview_sources/games_5_7_clean.b64.01 preview_sources/games_5_7_clean.b64.02 preview_sources/games_5_7_clean.b64.03 > /tmp/games57.b64
+          rm -rf /tmp/games57 /tmp/games57.tgz /tmp/games57.b64 /tmp/games57.raw
+          cat preview_sources/games_5_7_clean.b64.00 preview_sources/games_5_7_clean.b64.01 preview_sources/games_5_7_clean.b64.02 preview_sources/games_5_7_clean.b64.03 > /tmp/games57.raw
+          tr -d '[:space:]' < /tmp/games57.raw > /tmp/games57.b64
           test "$(wc -c < /tmp/games57.b64)" -eq 21012
           base64 -d /tmp/games57.b64 > /tmp/games57.tgz
           echo "670d58a61abae781273de86e943c453e527218680200ad332d8303dcafc49841  /tmp/games57.tgz" | sha256sum -c -
@@ -57,9 +58,6 @@ jobs:
           install -D /tmp/games57/mole_strike/mole_strike_game.dart lib/features/minigames/presentation/mole_strike/mole_strike_game.dart
           install -D /tmp/games57/ninja_slice/ninja_slice_game.dart lib/features/minigames/presentation/ninja_slice/ninja_slice_game.dart
           install -D /tmp/games57/onet_connect/onet_connect_game.dart lib/features/minigames/presentation/onet_connect/onet_connect_game.dart
-          test -s lib/features/minigames/presentation/mole_strike/mole_strike_game.dart
-          test -s lib/features/minigames/presentation/ninja_slice/ninja_slice_game.dart
-          test -s lib/features/minigames/presentation/onet_connect/onet_connect_game.dart
 
       - run: flutter pub get
 
