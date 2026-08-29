@@ -1,17 +1,22 @@
-import '../../../core/random/deterministic_rng.dart';
+﻿import '../../../core/random/deterministic_rng.dart';
 import '../domain/mini_game_contract.dart';
 
 class GameRegistry {
   const GameRegistry._();
 
-  static const int version = 9;
+  static const int version = 10;
 
   static const List<MiniGameDescriptor> games = [
-    MiniGameDescriptor(id: 'mole_strike', title: '', category: MiniGameCategory.reaction),
-    MiniGameDescriptor(id: 'follow_the_cup', title: '', category: MiniGameCategory.memory),
-    MiniGameDescriptor(id: 'path_rush', title: '', category: MiniGameCategory.logic),
-    MiniGameDescriptor(id: 'find_differences', title: '', category: MiniGameCategory.precision),
-    MiniGameDescriptor(id: 'mirror_control', title: '', category: MiniGameCategory.precision),
+    MiniGameDescriptor(id: 'find_differences', title: 'Find Differences', category: MiniGameCategory.precision),
+    MiniGameDescriptor(id: 'follow_the_cup', title: 'Follow The Cup', category: MiniGameCategory.memory),
+    MiniGameDescriptor(id: 'key_escape', title: 'Key Escape', category: MiniGameCategory.precision),
+    MiniGameDescriptor(id: 'level_devil', title: 'Level Devil', category: MiniGameCategory.reaction),
+    MiniGameDescriptor(id: 'mirror_control', title: 'Mirror Control', category: MiniGameCategory.precision),
+    MiniGameDescriptor(id: 'mole_strike', title: 'Mole Strike', category: MiniGameCategory.reaction),
+    MiniGameDescriptor(id: 'ninja_slice', title: 'Ninja Slice', category: MiniGameCategory.reaction),
+    MiniGameDescriptor(id: 'onet_connect', title: 'Onet Connect', category: MiniGameCategory.logic),
+    MiniGameDescriptor(id: 'path_rush', title: 'Path Rush', category: MiniGameCategory.logic),
+    MiniGameDescriptor(id: 'traffic_loop', title: 'Traffic Loop', category: MiniGameCategory.logic),
   ];
 
   static List<MiniGameDescriptor> sequence({required int seed, required int count}) {
@@ -21,13 +26,10 @@ class GameRegistry {
     final random = DeterministicRng(seed);
     final selected = <MiniGameDescriptor>[];
     
-    // Tetris-style Bag Randomizer for perfect distribution
-    // This ensures EVERY game appears evenly before any game repeats.
     while (selected.length < count) {
       final bag = List<MiniGameDescriptor>.of(games);
       random.shuffle(bag);
       
-      // Prevent back-to-back duplicates across bags if possible
       if (selected.isNotEmpty && bag.isNotEmpty && selected.last.id == bag.first.id && bag.length > 1) {
         final temp = bag[0];
         bag[0] = bag[1];
