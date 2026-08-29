@@ -1,0 +1,56 @@
+name: Zeli 150 Games Demo
+
+on:
+  push:
+    branches:
+      - preview/zeli-150-games-demo
+    paths:
+      - '.github/workflows/zeli-games-demo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zeli-150-games-demo
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging branch
+        uses: actions/checkout@v4
+
+      - name: Checkout Zeli Web Games
+        run: |
+          git clone --depth 1 https://github.com/hajunho/zeli-web-games.git /tmp/zeli-web-games
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: /tmp/zeli-web-games/package-lock.json
+
+      - name: Install and build
+        working-directory: /tmp/zeli-web-games
+        run: |
+          npm ci
+          npm run build -- --base=./
+
+      - name: Publish static demo
+        run: |
+          rm -rf /tmp/zeli-demo-live
+          mkdir -p /tmp/zeli-demo-live
+          cp -R /tmp/zeli-web-games/dist/. /tmp/zeli-demo-live/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan zeli-games-demo-live
+          git rm -rf . || true
+          git clean -fdx
+          cp -R /tmp/zeli-demo-live/. .
+          touch .nojekyll
+          git add -A
+          git commit -m "deploy: Zeli 150 games demo"
+          git push origin HEAD:zeli-games-demo-live --force
