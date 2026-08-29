@@ -32,7 +32,7 @@ jobs:
       - name: Restore and verify supplied original game sources
         run: |
           rm -rf /tmp/first4-original /tmp/missing_games.tgz /tmp/missing_games.b64
-          cat preview_sources/missing_games.b64.00 preview_sources/missing_games.b64.01 preview_sources/missing_games.b64.02 preview_sources/missing_games.b64.03 preview_sources/missing_games.b64.04 preview_sources/missing_games.b64.05 > /tmp/missing_games.b64
+          cat preview_sources/missing_games.b64.00 preview_sources/missing_games.b64.01 preview_sources/missing_games.b64.02a preview_sources/missing_games.b64.02b preview_sources/missing_games.b64.03 preview_sources/missing_games.b64.04 preview_sources/missing_games.b64.05 > /tmp/missing_games.b64
           test "$(wc -c < /tmp/missing_games.b64)" -eq 37996
           base64 -d /tmp/missing_games.b64 > /tmp/missing_games.tgz
           echo "66aff88f745e6748cbde457737ed43bcfc479534d0b0f6bd5034562b676744a3  /tmp/missing_games.tgz" | sha256sum -c -
