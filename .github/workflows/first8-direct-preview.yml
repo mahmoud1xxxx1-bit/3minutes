@@ -86,7 +86,14 @@ jobs:
           s = find.read_text()
           s = s.replace("        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: CustomPaint(\n            painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n          ),\n        ),", "        child: ClipRRect(\n          borderRadius: BorderRadius.circular(18),\n          child: SizedBox.expand(\n            child: CustomPaint(\n              painter: _PuzzlePainter(puzzle: puzzle, found: found, altered: altered),\n            ),\n          ),\n        ),")
           find.write_text(s)
+
+          mole = Path('lib/features/minigames/presentation/mole_strike/mole_strike_game.dart')
+          s = mole.read_text()
+          s = s.replace('MinigameEnvironment.of(context).updateScore(_score, newCombo: _combo);', 'MinigameEnvironment.of(context).updateScore(_score);')
+          mole.write_text(s)
           PY
+          grep -q 'updateScore(_score);' lib/features/minigames/presentation/mole_strike/mole_strike_game.dart
+          ! grep -q 'newCombo:' lib/features/minigames/presentation/mole_strike/mole_strike_game.dart
 
       - name: Analyze first eight preview
         run: flutter analyze --no-fatal-infos --no-fatal-warnings lib/preview_first8_main.dart lib/features/minigames/presentation/first4 lib/features/minigames/presentation/mole_strike lib/features/minigames/presentation/ninja_slice lib/features/minigames/presentation/onet_connect lib/features/minigames/presentation/shared/minigame_environment.dart
