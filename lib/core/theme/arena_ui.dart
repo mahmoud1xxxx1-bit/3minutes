@@ -189,7 +189,7 @@ class ArenaProgress extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(GameRadii.pill),
       child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: value.clamp(0.0, 1.0)),
+        tween: Tween<double>(begin: 0, end: value.clamp(0.0, 1.0).toDouble()),
         duration: const Duration(milliseconds: 750),
         curve: Curves.easeOutCubic,
         builder: (context, animated, _) => LinearProgressIndicator(
