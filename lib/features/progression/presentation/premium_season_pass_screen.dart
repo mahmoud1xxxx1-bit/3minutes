@@ -25,9 +25,9 @@ class PremiumSeasonPassScreen extends StatelessWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: const Text(
-          'Premium Season Pass',
-          style: TextStyle(fontWeight: FontWeight.w900),
+        title: Text(
+          ar ? 'بطاقة الموسم المميزة' : 'Premium Season Pass',
+          style: const TextStyle(fontWeight: FontWeight.w900),
         ),
       ),
       body: CosmicBackground(
