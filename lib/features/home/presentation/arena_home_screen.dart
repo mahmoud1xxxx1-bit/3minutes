@@ -314,7 +314,7 @@ class _IdentityHero extends StatelessWidget {
     if (index < 0 || index >= RankPolicy.bands.length - 1) return 1;
     final floor = RankPolicy.bands[index].minimumRp;
     final ceiling = RankPolicy.bands[index + 1].minimumRp;
-    return ((rp - floor) / (ceiling - floor)).clamp(0.0, 1.0);
+    return ((rp - floor) / (ceiling - floor)).clamp(0.0, 1.0).toDouble();
   }
 
   static Color _rankColor(RankTier tier) => switch (tier) {
@@ -325,7 +325,7 @@ class _IdentityHero extends StatelessWidget {
         RankTier.diamond => GameColors.rankDiamond,
         RankTier.master => GameColors.rankMaster,
         RankTier.grandmaster => GameColors.rankGrandmaster,
-        RankTier.legendary => GameColors.rankLegend,
+        RankTier.legend => GameColors.rankLegend,
       };
 }
 
