@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../progression/data/progression_backend.dart';
+import '../../progression/presentation/arena_progression_screen.dart';
 import '../../progression/presentation/premium_season_pass_screen.dart';
-import '../../progression/presentation/progression_screen.dart';
 import '../data/competition_backend.dart';
 import 'season_screen.dart';
 
@@ -28,8 +28,6 @@ class SeasonHubScreen extends StatelessWidget {
           .timeout(const Duration(seconds: 2));
       return season?.id ?? 'preview_current';
     } catch (_) {
-      // Preview state is intentional for test/offline builds. Claim buttons are
-      // already authority-gated, so there is no reason to block navigation.
       return 'preview_current';
     }
   }
@@ -39,7 +37,7 @@ class SeasonHubScreen extends StatelessWidget {
     if (!context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ProgressionScreen(
+        builder: (_) => ArenaProgressionScreen(
           uid: uid,
           seasonId: seasonId,
           backend: progressionBackend,
