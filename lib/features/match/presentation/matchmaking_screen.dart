@@ -116,6 +116,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     final copy = ArenaCopy.of(context);
     final tier = RankPolicy.tierFor(widget.profile.rankPoints);
     final elapsedText = '0:${_elapsed.clamp(0, 99).toString().padLeft(2, '0')}';
+    final radarSize = MediaQuery.sizeOf(context).width.clamp(210.0, 265.0).toDouble();
 
     return PopScope(
       canPop: false,
@@ -160,7 +161,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         ],
                       ),
                       const Spacer(),
-                      Center(child: ArenaRadar(size: MediaQuery.sizeOf(context).width.clamp(210.0, 265.0))),
+                      Center(child: ArenaRadar(size: radarSize)),
                       const SizedBox(height: GameSpacing.lg),
                       AnimatedSwitcher(
                         duration: GameDurations.normal,
