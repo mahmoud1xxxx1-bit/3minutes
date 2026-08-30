@@ -1,0 +1,1 @@
+C:\Users\loved\3minutes\build\jni\intermediates\cxx\RelWithDebInfo\up1k105y\obj\arm64-v8a

@@ -1,0 +1,6 @@
+# ninja log v5
+43	357	8090173570720015	CMakeFiles/jni.dir/include/dart_api_dl.c.o	662926ececdf595d
+23	478	8090173571970906	CMakeFiles/jni.dir/dartjni.c.o	cf39ac9faf18ac8c
+2	1717	8090173584349178	CMakeFiles/jni.dir/third_party/global_jni_env.c.o	6f3ef96dfea515da
+1718	1976	8090173587158615	C:/Users/loved/3minutes/build/jni/intermediates/cxx/RelWithDebInfo/up1k105y/obj/x86_64/libdartjni.so	a0a04940ce32dc4
+6	359	8092866618883318	C:/Users/loved/3minutes/build/jni/intermediates/cxx/RelWithDebInfo/up1k105y/obj/x86_64/libdartjni.so	a0a04940ce32dc4

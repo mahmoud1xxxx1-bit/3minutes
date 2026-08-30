@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
-import 'package:game/features/minigames/presentation/path_rush_game.dart';
+import 'package:game/features/minigames/presentation/path_rush/path_rush_game.dart';
 
 void main() {
   Future<void> pumpGame(WidgetTester tester) async {

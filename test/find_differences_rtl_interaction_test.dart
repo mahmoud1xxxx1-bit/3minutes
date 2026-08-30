@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/minigames/domain/find_differences_plan.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
-import 'package:game/features/minigames/presentation/find_differences_game.dart';
+import 'package:game/features/minigames/presentation/find_differences/find_differences_game.dart';
 
 void main() {
   const config = MiniGameConfig(seed: 20260820, difficulty: 0);

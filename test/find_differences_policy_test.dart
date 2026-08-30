@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
-import 'package:game/features/minigames/presentation/find_differences_policy_game.dart';
+import 'package:game/features/minigames/presentation/find_differences/find_differences_game.dart';
 
 void main() {
   Future<int> pumpPolicyGame(WidgetTester tester, Locale locale) async {
@@ -13,7 +13,7 @@ void main() {
           body: SizedBox(
             width: 430,
             height: 760,
-            child: FindDifferencesPolicyGame(
+            child: FindDifferencesGame(
               config: const MiniGameConfig(seed: 20260820, difficulty: 1),
               onComplete: (_) => completions++,
             ),
@@ -48,7 +48,7 @@ void main() {
             body: SizedBox(
               width: 430,
               height: 760,
-              child: FindDifferencesPolicyGame(
+              child: FindDifferencesGame(
                 config: const MiniGameConfig(seed: 20260820, difficulty: 0),
                 onComplete: (_) => completions++,
               ),
