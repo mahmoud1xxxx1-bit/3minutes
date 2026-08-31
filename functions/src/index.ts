@@ -33,6 +33,7 @@ export {
 export { getQuickTicket } from "./quick_ticket.js";
 
 export { settleRankedMatchV2 as settleRankedMatch } from "./settlement_v2.js";
+export { onRankedSettlementWeeklyCompetition } from "./weekly_runtime.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
 export { settleSocialMatch } from "./social.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";
