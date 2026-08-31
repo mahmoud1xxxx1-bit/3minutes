@@ -1,6 +1,7 @@
 class MiniGameEvidence {
   const MiniGameEvidence({
     required this.gameId,
+    required this.gameVersion,
     required this.gameIndex,
     required this.gameSeed,
     required this.score,
@@ -10,6 +11,7 @@ class MiniGameEvidence {
   });
 
   final String gameId;
+  final int gameVersion;
   final int gameIndex;
   final int gameSeed;
   final int score;
@@ -19,6 +21,7 @@ class MiniGameEvidence {
 
   Map<String, Object> toMap() => {
         'gameId': gameId,
+        'gameVersion': gameVersion,
         'gameIndex': gameIndex,
         'gameSeed': gameSeed,
         'score': score,
@@ -30,6 +33,7 @@ class MiniGameEvidence {
   factory MiniGameEvidence.fromMap(Map<Object?, Object?> map) {
     return MiniGameEvidence(
       gameId: map['gameId'] as String? ?? '',
+      gameVersion: (map['gameVersion'] as num?)?.toInt() ?? 1,
       gameIndex: (map['gameIndex'] as num?)?.toInt() ?? -1,
       gameSeed: (map['gameSeed'] as num?)?.toInt() ?? 0,
       score: (map['score'] as num?)?.toInt() ?? 0,
