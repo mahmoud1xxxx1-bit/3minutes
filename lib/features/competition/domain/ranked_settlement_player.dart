@@ -10,6 +10,10 @@ class RankedSettlementPlayer {
     required this.nextTier,
     required this.xpAwarded,
     required this.coinsAwarded,
+    this.wagerGold = 0,
+    this.goldCredited = 0,
+    this.goldNetDelta = 0,
+    this.goldBalanceAfter = 0,
   });
 
   final String uid;
@@ -20,9 +24,14 @@ class RankedSettlementPlayer {
   final RankTier nextTier;
   final int xpAwarded;
   final int coinsAwarded;
+  final int wagerGold;
+  final int goldCredited;
+  final int goldNetDelta;
+  final int goldBalanceAfter;
 
   bool get promoted => nextTier.index > previousTier.index;
   bool get demoted => nextTier.index < previousTier.index;
+  bool get hasGoldSettlement => wagerGold > 0;
 
   static RankedSettlementPlayer? fromPayload(
     Object? value, {
@@ -41,6 +50,10 @@ class RankedSettlementPlayer {
     final rpDelta = (data['rpDelta'] as num?)?.toInt();
     final xpAwarded = (data['xpAwarded'] as num?)?.toInt();
     final coinsAwarded = (data['coinsAwarded'] as num?)?.toInt();
+    final wagerGold = (data['wagerGold'] as num?)?.toInt() ?? 0;
+    final goldCredited = (data['goldCredited'] as num?)?.toInt() ?? 0;
+    final goldNetDelta = (data['goldNetDelta'] as num?)?.toInt() ?? 0;
+    final goldBalanceAfter = (data['goldBalanceAfter'] as num?)?.toInt() ?? 0;
     if (previousRp == null ||
         nextRp == null ||
         rpDelta == null ||
@@ -50,7 +63,11 @@ class RankedSettlementPlayer {
         nextRp < 0 ||
         xpAwarded < 0 ||
         coinsAwarded < 0 ||
-        nextRp - previousRp != rpDelta) {
+        wagerGold < 0 ||
+        goldCredited < 0 ||
+        goldBalanceAfter < 0 ||
+        nextRp - previousRp != rpDelta ||
+        (wagerGold > 0 && goldCredited - wagerGold != goldNetDelta)) {
       return null;
     }
 
@@ -63,6 +80,10 @@ class RankedSettlementPlayer {
       nextTier: nextTier,
       xpAwarded: xpAwarded,
       coinsAwarded: coinsAwarded,
+      wagerGold: wagerGold,
+      goldCredited: goldCredited,
+      goldNetDelta: goldNetDelta,
+      goldBalanceAfter: goldBalanceAfter,
     );
   }
 
