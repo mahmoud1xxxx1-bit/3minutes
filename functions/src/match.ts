@@ -21,6 +21,7 @@ import {
   validateEvidence,
 } from "./registry.js";
 import { seasonAcceptsNewRankedMatch } from "./season_boundary.js";
+import { parseGoldWager, type GoldWager } from "./wager.js";
 
 const REGION = "me-central2";
 const CALLABLE_OPTIONS = {
@@ -41,6 +42,17 @@ function requireString(value: unknown, name: string): string {
   return value.trim();
 }
 
+function requireWager(value: unknown): GoldWager {
+  try {
+    return parseGoldWager(value);
+  } catch (error) {
+    throw new HttpsError(
+      "invalid-argument",
+      error instanceof Error ? error.message : "Invalid Gold wager.",
+    );
+  }
+}
+
 function seasonAcceptsRanked(data: Record<string, unknown>, nowMs: number): boolean {
   return seasonAcceptsNewRankedMatch({
     active: data.active === true,
@@ -58,6 +70,7 @@ function newMatchData(options: {
   playerBId: string;
   playerBName: string;
   playerBAvatarId: string;
+  wagerGold: GoldWager;
 }): Record<string, unknown> {
   return {
     ...options,
@@ -65,6 +78,8 @@ function newMatchData(options: {
     seed: randomInt(0, 0x7fffffff),
     gameCount: MATCH_GAME_COUNT,
     registryVersion: REGISTRY_VERSION,
+    goldEscrowStatus: "locked",
+    goldEscrowPool: options.wagerGold * 2,
     status: "waitingReady",
     readyA: false,
     readyB: false,
@@ -84,19 +99,25 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const gameName = requireString(request.data?.gameName, "gameName");
   const avatarId = requireString(request.data?.avatarId, "avatarId");
+  const wagerGold = requireWager(request.data?.wagerGold);
   const db = getFirestore();
   const queue = db.collection(COLLECTIONS.matchmaking);
   const matches = db.collection(COLLECTIONS.matches);
   const ownRef = queue.doc(uid);
+  const ownInventoryRef = db.collection(COLLECTIONS.inventories).doc(uid);
 
-  const activeSeasons = await db
-    .collection(COLLECTIONS.seasons)
-    .where("active", "==", true)
-    .limit(2)
-    .get();
+  const [activeSeasons, ownInventorySnap] = await Promise.all([
+    db.collection(COLLECTIONS.seasons).where("active", "==", true).limit(2).get(),
+    ownInventoryRef.get(),
+  ]);
   if (activeSeasons.size !== 1) {
     throw new HttpsError("failed-precondition", "Ranked season is unavailable.");
   }
+  const ownGold = Math.max(0, intValue(ownInventorySnap.data()?.gold));
+  if (ownGold < wagerGold) {
+    throw new HttpsError("failed-precondition", "Insufficient Gold for this challenge.");
+  }
+
   const seasonDoc = activeSeasons.docs[0]!;
   const season = seasonDoc.data();
   if (!seasonAcceptsRanked(season, Date.now())) {
@@ -109,6 +130,7 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
     gameName,
     avatarId,
     seasonId,
+    wagerGold,
     status: "waiting",
     matchId: null,
     authorityVersion: AUTHORITY_VERSION,
@@ -121,15 +143,20 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
   for (const candidate of candidates.docs) {
     if (candidate.id === uid) continue;
     if (stringValue(candidate.data().seasonId) !== seasonId) continue;
+    if (intValue(candidate.data().wagerGold) !== wagerGold) continue;
     const matchRef = matches.doc();
 
     try {
       const matchId = await db.runTransaction(async (transaction) => {
-        const [seasonSnap, ownSnap, candidateSnap] = await Promise.all([
-          transaction.get(seasonDoc.ref),
-          transaction.get(ownRef),
-          transaction.get(candidate.ref),
-        ]);
+        const candidateInventoryRef = db.collection(COLLECTIONS.inventories).doc(candidate.id);
+        const [seasonSnap, ownSnap, candidateSnap, ownInventory, candidateInventory] =
+          await Promise.all([
+            transaction.get(seasonDoc.ref),
+            transaction.get(ownRef),
+            transaction.get(candidate.ref),
+            transaction.get(ownInventoryRef),
+            transaction.get(candidateInventoryRef),
+          ]);
         const liveSeason = seasonSnap.data();
         const own = ownSnap.data();
         const other = candidateSnap.data();
@@ -146,9 +173,59 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
         if (stringValue(own.seasonId) !== seasonId || stringValue(other.seasonId) !== seasonId) {
           throw new Error("season_mismatch");
         }
+        if (intValue(own.wagerGold) !== wagerGold || intValue(other.wagerGold) !== wagerGold) {
+          throw new Error("wager_mismatch");
+        }
 
         const otherUid = stringValue(other.uid, candidate.id);
         if (otherUid === uid) throw new Error("self_match");
+
+        const ownGoldNow = Math.max(0, intValue(ownInventory.data()?.gold));
+        const otherGoldNow = Math.max(0, intValue(candidateInventory.data()?.gold));
+        if (ownGoldNow < wagerGold) {
+          throw new HttpsError("failed-precondition", "Insufficient Gold for this challenge.");
+        }
+        if (otherGoldNow < wagerGold) {
+          throw new Error("candidate_insufficient_gold");
+        }
+
+        const ownAfter = ownGoldNow - wagerGold;
+        const otherAfter = otherGoldNow - wagerGold;
+        transaction.set(
+          ownInventoryRef,
+          { gold: ownAfter, updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+        transaction.set(
+          candidateInventoryRef,
+          { gold: otherAfter, updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+
+        transaction.create(
+          db.collection(COLLECTIONS.goldTransactions).doc(`${matchRef.id}_${uid}_escrow`),
+          {
+            uid,
+            matchId: matchRef.id,
+            seasonId,
+            reason: "rankedEscrowLock",
+            amount: -wagerGold,
+            balanceAfter: ownAfter,
+            createdAt: FieldValue.serverTimestamp(),
+          },
+        );
+        transaction.create(
+          db.collection(COLLECTIONS.goldTransactions).doc(`${matchRef.id}_${otherUid}_escrow`),
+          {
+            uid: otherUid,
+            matchId: matchRef.id,
+            seasonId,
+            reason: "rankedEscrowLock",
+            amount: -wagerGold,
+            balanceAfter: otherAfter,
+            createdAt: FieldValue.serverTimestamp(),
+          },
+        );
 
         transaction.create(
           matchRef,
@@ -160,6 +237,7 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
             playerBId: uid,
             playerBName: gameName,
             playerBAvatarId: avatarId,
+            wagerGold,
           }),
         );
         transaction.update(ownRef, {
@@ -175,14 +253,14 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
         return matchRef.id;
       });
 
-      return { status: "matched", matchId };
+      return { status: "matched", matchId, wagerGold };
     } catch (error) {
       if (error instanceof HttpsError) throw error;
       continue;
     }
   }
 
-  return { status: "waiting", matchId: null };
+  return { status: "waiting", matchId: null, wagerGold };
 });
 
 export const leaveRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
@@ -261,12 +339,62 @@ export const cancelRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     if (uid !== playerAId && uid !== playerBId) {
       throw new HttpsError("permission-denied", "Not a participant.");
     }
+    if (data.status === "cancelled") return;
     if (data.status !== "waitingReady" || data.countdownStartedAt != null) {
       throw new HttpsError("failed-precondition", "Match already started.");
     }
+
+    const wagerGold = requireWager(data.wagerGold);
+    if (data.goldEscrowStatus !== "locked") {
+      throw new HttpsError("data-loss", "Ranked Gold escrow is not locked.");
+    }
+
+    const inventoryARef = db.collection(COLLECTIONS.inventories).doc(playerAId);
+    const inventoryBRef = db.collection(COLLECTIONS.inventories).doc(playerBId);
+    const [inventoryA, inventoryB] = await Promise.all([
+      transaction.get(inventoryARef),
+      transaction.get(inventoryBRef),
+    ]);
+    const goldA = Math.max(0, intValue(inventoryA.data()?.gold)) + wagerGold;
+    const goldB = Math.max(0, intValue(inventoryB.data()?.gold)) + wagerGold;
+
+    transaction.set(
+      inventoryARef,
+      { gold: goldA, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    transaction.set(
+      inventoryBRef,
+      { gold: goldB, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    transaction.create(
+      db.collection(COLLECTIONS.goldTransactions).doc(`${matchId}_${playerAId}_cancel_refund`),
+      {
+        uid: playerAId,
+        matchId,
+        reason: "rankedEscrowCancelRefund",
+        amount: wagerGold,
+        balanceAfter: goldA,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+    );
+    transaction.create(
+      db.collection(COLLECTIONS.goldTransactions).doc(`${matchId}_${playerBId}_cancel_refund`),
+      {
+        uid: playerBId,
+        matchId,
+        reason: "rankedEscrowCancelRefund",
+        amount: wagerGold,
+        balanceAfter: goldB,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+    );
     transaction.update(ref, {
       status: "cancelled",
       cancelledBy: uid,
+      goldEscrowStatus: "refunded",
+      goldEscrowReason: "cancel_before_start",
       updatedAt: FieldValue.serverTimestamp(),
     });
   });
