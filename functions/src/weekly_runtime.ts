@@ -2,7 +2,11 @@ import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 import { COLLECTIONS, stringValue } from "./firestore.js";
-import { WEEK_MS, weeklyCompetitionId } from "./weekly_competition.js";
+import {
+  WEEK_MS,
+  weeklyCompetitionId,
+  weeklyScoreWindowOpen,
+} from "./weekly_competition.js";
 import {
   economicGoldWeeklyScoreEvent,
   rankedWeeklyScoreEvent,
@@ -82,10 +86,22 @@ export const onRankedSettlementWeeklyCompetition = onDocumentCreated(
     const rpBRef = weekRef.collection("rpEntries").doc(scoreEvent.playerB.uid);
 
     await db.runTransaction(async (transaction) => {
-      const marker = await transaction.get(markerRef);
+      const [marker, week] = await Promise.all([
+        transaction.get(markerRef),
+        transaction.get(weekRef),
+      ]);
       if (marker.exists) return;
+      if (week.exists && !weeklyScoreWindowOpen(week.data()?.state)) return;
 
-      transaction.set(weekRef, weekDocument(weekId), { merge: true });
+      if (!week.exists) {
+        transaction.create(weekRef, weekDocument(weekId));
+      } else {
+        transaction.set(
+          weekRef,
+          { updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+      }
 
       const identity = (player: typeof scoreEvent.playerA) => ({
         uid: player.uid,
@@ -154,10 +170,22 @@ export const onGoldTransactionWeeklyCompetition = onDocumentCreated(
     const entryRef = weekRef.collection("goldEntries").doc(scoreEvent.uid);
 
     await db.runTransaction(async (transaction) => {
-      const marker = await transaction.get(markerRef);
+      const [marker, week] = await Promise.all([
+        transaction.get(markerRef),
+        transaction.get(weekRef),
+      ]);
       if (marker.exists) return;
+      if (week.exists && !weeklyScoreWindowOpen(week.data()?.state)) return;
 
-      transaction.set(weekRef, weekDocument(weekId), { merge: true });
+      if (!week.exists) {
+        transaction.create(weekRef, weekDocument(weekId));
+      } else {
+        transaction.set(
+          weekRef,
+          { updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+      }
       transaction.set(
         entryRef,
         {
