@@ -419,7 +419,6 @@ service cloud.firestore {
         && request.resource.data.readyUids.size() == 0
         && request.resource.data.status == 'lobby';
 
-      // A signed-in player may join only an open room and may add only themself.
       allow update: if signedIn()
         && resource.data.status == 'lobby'
         && !(request.auth.uid in resource.data.participantUids)
@@ -430,8 +429,6 @@ service cloud.firestore {
           'participantUids'
         ]);
 
-      // Room members can only change lobby state; ranked/economy fields do not
-      // exist in private rooms.
       allow update: if roomMemberBefore()
         && roomMemberAfter()
         && request.resource.data.hostUid == resource.data.hostUid
@@ -456,7 +453,6 @@ service cloud.firestore {
           ])
         );
 
-      // Host may cancel by changing only status. Host departure uses this path.
       allow update: if roomMemberBefore()
         && request.auth.uid == resource.data.hostUid
         && request.resource.data.status == 'cancelled'
@@ -483,9 +479,6 @@ service cloud.firestore {
         && request.resource.data.memberUids == [request.auth.uid]
         && request.resource.data.pendingInviteUids.size() == 0;
 
-      // Casual Party state has no RP, Coins, Stars or ranked authority. Leader
-      // manages invites/members/active room; invitees can accept or decline only
-      // while they are explicitly present in pendingInviteUids.
       allow update: if partyMember()
         && (
           request.auth.uid == resource.data.leaderUid
@@ -582,7 +575,6 @@ service cloud.firestore {
         && request.auth.uid in request.resource.data.participantOrder
         && request.resource.data.participants[request.auth.uid] is map;
 
-      // Spark fallback: a participant may change only their own connection state.
       allow update: if socialMemberBefore()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
         && request.resource.data.participants.diff(resource.data.participants)
@@ -590,8 +582,6 @@ service cloud.firestore {
         && socialAfter().diff(socialBefore()).affectedKeys().hasOnly(['connectionState'])
         && socialAfter().connectionState in ['connected', 'reconnecting', 'disconnected'];
 
-      // Spark fallback: progress advances exactly one game and cannot alter
-      // identity, loadout/emote state, readiness, or another participant.
       allow update: if socialMemberBefore()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
         && request.resource.data.participants.diff(resource.data.participants)
@@ -608,9 +598,6 @@ service cloud.firestore {
             && socialAfter().finishedAt is timestamp)
         );
 
-      // Spark fallback for the single shop emote. Ownership/equipment is read
-      // from the server-written public loadout; the client cannot forge it in
-      // /users because cosmeticLoadout is excluded from all client update paths.
       allow update: if socialMemberBefore()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
         && request.resource.data.participants.diff(resource.data.participants)
@@ -632,14 +619,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Server-populated competition read models.
     match /seasons/{seasonId} {
       allow read: if signedIn();
       allow write: if false;
     }
 
-    // Season history is private account history. Only trusted server authority
-    // writes it; a player may read only their own completed-season records.
     match /seasonHistory/{uid} {
       allow read: if isOwner(uid);
       allow write: if false;
@@ -655,7 +639,27 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Economy is private and server-authoritative.
+    // Weekly competition is public to signed-in players but remains fully
+    // server-authoritative. Internal settlement/gold-event markers stay hidden.
+    match /weeklyLeaderboards/{weekId} {
+      allow read: if signedIn();
+      allow write: if false;
+
+      match /rpEntries/{uid} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
+
+      match /goldEntries/{uid} {
+        allow read: if signedIn();
+        allow write: if false;
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
     match /inventories/{uid} {
       allow read: if isOwner(uid);
       allow write: if false;
@@ -666,7 +670,6 @@ service cloud.firestore {
       }
     }
 
-    // Progression state is owner-readable and server-writable only.
     match /playerAchievements/{uid} {
       allow read: if isOwner(uid);
       allow write: if false;
@@ -692,12 +695,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Authoritative settlements, ledgers and receipts are server-only.
     match /rankedSettlements/{matchId} {
       allow read, write: if false;
     }
 
     match /coinTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /goldTransactions/{transactionId} {
       allow read, write: if false;
     }
 

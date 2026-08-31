@@ -1,5 +1,5 @@
-export const REGISTRY_VERSION = 5;
-export const MATCH_GAME_COUNT = 8;
+export const REGISTRY_VERSION = 7;
+export const MATCH_GAME_COUNT = 4;
 export const MATCH_DURATION_MS = 180000;
 
 export type GameCategory = "reaction" | "logic" | "memory" | "precision";
@@ -7,37 +7,42 @@ export type GameCategory = "reaction" | "logic" | "memory" | "precision";
 export interface GameDescriptor {
   id: string;
   category: GameCategory;
+  version: number;
 }
 
 export interface MiniGameEvidence {
   gameId: string;
+  gameVersion: number;
   gameIndex: number;
   gameSeed: number;
+  completed: boolean;
+  progressStep: number;
+  progressStepCount: number;
   score: number;
   accuracy: number;
   mistakes: number;
   durationMs: number;
 }
 
+// MUST stay equivalent in ordering/category/version semantics to
+// lib/features/minigames/data/game_registry.dart for REGISTRY_VERSION 7.
 export const APPROVED_GAMES: ReadonlyArray<GameDescriptor> = [
-  { id: "tap_target", category: "precision" },
-  { id: "quick_math", category: "logic" },
-  { id: "color_match", category: "reaction" },
-  { id: "odd_one_out", category: "logic" },
-  { id: "memory_flash", category: "memory" },
-  { id: "direction_swipe", category: "reaction" },
-  { id: "number_order", category: "memory" },
-  { id: "shape_count", category: "logic" },
-  { id: "reaction_stop", category: "reaction" },
-  { id: "symbol_pair", category: "precision" },
-  { id: "mole_strike", category: "reaction" },
-  { id: "follow_the_cup", category: "memory" },
-  { id: "path_rush", category: "logic" },
+  { id: "find_differences", category: "precision", version: 1 },
+  { id: "follow_the_cup", category: "memory", version: 1 },
+  { id: "key_escape", category: "logic", version: 1 },
+  { id: "level_devil", category: "reaction", version: 1 },
+  { id: "mirror_control", category: "precision", version: 1 },
+  { id: "mole_strike", category: "reaction", version: 1 },
+  { id: "ninja_slice", category: "reaction", version: 1 },
+  { id: "onet_connect", category: "logic", version: 1 },
+  { id: "path_rush", category: "logic", version: 1 },
+  { id: "traffic_loop", category: "logic", version: 1 },
+  { id: "hidden_pigeon", category: "precision", version: 1 },
 ];
 
 const CATEGORIES: ReadonlyArray<GameCategory> = ["reaction", "logic", "memory", "precision"];
 const SEED_MIX = 0x45d9f3b;
-const MAX_SCORE_PER_GAME = 10000;
+export const MAX_SCORE_PER_GAME = 1000;
 
 class DeterministicRng {
   private state: number;
@@ -56,6 +61,16 @@ class DeterministicRng {
       [values[index], values[other]] = [values[other]!, values[index]!];
     }
   }
+}
+
+export function descriptorFor(gameId: string): GameDescriptor | undefined {
+  return APPROVED_GAMES.find((game) => game.id === gameId);
+}
+
+export function validateLockedGameIds(value: unknown): value is string[] {
+  if (!Array.isArray(value) || value.length !== MATCH_GAME_COUNT) return false;
+  if (value.some((id) => typeof id !== "string" || !descriptorFor(id))) return false;
+  return new Set(value).size === MATCH_GAME_COUNT;
 }
 
 export function gameSequence(seed: number, count: number): GameDescriptor[] {
@@ -99,20 +114,40 @@ export function parseEvidence(value: unknown): MiniGameEvidence[] {
     if (raw === null || typeof raw !== "object") throw new Error(`evidence[${index}] must be an object`);
     const item = raw as Record<string, unknown>;
     const gameId = item.gameId;
+    const gameVersion = item.gameVersion;
     const gameIndex = item.gameIndex;
     const evidenceSeed = item.gameSeed;
+    const completed = item.completed;
+    const progressStep = item.progressStep;
+    const progressStepCount = item.progressStepCount;
     const score = item.score;
     const accuracy = item.accuracy;
     const mistakes = item.mistakes;
     const durationMs = item.durationMs;
     if (typeof gameId !== "string" || gameId.length === 0) throw new Error(`evidence[${index}].gameId is invalid`);
+    if (!finiteNumber(gameVersion) || !Number.isInteger(gameVersion) || gameVersion < 1) throw new Error(`evidence[${index}].gameVersion is invalid`);
     if (!finiteNumber(gameIndex) || !Number.isInteger(gameIndex)) throw new Error(`evidence[${index}].gameIndex is invalid`);
     if (!finiteNumber(evidenceSeed) || !Number.isInteger(evidenceSeed)) throw new Error(`evidence[${index}].gameSeed is invalid`);
+    if (typeof completed !== "boolean") throw new Error(`evidence[${index}].completed is invalid`);
+    if (!finiteNumber(progressStep) || !Number.isInteger(progressStep)) throw new Error(`evidence[${index}].progressStep is invalid`);
+    if (!finiteNumber(progressStepCount) || !Number.isInteger(progressStepCount)) throw new Error(`evidence[${index}].progressStepCount is invalid`);
     if (!finiteNumber(score) || !Number.isInteger(score)) throw new Error(`evidence[${index}].score is invalid`);
     if (!finiteNumber(accuracy)) throw new Error(`evidence[${index}].accuracy is invalid`);
     if (!finiteNumber(mistakes) || !Number.isInteger(mistakes)) throw new Error(`evidence[${index}].mistakes is invalid`);
     if (!finiteNumber(durationMs) || !Number.isInteger(durationMs)) throw new Error(`evidence[${index}].durationMs is invalid`);
-    return { gameId, gameIndex, gameSeed: evidenceSeed, score, accuracy, mistakes, durationMs };
+    return {
+      gameId,
+      gameVersion,
+      gameIndex,
+      gameSeed: evidenceSeed,
+      completed,
+      progressStep,
+      progressStepCount,
+      score,
+      accuracy,
+      mistakes,
+      durationMs,
+    };
   });
 }
 
@@ -121,19 +156,42 @@ export function validateEvidence(options: {
   gameCount: number;
   completedGames: number;
   evidence: MiniGameEvidence[];
+  lockedGameIds?: string[];
 }): boolean {
-  const { matchSeed, gameCount, completedGames, evidence } = options;
-  if (gameCount < 1 || gameCount > APPROVED_GAMES.length) return false;
+  const { matchSeed, gameCount, completedGames, evidence, lockedGameIds } = options;
+  if (gameCount !== MATCH_GAME_COUNT) return false;
   if (completedGames < 0 || completedGames > gameCount) return false;
   if (evidence.length !== completedGames) return false;
-  const expected = gameSequence(matchSeed, gameCount);
+
+  let expected: GameDescriptor[];
+  if (lockedGameIds != null) {
+    if (!validateLockedGameIds(lockedGameIds)) return false;
+    expected = lockedGameIds.map((id) => descriptorFor(id)!);
+  } else {
+    const ids = evidence.map((item) => item.gameId);
+    if (new Set(ids).size !== ids.length) return false;
+    expected = ids.map((id) => descriptorFor(id)).filter((game): game is GameDescriptor => game != null);
+    if (expected.length !== evidence.length) return false;
+  }
+
   let totalDuration = 0;
   for (let index = 0; index < evidence.length; index += 1) {
     const item = evidence[index]!;
+    const game = expected[index];
+    if (!game) return false;
     if (item.gameIndex !== index) return false;
-    if (item.gameId !== expected[index]?.id) return false;
+    if (item.gameId !== game.id) return false;
+    if (item.gameVersion !== game.version) return false;
     if (item.gameSeed !== gameSeed(matchSeed, index)) return false;
-    if (item.score < 0 || item.score > MAX_SCORE_PER_GAME) return false;
+    if (item.progressStepCount < 1) return false;
+    if (item.progressStep < 0 || item.progressStep > item.progressStepCount) return false;
+    if (item.completed) {
+      if (item.score !== MAX_SCORE_PER_GAME) return false;
+      if (item.progressStep !== item.progressStepCount) return false;
+    } else {
+      if (item.score !== 0) return false;
+      if (item.progressStep >= item.progressStepCount) return false;
+    }
     if (item.accuracy < 0 || item.accuracy > 1) return false;
     if (item.mistakes < 0) return false;
     if (item.durationMs < 0 || item.durationMs > MATCH_DURATION_MS) return false;

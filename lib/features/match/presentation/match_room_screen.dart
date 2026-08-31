@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/arena_copy.dart';
+import '../../../core/theme/arena_ui.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
@@ -11,7 +13,10 @@ import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../minigames/data/game_registry.dart';
 import '../data/match_backend.dart';
 import '../domain/match_session.dart';
+import 'arena_versus_stage.dart';
 import 'audio_match_play_screen.dart';
+import 'game_selection_panel.dart';
+import 'match_rules_sheet.dart';
 
 class MatchRoomScreen extends StatefulWidget {
   const MatchRoomScreen({
@@ -59,7 +64,10 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
       _error = null;
     });
     try {
-      await widget.matchBackend.markReady(matchId: widget.matchId, uid: widget.uid);
+      await widget.matchBackend.markReady(
+        matchId: widget.matchId,
+        uid: widget.uid,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = AppLocalizations.of(context).couldNotReady);
@@ -77,8 +85,14 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
         title: Text(l10n.leaveMatchQuestion),
         content: Text(l10n.leaveMatchDescription),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(l10n.stay)),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: Text(l10n.leave)),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.stay),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.leave),
+          ),
         ],
       ),
     );
@@ -89,7 +103,10 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
       _error = null;
     });
     try {
-      await widget.matchBackend.cancelMatch(matchId: widget.matchId, uid: widget.uid);
+      await widget.matchBackend.cancelMatch(
+        matchId: widget.matchId,
+        uid: widget.uid,
+      );
       await widget.matchBackend.clearTicket(widget.uid);
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
@@ -117,6 +134,11 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     }
   }
 
+  Future<void> _leaveCancelledMatch() async {
+    await widget.matchBackend.clearTicket(widget.uid);
+    if (mounted) Navigator.of(context).pop();
+  }
+
   int? _countdown(MatchSession match) {
     final startedAt = match.countdownStartedAt;
     if (startedAt == null) return null;
@@ -132,20 +154,19 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => AudioMatchPlayScreen(
-            matchId: widget.matchId,
-            uid: widget.uid,
-            matchBackend: widget.matchBackend,
+        PageRouteBuilder<void>(
+          transitionDuration: const Duration(milliseconds: 420),
+          pageBuilder: (_, animation, __) => FadeTransition(
+            opacity: animation,
+            child: AudioMatchPlayScreen(
+              matchId: widget.matchId,
+              uid: widget.uid,
+              matchBackend: widget.matchBackend,
+            ),
           ),
         ),
       );
     });
-  }
-
-  Future<void> _leaveCancelledMatch() async {
-    await widget.matchBackend.clearTicket(widget.uid);
-    if (mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -159,31 +180,9 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
           final match = snapshot.data;
           return Scaffold(
             backgroundColor: Colors.transparent,
-            appBar: AppBar(
-              backgroundColor: Colors.transparent,
-              title: Text(l10n.matchRoom),
-              leading: match?.status == MatchStatus.waitingReady &&
-                      match?.registryVersion == GameRegistry.version
-                  ? IconButton(
-                      tooltip: l10n.leaveMatch,
-                      onPressed: _cancelBusy ? null : _cancelMatch,
-                      icon: const Icon(Icons.close_rounded),
-                    )
-                  : null,
-            ),
             body: CosmicBackground(
               child: SafeArea(
-                top: false,
-                child: StreamBuilder<CosmeticLoadout>(
-                  stream: _loadouts.watch(widget.uid),
-                  initialData: const CosmeticLoadout(),
-                  builder: (context, loadoutSnapshot) => _buildBody(
-                    context,
-                    snapshot,
-                    match,
-                    loadoutSnapshot.data ?? const CosmeticLoadout(),
-                  ),
-                ),
+                child: _buildBody(context, snapshot, match, l10n),
               ),
             ),
           );
@@ -196,12 +195,17 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     BuildContext context,
     AsyncSnapshot<MatchSession?> snapshot,
     MatchSession? match,
-    CosmeticLoadout myLoadout,
+    AppLocalizations l10n,
   ) {
-    final l10n = AppLocalizations.of(context);
+    final copy = ArenaCopy.of(context);
+
     if (snapshot.hasError) {
       return _CenterPanel(
-        child: Text(l10n.connectionLostRoom, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted, height: 1.5)),
+        child: Text(
+          l10n.connectionLostRoom,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: GameColors.muted, height: 1.5),
+        ),
       );
     }
     if (match == null) return const Center(child: CircularProgressIndicator());
@@ -211,17 +215,28 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.system_update_alt_rounded, size: 52, color: GameColors.warning),
+            const Icon(
+              Icons.system_update_alt_rounded,
+              size: 52,
+              color: GameColors.warning,
+            ),
             const SizedBox(height: GameSpacing.md),
-            Text(l10n.legacyMatchTitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              l10n.legacyMatchTitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: GameSpacing.sm),
-            Text(l10n.legacyMatchDescription, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted)),
+            Text(
+              l10n.legacyMatchDescription,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: GameColors.muted),
+            ),
             const SizedBox(height: GameSpacing.lg),
-            FilledButton(onPressed: _cancelBusy ? null : _clearLegacyMatch, child: Text(_cancelBusy ? l10n.removing : l10n.removeOldMatch)),
-            if (_error != null) ...[
-              const SizedBox(height: GameSpacing.sm),
-              Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
-            ],
+            FilledButton(
+              onPressed: _cancelBusy ? null : _clearLegacyMatch,
+              child: Text(_cancelBusy ? l10n.removing : l10n.removeOldMatch),
+            ),
           ],
         ),
       );
@@ -235,9 +250,16 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
           children: [
             const Icon(Icons.person_off_rounded, size: 58, color: GameColors.danger),
             const SizedBox(height: GameSpacing.md),
-            Text(opponentLeft ? l10n.opponentLeft : l10n.matchCancelled, textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              opponentLeft ? l10n.opponentLeft : l10n.matchCancelled,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: GameSpacing.lg),
-            FilledButton(onPressed: _leaveCancelledMatch, child: Text(l10n.backToHome)),
+            FilledButton(
+              onPressed: _leaveCancelledMatch,
+              child: Text(l10n.backToHome),
+            ),
           ],
         ),
       );
@@ -246,96 +268,186 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
     final countdown = _countdown(match);
     if (countdown == 0) _openPlay();
 
-    final myName = match.playerAId == widget.uid ? match.playerAName : match.playerBName;
-    final opponentUid = match.playerAId == widget.uid ? match.playerBId : match.playerAId;
+    final iAmA = match.playerAId == widget.uid;
+    final myName = iAmA ? match.playerAName : match.playerBName;
+    final myAvatar = iAmA ? match.playerAAvatarId : match.playerBAvatarId;
     final opponentName = match.opponentName(widget.uid);
-    final opponentReady = match.playerAId == widget.uid ? match.readyB : match.readyA;
+    final opponentAvatar = match.opponentAvatarId(widget.uid);
+    final opponentReady = iAmA ? match.readyB : match.readyA;
+    final bothReady = match.isReady(widget.uid) && opponentReady;
+    final selectionBackend = widget.matchBackend is MatchGameSelectionBackend
+        ? widget.matchBackend as MatchGameSelectionBackend
+        : null;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(GameSpacing.md, GameSpacing.sm, GameSpacing.md, GameSpacing.lg),
+      padding: const EdgeInsets.fromLTRB(
+        GameSpacing.md,
+        GameSpacing.sm,
+        GameSpacing.md,
+        GameSpacing.lg,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _PlayerPanel(
-            uid: widget.uid,
-            label: l10n.you,
-            name: myName,
-            ready: match.isReady(widget.uid),
-            accent: GameColors.accentBright,
-            loadout: myLoadout,
-          ),
-          const SizedBox(height: GameSpacing.sm),
-          FutureBuilder<CosmeticLoadout>(
-            future: _loadouts.load(opponentUid),
-            builder: (context, loadoutSnapshot) => _PlayerPanel(
-              uid: opponentUid,
-              label: l10n.opponent,
-              name: opponentName,
-              ready: opponentReady,
-              accent: GameColors.warning,
-              loadout: loadoutSnapshot.data ?? const CosmeticLoadout(),
-            ),
-          ),
-          const Spacer(),
-          AnimatedSwitcher(
-            duration: GameDurations.normal,
-            child: countdown != null
-                ? Column(
-                    key: ValueKey(countdown),
-                    children: [
-                      if (myLoadout.matchIntroId != null)
-                        CosmeticMatchIntro(
-                          introId: myLoadout.matchIntroId!,
-                          playerName: myName,
-                          opponentName: opponentName,
-                          height: 220,
-                        )
-                      else
-                        Container(
-                          width: 130,
-                          height: 130,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(shape: BoxShape.circle, gradient: GameColors.cosmicGradient),
-                          child: Text(
-                            countdown == 0 ? l10n.go : '$countdown',
-                            style: Theme.of(context).textTheme.displayLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
-                          ),
-                        ),
-                      const SizedBox(height: GameSpacing.md),
-                      Text(
-                        countdown == 0 ? l10n.go : '${l10n.bothPlayersReady} • $countdown',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ],
-                  )
-                : CosmicPanel(
-                    key: const ValueKey('instructions'),
-                    child: Text(l10n.readyInstructions, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.muted, height: 1.5)),
-                  ),
-          ),
-          const Spacer(),
-          if (countdown == null && !match.isReady(widget.uid))
-            CosmicPrimaryButton(
-              onPressed: _readyBusy || _cancelBusy ? null : _markReady,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.flash_on_rounded),
-                  const SizedBox(width: GameSpacing.sm),
-                  Text(_readyBusy ? l10n.gettingReady : l10n.ready),
-                ],
+          Row(
+            children: [
+              IconButton(
+                tooltip: l10n.leaveMatch,
+                onPressed: match.status == MatchStatus.waitingReady && !_cancelBusy
+                    ? _cancelMatch
+                    : null,
+                icon: const Icon(Icons.close_rounded),
               ),
-            )
-          else if (countdown == null)
-            FilledButton.icon(
-              onPressed: null,
-              icon: const Icon(Icons.hourglass_top_rounded),
-              label: Text(l10n.waitingForOpponent),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      match.gameSelectionLocked
+                          ? copy.readyCheck
+                          : (copy.isArabic ? 'اختيار الألعاب' : 'GAME SELECTION'),
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                    ),
+                    Text(
+                      copy.rankedRules,
+                      style: const TextStyle(color: GameColors.muted, fontSize: 9),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: copy.isArabic ? 'القواعد' : 'Rules',
+                onPressed: () => showMatchRulesSheet(context),
+                icon: const Icon(
+                  Icons.info_outline_rounded,
+                  color: GameColors.accentBright,
+                ),
+              ),
+              if (match.gameSelectionLocked)
+                ArenaPill(
+                  label: bothReady ? copy.locked : copy.waiting,
+                  icon: bothReady ? Icons.lock_rounded : Icons.sync_rounded,
+                  color: bothReady ? GameColors.success : GameColors.warning,
+                  solid: bothReady,
+                ),
+            ],
+          ),
+          const SizedBox(height: GameSpacing.md),
+          if (match.isRanked && !match.gameSelectionLocked) ...[
+            Expanded(
+              child: SingleChildScrollView(
+                child: selectionBackend == null
+                    ? ArenaCard(
+                        accent: GameColors.danger,
+                        child: Text(
+                          copy.isArabic
+                              ? 'هذه النسخة لا تدعم اختيار الألعاب التنافسي.'
+                              : 'This build does not support competitive game selection.',
+                          style: const TextStyle(color: GameColors.danger),
+                        ),
+                      )
+                    : GameSelectionPanel(
+                        match: match,
+                        uid: widget.uid,
+                        backend: selectionBackend,
+                      ),
+              ),
             ),
-          if (_error != null) ...[
-            const SizedBox(height: GameSpacing.sm),
-            Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
+            if (_error != null) ...[
+              const SizedBox(height: GameSpacing.sm),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: GameColors.danger),
+              ),
+            ],
+          ] else ...[
+            ArenaVersusStage(
+              myName: myName,
+              myAvatarId: myAvatar,
+              myReady: match.isReady(widget.uid),
+              opponentName: opponentName,
+              opponentAvatarId: opponentAvatar,
+              opponentReady: opponentReady,
+              gameCount: match.gameCount,
+              ranked: match.isRanked,
+              countdown: countdown,
+            ),
+            const SizedBox(height: GameSpacing.md),
+            if (countdown != null)
+              FutureBuilder<CosmeticLoadout>(
+                future: _loadouts.load(widget.uid),
+                builder: (context, loadoutSnapshot) {
+                  final loadout = loadoutSnapshot.data ?? const CosmeticLoadout();
+                  if (loadout.matchIntroId == null) return const SizedBox.shrink();
+                  return CosmeticMatchIntro(
+                    introId: loadout.matchIntroId!,
+                    playerName: myName,
+                    opponentName: opponentName,
+                    height: 155,
+                  );
+                },
+              )
+            else
+              ArenaCard(
+                child: Row(
+                  children: [
+                    const Icon(Icons.shield_outlined, color: GameColors.violet),
+                    const SizedBox(width: GameSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        copy.isArabic
+                            ? 'تم تثبيت الألعاب الأربع. اضغط جاهز عندما تكون مستعدًا.'
+                            : 'All four games are locked. Press Ready when you are prepared.',
+                        style: const TextStyle(
+                          color: GameColors.muted,
+                          height: 1.45,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (_error != null) ...[
+              const SizedBox(height: GameSpacing.sm),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: GameColors.danger),
+              ),
+            ],
+            const Spacer(),
+            if (countdown == null && !match.isReady(widget.uid))
+              ArenaPlayButton(
+                title: _readyBusy ? l10n.gettingReady : l10n.ready,
+                subtitle: copy.isArabic
+                    ? 'ثبّت جاهزيتك وابدأ العد التنازلي'
+                    : 'Lock in and trigger the countdown',
+                icon: Icons.flash_on_rounded,
+                onPressed: _readyBusy || _cancelBusy || !match.gameSelectionLocked
+                    ? null
+                    : _markReady,
+              )
+            else if (countdown == null)
+              ArenaCard(
+                accent: GameColors.success,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: GameSpacing.sm),
+                    Text(
+                      l10n.waitingForOpponent,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ],
       ),
@@ -345,6 +457,7 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
 
 class _CenterPanel extends StatelessWidget {
   const _CenterPanel({required this.child});
+
   final Widget child;
 
   @override
@@ -352,80 +465,11 @@ class _CenterPanel extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(GameSpacing.lg),
-        child: CosmicPanel(glow: true, padding: const EdgeInsets.all(GameSpacing.lg), child: child),
-      ),
-    );
-  }
-}
-
-class _PlayerPanel extends StatelessWidget {
-  const _PlayerPanel({
-    required this.uid,
-    required this.label,
-    required this.name,
-    required this.ready,
-    required this.accent,
-    required this.loadout,
-  });
-
-  final String uid;
-  final String label;
-  final String name;
-  final bool ready;
-  final Color accent;
-  final CosmeticLoadout loadout;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return CosmicPanel(
-      glow: ready,
-      child: Row(
-        children: [
-          CosmeticAvatarView(
-            avatarId: loadout.avatarId ?? 'avatar_free_vanguard',
-            frameId: loadout.avatarFrameId,
-            size: 50,
-          ),
-          const SizedBox(width: GameSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: CosmeticNameText(
-                        text: name,
-                        styleId: loadout.nameStyleId,
-                        fontSize: 16,
-                      ),
-                    ),
-                    if (loadout.badgeId != null)
-                      CosmeticBadgeView(badgeId: loadout.badgeId!, size: 30),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(label, style: const TextStyle(color: GameColors.muted)),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: (ready ? GameColors.success : GameColors.surfaceRaised).withValues(alpha: ready ? .12 : 1),
-              borderRadius: BorderRadius.circular(GameRadii.pill),
-            ),
-            child: Text(
-              ready ? l10n.ready : l10n.waiting,
-              style: TextStyle(
-                color: ready ? GameColors.success : GameColors.muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-        ],
+        child: ArenaCard(
+          glow: true,
+          padding: const EdgeInsets.all(GameSpacing.lg),
+          child: child,
+        ),
       ),
     );
   }

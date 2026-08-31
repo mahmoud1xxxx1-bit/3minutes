@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../domain/competitive_result_policy.dart';
 import '../domain/mini_game_contract.dart';
 import 'find_differences/find_differences_game.dart';
 import 'follow_the_cup/follow_the_cup_game.dart';
@@ -11,7 +12,7 @@ import 'mirror_control/mirror_control_minigame.dart';
 import 'mole_strike/mole_strike_game.dart';
 import 'ninja_slice/ninja_slice_game.dart';
 import 'onet_connect/onet_connect_game.dart';
-import 'path_rush/path_rush_game.dart';
+import 'path_rush/path_rush_competitive_game.dart';
 import 'traffic_loop/traffic_loop_game.dart';
 
 class MiniGameHost extends StatelessWidget {
@@ -28,6 +29,10 @@ class MiniGameHost extends StatelessWidget {
 
   Key get _runtimeKey => ValueKey('${game.id}-${config.seed}');
 
+  void _complete(MiniGameResult raw) {
+    onComplete(CompetitiveResultPolicy.normalize(raw));
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (game.id) {
@@ -35,74 +40,74 @@ class MiniGameHost extends StatelessWidget {
         return FindDifferencesGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'follow_the_cup':
         return FollowTheCupGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'key_escape':
         return KeyEscapeGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'level_devil':
         return LevelDevilGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'mirror_control':
-        return MirrorControlMinigame(
+        return MirrorControlMiniGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'mole_strike':
         return MoleStrikeGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'ninja_slice':
         return NinjaSliceGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'onet_connect':
         return OnetConnectGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'path_rush':
-        return PathRushGame(
+        return PathRushCompetitiveGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'traffic_loop':
         return TrafficLoopGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'hidden_pigeon':
         return HiddenPigeonGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
     }
 
     return legacy.MiniGameHost(
       game: game,
       config: config,
-      onComplete: onComplete,
+      onComplete: _complete,
     );
   }
 }

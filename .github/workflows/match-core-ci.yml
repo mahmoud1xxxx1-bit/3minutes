@@ -1,0 +1,100 @@
+name: Match Core CI
+
+on:
+  push:
+    branches:
+      - feature/premium-core-ux-v1
+    paths:
+      - 'functions/src/**'
+      - 'functions/package.json'
+      - 'functions/rules-tests.mjs'
+      - 'firebase.json'
+      - 'firestore.rules'
+      - 'lib/core/firebase/server_collections.dart'
+      - 'lib/features/competition/data/**'
+      - 'lib/features/competition/domain/**'
+      - 'lib/features/competition/presentation/leaderboard_screen.dart'
+      - 'lib/features/match/domain/**'
+      - 'lib/features/match/data/match_backend.dart'
+      - 'lib/features/match/data/cloud_functions_match_backend.dart'
+      - 'lib/features/match/presentation/arena_match_result_view.dart'
+      - 'lib/features/match/presentation/game_selection_panel.dart'
+      - 'lib/features/match/presentation/matchmaking_screen.dart'
+      - 'lib/features/match/presentation/match_room_screen.dart'
+      - 'lib/features/match/presentation/match_play_screen.dart'
+      - 'lib/features/match/presentation/match_rules_sheet.dart'
+      - 'lib/features/minigames/domain/**'
+      - 'lib/features/minigames/data/game_registry.dart'
+      - 'lib/features/minigames/presentation/mini_game_host.dart'
+      - 'lib/features/minigames/presentation/mini_game_copy.dart'
+      - 'lib/features/minigames/presentation/level_devil/**'
+      - 'lib/features/minigames/presentation/hidden_pigeon/hidden_pigeon_game.dart'
+      - 'lib/features/minigames/presentation/path_rush/**'
+      - 'test/features/match/domain/**'
+      - '.github/workflows/match-core-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  match-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Cloud Functions dependencies
+        run: npm install --prefix functions --no-audit --no-fund
+
+      - name: Build and test Cloud Functions
+        run: npm test --prefix functions
+
+      - name: Validate Firestore competition rules
+        run: >-
+          npx --yes firebase-tools@15.25.1 emulators:exec
+          --only firestore
+          --project demo-3minutes
+          "npm run test:rules --prefix functions"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze match core
+        run: >-
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          lib/core/firebase/server_collections.dart
+          lib/features/competition/data
+          lib/features/competition/domain
+          lib/features/competition/presentation/leaderboard_screen.dart
+          lib/features/match/domain
+          lib/features/match/data/match_backend.dart
+          lib/features/match/data/cloud_functions_match_backend.dart
+          lib/features/match/presentation/arena_match_result_view.dart
+          lib/features/match/presentation/game_selection_panel.dart
+          lib/features/match/presentation/matchmaking_screen.dart
+          lib/features/match/presentation/match_room_screen.dart
+          lib/features/match/presentation/match_play_screen.dart
+          lib/features/match/presentation/match_rules_sheet.dart
+          lib/features/minigames/domain
+          lib/features/minigames/data/game_registry.dart
+          lib/features/minigames/presentation/mini_game_host.dart
+          lib/features/minigames/presentation/mini_game_copy.dart
+          lib/features/minigames/presentation/level_devil/level_devil_game.dart
+          lib/features/minigames/presentation/hidden_pigeon/hidden_pigeon_game.dart
+          lib/features/minigames/presentation/path_rush/path_rush_game.dart
+          lib/features/minigames/presentation/path_rush/path_rush_competitive_game.dart
+          test/features/match/domain
+
+      - name: Test match core
+        run: flutter test test/features/match/domain

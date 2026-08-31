@@ -5,12 +5,14 @@ initializeApp();
 export {
   joinRankedQueue,
   leaveRankedQueue,
-  markRankedReady,
   cancelRankedMatch,
-  submitRankedProgress,
 } from "./match.js";
 export {
-  submitRankedGameResult,
+  submitRankedGameSelection,
+  markRankedReadyV2 as markRankedReady,
+} from "./game_selection.js";
+export { submitRankedGameResultV2 as submitRankedGameResult } from "./ranked_submission_v2.js";
+export {
   requestRankedRematch,
   cancelRankedRematch,
   syncRankedTicket,
@@ -30,7 +32,15 @@ export {
 } from "./quick.js";
 export { getQuickTicket } from "./quick_ticket.js";
 
-export { settleRankedMatch } from "./settlement.js";
+export { settleRankedMatchV2 as settleRankedMatch } from "./settlement_v2.js";
+export {
+  onRankedSettlementWeeklyCompetition,
+  onGoldTransactionWeeklyCompetition,
+} from "./weekly_runtime.js";
+export {
+  rolloverWeeklyCompetition,
+  processWeeklyRewardPage,
+} from "./weekly_rewards.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
 export { settleSocialMatch } from "./social.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";

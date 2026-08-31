@@ -8,6 +8,9 @@ class ServerCollections {
   static const seasonHistory = 'seasonHistory';
   static const leaderboards = 'leaderboards';
   static const leaderboardEntries = 'entries';
+  static const weeklyLeaderboards = 'weeklyLeaderboards';
+  static const weeklyRpEntries = 'rpEntries';
+  static const weeklyGoldEntries = 'goldEntries';
 
   static const inventories = 'inventories';
   static const inventoryItems = 'items';

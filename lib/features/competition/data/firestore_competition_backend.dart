@@ -6,6 +6,7 @@ import '../domain/leaderboard_policy.dart';
 import '../domain/rank_tier.dart';
 import '../domain/season.dart';
 import '../domain/season_history.dart';
+import '../domain/weekly_leaderboard_entry.dart';
 import 'competition_backend.dart';
 
 class FirestoreCompetitionBackend implements CompetitionBackend {
@@ -46,6 +47,41 @@ class FirestoreCompetitionBackend implements CompetitionBackend {
 
     final entries = snapshot.docs.map(_leaderboardFromDoc);
     return LeaderboardPolicy.sorted(entries);
+  }
+
+  @override
+  Future<List<WeeklyLeaderboardEntry>> loadWeeklyLeaderboard(
+    WeeklyLeaderboardKind kind, {
+    int limit = 100,
+  }) async {
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    final weekIndex = DateTime.now().toUtc().millisecondsSinceEpoch ~/ weekMs;
+    final weekId = 'week_$weekIndex';
+    final collection = kind == WeeklyLeaderboardKind.rp
+        ? ServerCollections.weeklyRpEntries
+        : ServerCollections.weeklyGoldEntries;
+    final safeLimit = limit.clamp(1, 100).toInt();
+    final snapshot = await _firestore
+        .collection(ServerCollections.weeklyLeaderboards)
+        .doc(weekId)
+        .collection(collection)
+        .orderBy('score', descending: true)
+        .limit(safeLimit)
+        .get();
+
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      final matches = (data['matches'] as num?)?.toInt() ?? 0;
+      final economicEvents = (data['economicEvents'] as num?)?.toInt() ?? 0;
+      return WeeklyLeaderboardEntry(
+        uid: doc.id,
+        gameName: data['gameName'] as String? ?? 'Player',
+        avatarId: data['avatarId'] as String? ?? 'default_01',
+        score: (data['score'] as num?)?.toInt() ?? 0,
+        active: data['active'] as bool? ?? false,
+        activityCount: kind == WeeklyLeaderboardKind.rp ? matches : economicEvents,
+      );
+    }).toList(growable: false);
   }
 
   @override

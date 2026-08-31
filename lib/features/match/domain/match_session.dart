@@ -34,7 +34,11 @@ class MatchSession {
     required this.progressB,
     required this.rematchA,
     required this.rematchB,
+    this.playerAGameIds = const [],
+    this.playerBGameIds = const [],
+    this.lockedGameIds = const [],
     this.mode = 'ranked',
+    this.wagerGold = 0,
     this.rematchMatchId,
     this.cancelledBy,
     this.countdownStartedAt,
@@ -58,7 +62,11 @@ class MatchSession {
   final MatchProgress progressB;
   final bool rematchA;
   final bool rematchB;
+  final List<String> playerAGameIds;
+  final List<String> playerBGameIds;
+  final List<String> lockedGameIds;
   final String mode;
+  final int wagerGold;
   final String? rematchMatchId;
   final String? cancelledBy;
   final DateTime? countdownStartedAt;
@@ -66,6 +74,11 @@ class MatchSession {
 
   bool get isQuick => mode == 'quick';
   bool get isRanked => !isQuick;
+  bool get hasGoldWager => isRanked && wagerGold > 0;
+
+  /// Ranked requires the two-player selection contract. Quick matches retain
+  /// their existing seeded registry flow and therefore do not wait for picks.
+  bool get gameSelectionLocked => isQuick || lockedGameIds.length == gameCount;
 
   bool containsPlayer(String uid) => playerAId == uid || playerBId == uid;
 
@@ -75,6 +88,12 @@ class MatchSession {
       playerAId == uid ? playerBAvatarId : playerAAvatarId;
 
   bool isReady(String uid) => playerAId == uid ? readyA : readyB;
+
+  List<String> selectedGamesFor(String uid) =>
+      playerAId == uid ? playerAGameIds : playerBGameIds;
+
+  List<String> opponentSelectedGames(String uid) =>
+      playerAId == uid ? playerBGameIds : playerAGameIds;
 
   bool requestedRematch(String uid) => playerAId == uid ? rematchA : rematchB;
 
