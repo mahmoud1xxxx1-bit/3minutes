@@ -28,7 +28,7 @@ export {
   cancelQuickMatch,
   submitQuickGameResult,
   requestQuickRematch,
-  cancelQuickRematchRequest,
+  cancelQuickRematch,
   settleQuickMatch,
 } from "./quick.js";
 export { getQuickTicket } from "./quick_ticket.js";
