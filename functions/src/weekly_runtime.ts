@@ -1,9 +1,12 @@
 import { FieldValue, Timestamp, getFirestore } from "firebase-admin/firestore";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
-import { COLLECTIONS } from "./firestore.js";
+import { COLLECTIONS, stringValue } from "./firestore.js";
 import { WEEK_MS, weeklyCompetitionId } from "./weekly_competition.js";
-import { rankedWeeklyScoreEvent } from "./weekly_score.js";
+import {
+  economicGoldWeeklyScoreEvent,
+  rankedWeeklyScoreEvent,
+} from "./weekly_score.js";
 
 const REGION = "me-central2";
 
@@ -17,6 +20,22 @@ function weekBounds(weekId: string): { startsAt: Timestamp; endsAt: Timestamp } 
   };
 }
 
+function weekDocument(weekId: string): Record<string, unknown> {
+  const bounds = weekBounds(weekId);
+  return {
+    weekId,
+    startsAt: bounds.startsAt,
+    endsAt: bounds.endsAt,
+    state: "open",
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+}
+
+/**
+ * RP weekly ranking is driven only by authoritative ranked settlements.
+ * Gold is deliberately NOT written here; Gold has its own immutable-ledger
+ * trigger below so every economic source is counted exactly once.
+ */
 export const onRankedSettlementWeeklyCompetition = onDocumentCreated(
   {
     document: `${COLLECTIONS.rankedSettlements}/{matchId}`,
@@ -61,25 +80,12 @@ export const onRankedSettlementWeeklyCompetition = onDocumentCreated(
     const markerRef = weekRef.collection("settlements").doc(matchId);
     const rpARef = weekRef.collection("rpEntries").doc(scoreEvent.playerA.uid);
     const rpBRef = weekRef.collection("rpEntries").doc(scoreEvent.playerB.uid);
-    const goldARef = weekRef.collection("goldEntries").doc(scoreEvent.playerA.uid);
-    const goldBRef = weekRef.collection("goldEntries").doc(scoreEvent.playerB.uid);
-    const bounds = weekBounds(weekId);
 
     await db.runTransaction(async (transaction) => {
       const marker = await transaction.get(markerRef);
       if (marker.exists) return;
 
-      transaction.set(
-        weekRef,
-        {
-          weekId,
-          startsAt: bounds.startsAt,
-          endsAt: bounds.endsAt,
-          state: "open",
-          updatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+      transaction.set(weekRef, weekDocument(weekId), { merge: true });
 
       const identity = (player: typeof scoreEvent.playerA) => ({
         uid: player.uid,
@@ -106,22 +112,6 @@ export const onRankedSettlementWeeklyCompetition = onDocumentCreated(
         },
         { merge: true },
       );
-      transaction.set(
-        goldARef,
-        {
-          ...identity(scoreEvent.playerA),
-          score: FieldValue.increment(scoreEvent.playerA.goldNetDelta),
-        },
-        { merge: true },
-      );
-      transaction.set(
-        goldBRef,
-        {
-          ...identity(scoreEvent.playerB),
-          score: FieldValue.increment(scoreEvent.playerB.goldNetDelta),
-        },
-        { merge: true },
-      );
 
       transaction.create(markerRef, {
         matchId,
@@ -130,8 +120,62 @@ export const onRankedSettlementWeeklyCompetition = onDocumentCreated(
         playerBId: scoreEvent.playerB.uid,
         rpDeltaA: scoreEvent.playerA.rpDelta,
         rpDeltaB: scoreEvent.playerB.rpDelta,
-        goldDeltaA: scoreEvent.playerA.goldNetDelta,
-        goldDeltaB: scoreEvent.playerB.goldNetDelta,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+  },
+);
+
+/**
+ * Gold weekly ranking follows every server-created Gold ledger mutation.
+ * A per-transaction marker makes Firestore's at-least-once event delivery
+ * idempotent, while excluded weekly prizes cannot seed the following week.
+ */
+export const onGoldTransactionWeeklyCompetition = onDocumentCreated(
+  {
+    document: `${COLLECTIONS.goldTransactions}/{transactionId}`,
+    region: REGION,
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const scoreEvent = economicGoldWeeklyScoreEvent(snapshot.data());
+    if (!scoreEvent) return;
+
+    const data = snapshot.data();
+    const createdAt = data.createdAt;
+    if (!(createdAt instanceof Timestamp)) return;
+
+    const db = getFirestore();
+    const profile = (await db.collection(COLLECTIONS.users).doc(scoreEvent.uid).get()).data() ?? {};
+    const weekId = weeklyCompetitionId(createdAt.toMillis());
+    const weekRef = db.collection(COLLECTIONS.weeklyLeaderboards).doc(weekId);
+    const markerRef = weekRef.collection("goldEvents").doc(event.params.transactionId);
+    const entryRef = weekRef.collection("goldEntries").doc(scoreEvent.uid);
+
+    await db.runTransaction(async (transaction) => {
+      const marker = await transaction.get(markerRef);
+      if (marker.exists) return;
+
+      transaction.set(weekRef, weekDocument(weekId), { merge: true });
+      transaction.set(
+        entryRef,
+        {
+          uid: scoreEvent.uid,
+          gameName: stringValue(profile.gameName, "Player"),
+          avatarId: stringValue(profile.avatarId, "default_01"),
+          active: true,
+          score: FieldValue.increment(scoreEvent.goldDelta),
+          economicEvents: FieldValue.increment(1),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      transaction.create(markerRef, {
+        transactionId: event.params.transactionId,
+        uid: scoreEvent.uid,
+        weekId,
+        goldDelta: scoreEvent.goldDelta,
         createdAt: FieldValue.serverTimestamp(),
       });
     });
