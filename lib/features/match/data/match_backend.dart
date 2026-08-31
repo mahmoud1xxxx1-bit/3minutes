@@ -1,4 +1,5 @@
 import '../../competition/domain/ranked_settlement_player.dart';
+import '../../minigames/domain/mini_game_contract.dart';
 import '../../profile/domain/player_profile.dart';
 import '../domain/match_progress.dart';
 import '../domain/match_session.dart';
@@ -60,6 +61,17 @@ abstract interface class MatchGameSelectionBackend {
     required String matchId,
     required String uid,
     required List<String> gameIds,
+  });
+}
+
+/// Ranked authority receives the complete mini-game result contract so it can
+/// preserve completion, discrete progress, mistakes and duration verbatim.
+abstract interface class DetailedGameResultBackend {
+  Future<void> submitMiniGameResult({
+    required String matchId,
+    required String uid,
+    required MiniGameResult result,
+    required int gameCount,
   });
 }
 
