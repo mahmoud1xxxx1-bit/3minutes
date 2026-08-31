@@ -15,6 +15,7 @@ import '../domain/season.dart';
 import '../domain/season_clock.dart';
 import '../domain/season_reward_policy.dart';
 import 'rank_badge.dart';
+import 'weekly_leaderboard_panel.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key, required this.competitionBackend});
@@ -76,7 +77,7 @@ class LeaderboardScreen extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             liveEnabled
-                                ? (ar ? 'أفضل اللاعبين حسب RP في الموسم الحالي.' : 'Top players by RP in the current season.')
+                                ? (ar ? 'المنافسة الأسبوعية للمهارة والاقتصاد مع تصنيف الموسم.' : 'Weekly skill and economy competition alongside the season ladder.')
                                 : (ar ? 'التصنيف المباشر سيظهر هنا عند تفعيل الموسم الحي.' : 'Live ranking appears here when the active season is enabled.'),
                             style: const TextStyle(color: GameColors.textSoft, height: 1.4),
                           ),
@@ -90,9 +91,11 @@ class LeaderboardScreen extends StatelessWidget {
                 const SizedBox(height: GameSpacing.md),
                 _SeasonStatus(competitionBackend: competitionBackend),
                 const SizedBox(height: GameSpacing.lg),
+                WeeklyLeaderboardPanel(competitionBackend: competitionBackend),
+                const SizedBox(height: GameSpacing.lg),
                 ArenaSectionTitle(
                   title: l10n.liveStandings,
-                  subtitle: ar ? 'الترتيب يتغير مع كل مواجهة مصنفة' : 'The ladder shifts after every ranked battle',
+                  subtitle: ar ? 'تصنيف RP للموسم الحالي — منفصل عن نتيجة الأسبوع' : 'Current-season RP ladder — separate from weekly score',
                   icon: Icons.public_rounded,
                 ),
                 const SizedBox(height: GameSpacing.sm),
@@ -101,7 +104,7 @@ class LeaderboardScreen extends StatelessWidget {
               ],
               ArenaSectionTitle(
                 title: l10n.rankLadder,
-                subtitle: ar ? 'ارفع RP لتصل إلى القمة' : 'Build RP to reach the top tier',
+                subtitle: ar ? 'ارفع RP الدائم لتصل إلى القمة' : 'Build persistent RP to reach the top tier',
                 icon: Icons.military_tech_rounded,
               ),
               const SizedBox(height: GameSpacing.sm),
