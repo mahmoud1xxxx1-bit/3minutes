@@ -8,7 +8,15 @@ on:
       - 'functions/src/**'
       - 'functions/package.json'
       - 'lib/features/match/domain/**'
+      - 'lib/features/match/data/match_backend.dart'
+      - 'lib/features/match/data/cloud_functions_match_backend.dart'
+      - 'lib/features/match/presentation/game_selection_panel.dart'
+      - 'lib/features/match/presentation/match_room_screen.dart'
+      - 'lib/features/match/presentation/match_play_screen.dart'
+      - 'lib/features/match/presentation/match_rules_sheet.dart'
       - 'lib/features/minigames/domain/**'
+      - 'lib/features/minigames/data/game_registry.dart'
+      - 'lib/features/minigames/presentation/level_devil/**'
       - 'test/features/match/domain/**'
       - '.github/workflows/match-core-ci.yml'
   workflow_dispatch:
@@ -43,7 +51,19 @@ jobs:
         run: flutter pub get
 
       - name: Analyze match core
-        run: flutter analyze lib/features/match/domain lib/features/minigames/domain test/features/match/domain
+        run: >-
+          flutter analyze
+          lib/features/match/domain
+          lib/features/match/data/match_backend.dart
+          lib/features/match/data/cloud_functions_match_backend.dart
+          lib/features/match/presentation/game_selection_panel.dart
+          lib/features/match/presentation/match_room_screen.dart
+          lib/features/match/presentation/match_play_screen.dart
+          lib/features/match/presentation/match_rules_sheet.dart
+          lib/features/minigames/domain
+          lib/features/minigames/data/game_registry.dart
+          lib/features/minigames/presentation/level_devil
+          test/features/match/domain
 
       - name: Test match core
         run: flutter test test/features/match/domain
