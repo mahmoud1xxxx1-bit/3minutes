@@ -33,6 +33,20 @@ test('double fail refunds only half of each player wager', () => {
   });
 });
 
+test('exact successful draw refunds both wagers without punishment', () => {
+  assert.deepEqual(
+    settleGoldEscrow({ wagerGold: 250, outcome: 'tie', tieIsFailure: false }),
+    {
+      playerARefund: 250,
+      playerBRefund: 250,
+      playerAPayout: 0,
+      playerBPayout: 0,
+      burnedGold: 0,
+      reason: 'draw_refund',
+    },
+  );
+});
+
 test('technical cancellation refunds both wagers in full', () => {
   assert.deepEqual(
     settleGoldEscrow({ wagerGold: 100, outcome: 'tie', technicalCancel: true }),
