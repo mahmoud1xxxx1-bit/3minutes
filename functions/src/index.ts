@@ -5,10 +5,13 @@ initializeApp();
 export {
   joinRankedQueue,
   leaveRankedQueue,
-  markRankedReady,
   cancelRankedMatch,
   submitRankedProgress,
 } from "./match.js";
+export {
+  submitRankedGameSelection,
+  markRankedReadyV2 as markRankedReady,
+} from "./game_selection.js";
 export {
   submitRankedGameResult,
   requestRankedRematch,
