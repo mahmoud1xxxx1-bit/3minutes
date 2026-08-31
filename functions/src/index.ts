@@ -6,7 +6,6 @@ export {
   joinRankedQueue,
   leaveRankedQueue,
   cancelRankedMatch,
-  submitRankedProgress,
 } from "./match.js";
 export {
   submitRankedGameSelection,
