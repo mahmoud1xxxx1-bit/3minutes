@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:three_minutes/features/competition/domain/ranked_settlement_player.dart';
-import 'package:three_minutes/features/match/domain/ranked_wager.dart';
+import 'package:game/features/competition/domain/ranked_settlement_player.dart';
+import 'package:game/features/match/domain/ranked_wager.dart';
 
 void main() {
   test('ranked wagers are exactly 100 250 and 500 gold', () {
