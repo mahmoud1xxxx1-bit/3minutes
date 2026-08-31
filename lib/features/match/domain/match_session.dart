@@ -72,7 +72,10 @@ class MatchSession {
 
   bool get isQuick => mode == 'quick';
   bool get isRanked => !isQuick;
-  bool get gameSelectionLocked => lockedGameIds.length == gameCount;
+
+  /// Ranked requires the two-player selection contract. Quick matches retain
+  /// their existing seeded registry flow and therefore do not wait for picks.
+  bool get gameSelectionLocked => isQuick || lockedGameIds.length == gameCount;
 
   bool containsPlayer(String uid) => playerAId == uid || playerBId == uid;
 
