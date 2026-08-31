@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { rankedWeeklyScoreEvent } from "./weekly_score.js";
+import {
+  economicGoldWeeklyScoreEvent,
+  rankedWeeklyScoreEvent,
+} from "./weekly_score.js";
 
 test("ranked settlement maps authoritative RP and Gold deltas into weekly score", () => {
   const event = rankedWeeklyScoreEvent({
@@ -44,4 +47,29 @@ test("weekly score event rejects malformed or duplicated participants", () => {
     rankedWeeklyScoreEvent({ payload: {}, profileA: {}, profileB: {} }),
     null,
   );
+});
+
+test("Gold weekly score follows the authoritative economic ledger", () => {
+  assert.deepEqual(
+    economicGoldWeeklyScoreEvent({ uid: "a", amount: 250 }),
+    { uid: "a", goldDelta: 250 },
+  );
+  assert.deepEqual(
+    economicGoldWeeklyScoreEvent({ uid: "a", amount: -500 }),
+    { uid: "a", goldDelta: -500 },
+  );
+});
+
+test("weekly prize Gold is excluded from the next Gold ranking", () => {
+  assert.equal(
+    economicGoldWeeklyScoreEvent({
+      uid: "a",
+      amount: 3000,
+      excludedFromWeeklyGoldScore: true,
+    }),
+    null,
+  );
+  assert.equal(economicGoldWeeklyScoreEvent({ uid: "", amount: 100 }), null);
+  assert.equal(economicGoldWeeklyScoreEvent({ uid: "a", amount: Number.NaN }), null);
+  assert.equal(economicGoldWeeklyScoreEvent({ uid: "a", amount: 0 }), null);
 });
