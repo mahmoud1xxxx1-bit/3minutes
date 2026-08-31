@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
+import '../../competition/domain/rank_tier.dart';
+import '../../competition/presentation/rank_badge.dart';
+import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../profile/domain/player_profile.dart';
 import '../data/party_backend.dart';
@@ -432,7 +435,7 @@ class _FriendInviteList extends StatelessWidget {
                   final player = playerSnapshot.data;
                   if (player == null) return const SizedBox.shrink();
                   final pending = party.pendingInviteUids.contains(friendUid);
-                  return _SimplePlayerCard(
+                  return PartyPlayerIdentityCard(
                     player: player,
                     trailing: TextButton.icon(
                       onPressed: pending
@@ -487,15 +490,24 @@ class _PartyInviteCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                leader?.displayName ?? copy.partyLeader,
-                style: const TextStyle(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${party.size}/6 • ${copy.party}',
-                style: const TextStyle(color: GameColors.muted),
-              ),
+              if (leader != null)
+                PartyPlayerIdentityCard(
+                  player: leader,
+                  subtitle: '${party.size}/6 • ${copy.party}',
+                  trailing: const SizedBox.shrink(),
+                  embedded: true,
+                )
+              else ...[
+                Text(
+                  copy.partyLeader,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${party.size}/6 • ${copy.party}',
+                  style: const TextStyle(color: GameColors.muted),
+                ),
+              ],
               const SizedBox(height: GameSpacing.sm),
               Row(
                 children: [
@@ -559,7 +571,7 @@ class _PartyMemberCard extends StatelessWidget {
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         }
-        return _SimplePlayerCard(
+        return PartyPlayerIdentityCard(
           player: player,
           subtitle: [if (isLeader) copy.partyLeader, if (isSelf) copy.you]
               .join(' • '),
@@ -580,52 +592,105 @@ class _PartyMemberCard extends StatelessWidget {
   }
 }
 
-class _SimplePlayerCard extends StatelessWidget {
-  const _SimplePlayerCard({
+class PartyPlayerIdentityCard extends StatelessWidget {
+  const PartyPlayerIdentityCard({
+    super.key,
     required this.player,
     required this.trailing,
     this.subtitle,
+    this.embedded = false,
   });
+
   final SocialPlayerSummary player;
   final Widget trailing;
   final String? subtitle;
+  final bool embedded;
 
   @override
   Widget build(BuildContext context) {
-    return CosmicPanel(
-      padding: const EdgeInsets.all(GameSpacing.sm),
-      child: Row(
-        children: [
-          const CircleAvatar(
-            backgroundColor: GameColors.accentSoft,
-            child: Icon(
-              Icons.person_rounded,
-              color: GameColors.accentBright,
-            ),
-          ),
-          const SizedBox(width: GameSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    final tier = RankPolicy.tierFor(player.rankPoints);
+    final content = Row(
+      children: [
+        CosmeticAvatarView(
+          avatarId: player.avatarId,
+          frameId: player.avatarFrameId,
+          size: 48,
+        ),
+        const SizedBox(width: GameSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: CosmeticNameText(
+                      text: player.displayName,
+                      styleId: player.nameStyleId,
+                      fontSize: 15,
+                    ),
+                  ),
+                  if (player.badgeId != null) ...[
+                    const SizedBox(width: 5),
+                    CosmeticBadgeView(badgeId: player.badgeId!, size: 28),
+                  ],
+                ],
+              ),
+              if (subtitle != null && subtitle!.isNotEmpty) ...[
+                const SizedBox(height: 2),
                 Text(
-                  player.displayName,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  subtitle!,
+                  style: const TextStyle(
+                    color: GameColors.muted,
+                    fontSize: 11,
+                  ),
                 ),
-                if (subtitle != null && subtitle!.isNotEmpty)
+              ],
+              const SizedBox(height: 5),
+              Wrap(
+                spacing: GameSpacing.xs,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  CosmeticRankAura(
+                    auraId: player.rankAuraId,
+                    padding: player.rankAuraId == null ? 0 : 2,
+                    child: RankBadge(
+                      tier: tier,
+                      compact: true,
+                      legendarySeasons: player.legendarySeasons,
+                    ),
+                  ),
                   Text(
-                    subtitle!,
+                    'Lv ${player.level}',
                     style: const TextStyle(
                       color: GameColors.muted,
                       fontSize: 11,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-              ],
-            ),
+                  Text(
+                    '★ ${player.stars}',
+                    style: const TextStyle(
+                      color: GameColors.rewardGold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          trailing,
-        ],
-      ),
+        ),
+        const SizedBox(width: GameSpacing.sm),
+        trailing,
+      ],
+    );
+
+    if (embedded) return content;
+    return CosmicPanel(
+      padding: const EdgeInsets.all(GameSpacing.sm),
+      child: content,
     );
   }
 }
