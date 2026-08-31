@@ -8,8 +8,13 @@ class MatchRuntime {
     required this.seed,
     required this.startedAt,
     required this.gameCount,
+    List<String>? lockedGameIds,
     MatchProgress initialProgress = const MatchProgress.empty(),
-  })  : gameSequence = GameRegistry.sequence(seed: seed, count: gameCount),
+  })  : gameSequence = _resolveSequence(
+          seed: seed,
+          gameCount: gameCount,
+          lockedGameIds: lockedGameIds,
+        ),
         _progress = initialProgress;
 
   final int seed;
@@ -56,13 +61,44 @@ class MatchRuntime {
   }
 
   void _validateResult(MiniGameResult result) {
-    if (!result.completed ||
-        result.score < 0 ||
+    if (result.score < 0 ||
+        result.score > 1000 ||
         result.accuracy < 0 ||
         result.accuracy > 1 ||
         result.mistakes < 0 ||
-        result.duration.isNegative) {
-      throw ArgumentError('Mini-game returned an invalid normalized result.');
+        result.duration.isNegative ||
+        result.progressStepCount < 1 ||
+        result.progressStep < 0 ||
+        result.progressStep > result.progressStepCount) {
+      throw ArgumentError('Mini-game returned an invalid result contract.');
     }
+    if (result.completed) {
+      if (result.score != 1000 || result.progressStep != result.progressStepCount) {
+        throw ArgumentError('Completed mini-games must return exactly 1000 points and full progress.');
+      }
+    } else if (result.score != 0 || result.progressStep >= result.progressStepCount) {
+      throw ArgumentError('Failed mini-games must return 0 points and incomplete discrete progress.');
+    }
+  }
+
+  static List<MiniGameDescriptor> _resolveSequence({
+    required int seed,
+    required int gameCount,
+    required List<String>? lockedGameIds,
+  }) {
+    if (lockedGameIds == null || lockedGameIds.isEmpty) {
+      return GameRegistry.sequence(seed: seed, count: gameCount);
+    }
+    if (lockedGameIds.length != gameCount || lockedGameIds.toSet().length != gameCount) {
+      throw StateError('Locked game order must contain $gameCount different games.');
+    }
+    return List<MiniGameDescriptor>.unmodifiable(
+      lockedGameIds.map(
+        (id) => GameRegistry.games.singleWhere(
+          (game) => game.id == id,
+          orElse: () => throw StateError('Locked game $id is not in registry v${GameRegistry.version}.'),
+        ),
+      ),
+    );
   }
 }
