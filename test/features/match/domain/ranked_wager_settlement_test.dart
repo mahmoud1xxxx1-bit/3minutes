@@ -8,20 +8,27 @@ void main() {
     expect(RankedWager.fromGold(100), RankedWager.gold100);
     expect(RankedWager.fromGold(250), RankedWager.gold250);
     expect(RankedWager.fromGold(500), RankedWager.gold500);
-    expect(RankedWager.fromGold(50), isNull);
+    expect(() => RankedWager.fromGold(50), throwsArgumentError);
   });
 
-  test('winner preview receives full pool and net profit equals own wager', () {
-    final preview = GoldWagerSettlementPreview.win(RankedWager.gold250);
-    expect(preview.poolGold, 500);
-    expect(preview.creditGold, 500);
-    expect(preview.netGold, 250);
+  test('winner preview receives the entire two-player pool', () {
+    final preview = GoldWagerSettlementPreview.winner(
+      wager: RankedWager.gold250,
+      playerAWon: true,
+    );
+    expect(preview.playerARefund, 0);
+    expect(preview.playerAPayout, 500);
+    expect(preview.playerBPayout, 0);
+    expect(preview.burnedGold, 0);
   });
 
-  test('double fail preview returns only half of the wager', () {
+  test('double fail preview returns only half of each wager', () {
     final preview = GoldWagerSettlementPreview.doubleFail(RankedWager.gold500);
-    expect(preview.creditGold, 250);
-    expect(preview.netGold, -250);
+    expect(preview.playerARefund, 250);
+    expect(preview.playerBRefund, 250);
+    expect(preview.playerAPayout, 0);
+    expect(preview.playerBPayout, 0);
+    expect(preview.burnedGold, 500);
   });
 
   test('ranked settlement receipt parses authoritative gold fields', () {
