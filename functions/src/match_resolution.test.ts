@@ -7,35 +7,45 @@ import { MATCH_GAME_COUNT } from "./registry.js";
 function progress(options: {
   score: number;
   elapsedMs: number;
+  games?: number;
   completedAtMs?: number;
 }): MatchProgress {
   return {
-    completedGames: MATCH_GAME_COUNT,
+    completedGames: options.games ?? MATCH_GAME_COUNT,
     totalScore: options.score,
-    accuracyTotal: MATCH_GAME_COUNT,
+    accuracyTotal: 0,
     mistakes: 0,
     elapsedMs: options.elapsedMs,
-    completedAtMs: options.completedAtMs ?? 100000,
+    completedAtMs: options.completedAtMs ?? null,
   };
 }
 
-test("higher score wins even when that player reaches the server later", () => {
-  const playerA = progress({ score: 3200, elapsedMs: 80000, completedAtMs: 200000 });
-  const playerB = progress({ score: 3100, elapsedMs: 70000, completedAtMs: 150000 });
-
+test("higher official score wins regardless of arrival time", () => {
+  const playerA = progress({ score: 3000, elapsedMs: 80000, completedAtMs: 200000 });
+  const playerB = progress({ score: 2000, elapsedMs: 70000, completedAtMs: 150000 });
   assert.equal(compareMatch(playerA, playerB, MATCH_GAME_COUNT), "playerA");
 });
 
-test("equal score is resolved by accumulated gameplay time", () => {
-  const playerA = progress({ score: 3200, elapsedMs: 75400, completedAtMs: 250000 });
-  const playerB = progress({ score: 3200, elapsedMs: 81250, completedAtMs: 180000 });
+test("equal points at timeout are decided by farther game position", () => {
+  const playerA = progress({ score: 1000, games: 1, elapsedMs: 50000 });
+  const playerB = progress({ score: 1000, games: 2, elapsedMs: 70000 });
+  assert.equal(compareMatch(playerA, playerB, MATCH_GAME_COUNT), "playerB");
+});
 
+test("time breaks a tie only after both correctly clear all four games", () => {
+  const playerA = progress({ score: 4000, elapsedMs: 75400 });
+  const playerB = progress({ score: 4000, elapsedMs: 81250 });
   assert.equal(compareMatch(playerA, playerB, MATCH_GAME_COUNT), "playerA");
 });
 
-test("exact score and gameplay-time equality is never resolved randomly", () => {
-  const playerA = progress({ score: 3200, elapsedMs: 75400, completedAtMs: 180000 });
-  const playerB = progress({ score: 3200, elapsedMs: 75400, completedAtMs: 260000 });
+test("same failed score and same game position remains a true tie", () => {
+  const playerA = progress({ score: 2000, games: 3, elapsedMs: 75400 });
+  const playerB = progress({ score: 2000, games: 3, elapsedMs: 81250 });
+  assert.equal(compareMatch(playerA, playerB, MATCH_GAME_COUNT), "tie");
+});
 
+test("exact full-clear score and time equality is never resolved randomly", () => {
+  const playerA = progress({ score: 4000, elapsedMs: 75400 });
+  const playerB = progress({ score: 4000, elapsedMs: 75400 });
   assert.equal(compareMatch(playerA, playerB, MATCH_GAME_COUNT), "tie");
 });
