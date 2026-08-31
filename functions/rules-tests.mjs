@@ -76,6 +76,37 @@ try {
       starsAwarded: 4,
       closedAt: serverTimestamp(),
     });
+    await setDoc(doc(adminDb, 'weeklyLeaderboards', 'week_1'), {
+      weekId: 'week_1',
+      state: 'open',
+      startsAt: serverTimestamp(),
+      endsAt: serverTimestamp(),
+    });
+    await setDoc(doc(adminDb, 'weeklyLeaderboards', 'week_1', 'rpEntries', 'alice'), {
+      uid: 'alice',
+      gameName: 'Alice',
+      avatarId: 'avatar_free_vanguard',
+      score: 30,
+      active: true,
+      matches: 1,
+    });
+    await setDoc(doc(adminDb, 'weeklyLeaderboards', 'week_1', 'goldEntries', 'alice'), {
+      uid: 'alice',
+      gameName: 'Alice',
+      avatarId: 'avatar_free_vanguard',
+      score: 250,
+      active: true,
+      economicEvents: 2,
+    });
+    await setDoc(doc(adminDb, 'weeklyLeaderboards', 'week_1', 'goldEvents', 'secret-event'), {
+      uid: 'alice',
+      goldDelta: 250,
+    });
+    await setDoc(doc(adminDb, 'goldTransactions', 'secret-ledger'), {
+      uid: 'alice',
+      amount: 250,
+      createdAt: serverTimestamp(),
+    });
     await setDoc(doc(adminDb, 'socialMatches', 'social-security'), {
       mode: 'privateRoom',
       hostUid: 'alice',
@@ -145,6 +176,27 @@ try {
     }),
   );
 
+  // Weekly standings are readable by signed-in players, but all writes and
+  // internal event markers/ledger documents remain server-only.
+  await assertSucceeds(getDoc(doc(aliceDb, 'weeklyLeaderboards', 'week_1')));
+  await assertSucceeds(
+    getDoc(doc(aliceDb, 'weeklyLeaderboards', 'week_1', 'rpEntries', 'alice')),
+  );
+  await assertSucceeds(
+    getDoc(doc(bobDb, 'weeklyLeaderboards', 'week_1', 'goldEntries', 'alice')),
+  );
+  await assertFails(
+    setDoc(doc(aliceDb, 'weeklyLeaderboards', 'week_1', 'rpEntries', 'forged'), {
+      uid: 'alice',
+      score: 999999,
+      active: true,
+    }),
+  );
+  await assertFails(
+    getDoc(doc(aliceDb, 'weeklyLeaderboards', 'week_1', 'goldEvents', 'secret-event')),
+  );
+  await assertFails(getDoc(doc(aliceDb, 'goldTransactions', 'secret-ledger')));
+
   // Quick authority state is deliberately invisible and immutable to clients.
   // Players receive only their own sanitized queue ticket through getQuickTicket.
   await assertFails(getDoc(doc(aliceDb, 'quickMatchmaking', 'alice')));
@@ -203,7 +255,7 @@ try {
     }),
   );
 
-  console.log('Firestore rules, Quick authority privacy, season history privacy, and cosmetic security tests passed.');
+  console.log('Firestore rules, weekly competition visibility, Quick authority privacy, season history privacy, and cosmetic security tests passed.');
 } finally {
   await testEnv.cleanup();
 }
