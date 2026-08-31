@@ -78,9 +78,12 @@ function freshMatch(options: {
   playerBId: string;
   playerBName: string;
   playerBAvatarId: string;
+  wagerCoins: number;
 }): Record<string, unknown> {
   return {
     ...options,
+    wagerPotCoins: options.wagerCoins * 2,
+    wagerStatus: "held",
     authorityVersion: AUTHORITY_VERSION,
     seed: randomInt(0, 0x7fffffff),
     gameCount: MATCH_GAME_COUNT,
@@ -217,6 +220,9 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
     const a = stringValue(data.playerAId);
     const b = stringValue(data.playerBId);
     if (uid !== a && uid !== b) throw new HttpsError("permission-denied", "Not a participant.");
+    if (data.status !== "finished") {
+      throw new HttpsError("failed-precondition", "Ranked rematch requires a settled match.");
+    }
     if (typeof data.rematchMatchId === "string") {
       return { matchId: data.rematchMatchId };
     }
@@ -234,14 +240,32 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
       if (!seasonId) {
         throw new HttpsError("failed-precondition", "Original ranked match has no season binding.");
       }
+      const wagerCoins = Math.max(0, intValue(data.wagerCoins));
+      if (wagerCoins <= 0) {
+        throw new HttpsError("failed-precondition", "Original ranked match has no valid wager.");
+      }
       const seasonRef = db.collection(COLLECTIONS.seasons).doc(seasonId);
-      const season = (await transaction.get(seasonRef)).data();
+      const inventoryARef = db.collection(COLLECTIONS.inventories).doc(a);
+      const inventoryBRef = db.collection(COLLECTIONS.inventories).doc(b);
+      const [seasonSnap, inventoryASnap, inventoryBSnap] = await Promise.all([
+        transaction.get(seasonRef),
+        transaction.get(inventoryARef),
+        transaction.get(inventoryBRef),
+      ]);
+      const season = seasonSnap.data();
       if (!season || !seasonAcceptsRanked(season, Date.now())) {
         throw new HttpsError(
           "failed-precondition",
           "Not enough season time remains for a ranked rematch.",
         );
       }
+      const balanceA = Math.max(0, intValue(inventoryASnap.data()?.coins));
+      const balanceB = Math.max(0, intValue(inventoryBSnap.data()?.coins));
+      if (balanceA < wagerCoins || balanceB < wagerCoins) {
+        throw new HttpsError("failed-precondition", "Both players need enough Coins for the rematch wager.");
+      }
+      const balanceAfterA = balanceA - wagerCoins;
+      const balanceAfterB = balanceB - wagerCoins;
 
       const newRef = db.collection(COLLECTIONS.matches).doc();
       newMatchId = newRef.id;
@@ -255,7 +279,44 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
           playerBId: b,
           playerBName: stringValue(data.playerBName, "Player"),
           playerBAvatarId: stringValue(data.playerBAvatarId, "default_01"),
+          wagerCoins,
         }),
+      );
+      transaction.set(
+        inventoryARef,
+        { coins: balanceAfterA, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.set(
+        inventoryBRef,
+        { coins: balanceAfterB, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${newRef.id}_${a}_wager_hold`),
+        {
+          transactionId: `${newRef.id}_${a}_wager_hold`,
+          uid: a,
+          matchId: newRef.id,
+          seasonId,
+          reason: "rankedWagerHold",
+          amount: -wagerCoins,
+          balanceAfter: balanceAfterA,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${newRef.id}_${b}_wager_hold`),
+        {
+          transactionId: `${newRef.id}_${b}_wager_hold`,
+          uid: b,
+          matchId: newRef.id,
+          seasonId,
+          reason: "rankedWagerHold",
+          amount: -wagerCoins,
+          balanceAfter: balanceAfterB,
+          createdAt: FieldValue.serverTimestamp(),
+        },
       );
       updates.rematchMatchId = newMatchId;
     }
@@ -301,6 +362,7 @@ export const syncRankedTicket = onCall(OPTIONS, async (request) => {
       {
         uid,
         seasonId: stringValue(match.seasonId),
+        wagerCoins: Math.max(0, intValue(match.wagerCoins)),
         status: "matched",
         matchId,
         authorityVersion: AUTHORITY_VERSION,
