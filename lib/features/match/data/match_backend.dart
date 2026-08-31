@@ -7,6 +7,22 @@ import '../domain/match_ticket.dart';
 abstract class MatchBackend {
   Future<void> joinQueue(PlayerProfile profile);
 
+  /// Typed bridge for screens that receive the common MatchBackend contract.
+  /// The runtime capability check still guarantees that only a
+  /// server-authoritative Ranked backend can accept Coin wagers.
+  Future<void> joinQueueWithWager(
+    PlayerProfile profile, {
+    required int wagerCoins,
+  }) {
+    if (this is! RankedWagerMatchBackend) {
+      throw UnsupportedError('This match backend does not support Ranked wagers.');
+    }
+    return (this as RankedWagerMatchBackend).joinQueueWithWager(
+      profile,
+      wagerCoins: wagerCoins,
+    );
+  }
+
   Future<void> leaveQueue(String uid);
 
   Future<void> clearTicket(String uid);
