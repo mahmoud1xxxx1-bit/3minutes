@@ -33,7 +33,7 @@ class MiniGameManifest {
     if (maxRawScore == minRawScore) return rawScore >= maxRawScore ? 1000 : 0;
     final clamped = rawScore.clamp(minRawScore, maxRawScore);
     final ratio = (clamped - minRawScore) / (maxRawScore - minRawScore);
-    return (ratio * 1000).round().clamp(0, 1000);
+    return (ratio * 1000).round().clamp(0, 1000).toInt();
   }
 
   void validateResult(MiniGameResult result) {
