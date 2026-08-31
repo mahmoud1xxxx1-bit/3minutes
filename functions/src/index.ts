@@ -12,8 +12,8 @@ export {
   submitRankedGameSelection,
   markRankedReadyV2 as markRankedReady,
 } from "./game_selection.js";
+export { submitRankedGameResultV2 as submitRankedGameResult } from "./ranked_submission_v2.js";
 export {
-  submitRankedGameResult,
   requestRankedRematch,
   cancelRankedRematch,
   syncRankedTicket,
@@ -28,7 +28,7 @@ export {
   cancelQuickMatch,
   submitQuickGameResult,
   requestQuickRematch,
-  cancelQuickRematch,
+  cancelQuickRematchRequest,
   settleQuickMatch,
 } from "./quick.js";
 export { getQuickTicket } from "./quick_ticket.js";
