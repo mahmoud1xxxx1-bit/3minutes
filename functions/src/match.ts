@@ -149,7 +149,7 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
           await Promise.all([
             transaction.get(seasonDoc.ref),
             transaction.get(ownRef),
-            transaction.get(candidate.reference),
+            transaction.get(candidate.ref),
             transaction.get(ownInventoryRef),
             transaction.get(candidateInventoryRef),
           ]);
@@ -241,7 +241,7 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
           matchId: matchRef.id,
           updatedAt: FieldValue.serverTimestamp(),
         });
-        transaction.update(candidate.reference, {
+        transaction.update(candidate.ref, {
           status: "matched",
           matchId: matchRef.id,
           updatedAt: FieldValue.serverTimestamp(),
