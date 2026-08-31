@@ -7,6 +7,8 @@ on:
     paths:
       - 'functions/src/**'
       - 'functions/package.json'
+      - 'lib/features/competition/data/mini_game_evidence_policy.dart'
+      - 'lib/features/competition/domain/mini_game_evidence.dart'
       - 'lib/features/competition/domain/ranked_settlement_player.dart'
       - 'lib/features/match/domain/**'
       - 'lib/features/match/data/match_backend.dart'
@@ -60,6 +62,8 @@ jobs:
       - name: Analyze match core
         run: >-
           flutter analyze --no-fatal-infos --no-fatal-warnings
+          lib/features/competition/data/mini_game_evidence_policy.dart
+          lib/features/competition/domain/mini_game_evidence.dart
           lib/features/competition/domain/ranked_settlement_player.dart
           lib/features/match/domain
           lib/features/match/data/match_backend.dart
