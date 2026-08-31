@@ -33,7 +33,10 @@ export {
 export { getQuickTicket } from "./quick_ticket.js";
 
 export { settleRankedMatchV2 as settleRankedMatch } from "./settlement_v2.js";
-export { onRankedSettlementWeeklyCompetition } from "./weekly_runtime.js";
+export {
+  onRankedSettlementWeeklyCompetition,
+  onGoldTransactionWeeklyCompetition,
+} from "./weekly_runtime.js";
 export {
   rolloverWeeklyCompetition,
   processWeeklyRewardPage,
