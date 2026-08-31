@@ -6,8 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/audio/game_audio_controller.dart';
 import '../../../core/platform/room_invite_service.dart';
 import '../../../core/theme/cosmic_background.dart';
-import '../../../core/theme/game_glyphs.dart';
-import '../../../core/theme/game_nav_dock.dart';
+import '../../../core/theme/game_dock.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/data/competition_backend.dart';
@@ -18,6 +17,7 @@ import '../../match/data/match_backend.dart';
 import '../../match/data/social_match_backend.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
+import '../../profile/presentation/arena_profile_hub.dart';
 import '../../profile/presentation/profile_showcase_screen.dart';
 import '../../progression/data/progression_backend.dart';
 import '../../social/data/room_backend.dart';
@@ -111,6 +111,18 @@ class _GameShellScreenState extends State<GameShellScreen> {
     });
   }
 
+  void _openProfileShowcase(PlayerProfile profile) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProfileShowcaseScreen(
+          profile: profile,
+          profileRepository: widget.profileRepository,
+          economyBackend: widget.economyBackend,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -153,19 +165,10 @@ class _GameShellScreenState extends State<GameShellScreen> {
           ),
           FriendsScreen(profile: profile, socialBackend: widget.socialBackend),
           ShopScreen(uid: profile.uid, economyBackend: widget.economyBackend),
-          ProfileShowcaseScreen(
+          ArenaProfileHub(
             profile: profile,
-            profileRepository: widget.profileRepository,
-            economyBackend: widget.economyBackend,
+            onOpenShowcase: () => _openProfileShowcase(profile),
           ),
-        ];
-
-        final navItems = <GameNavItemData>[
-          GameNavItemData(label: l10n.home, glyph: GameGlyphType.arena),
-          GameNavItemData(label: l10n.season, glyph: GameGlyphType.season),
-          GameNavItemData(label: social.friends, glyph: GameGlyphType.squad),
-          GameNavItemData(label: l10n.shop, glyph: GameGlyphType.vault),
-          GameNavItemData(label: l10n.profile, glyph: GameGlyphType.identity),
         ];
 
         return Scaffold(
@@ -173,14 +176,19 @@ class _GameShellScreenState extends State<GameShellScreen> {
           body: CosmicBackground(
             child: IndexedStack(index: _index, children: pages),
           ),
-          bottomNavigationBar: GameNavDock(
-            index: _index,
-            items: navItems,
-            onChanged: (value) {
-              if (value == _index) return;
+          bottomNavigationBar: GameDock(
+            selectedIndex: _index,
+            onSelected: (value) {
               unawaited(GameAudioController.instance.playSfx(GameSfx.tap));
               setState(() => _index = value);
             },
+            labels: [
+              l10n.home,
+              l10n.season,
+              social.friends,
+              l10n.shop,
+              l10n.profile,
+            ],
           ),
         );
       },
