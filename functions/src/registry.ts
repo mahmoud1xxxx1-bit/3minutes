@@ -1,5 +1,5 @@
-export const REGISTRY_VERSION = 5;
-export const MATCH_GAME_COUNT = 8;
+export const REGISTRY_VERSION = 7;
+export const MATCH_GAME_COUNT = 4;
 export const MATCH_DURATION_MS = 180000;
 
 export type GameCategory = "reaction" | "logic" | "memory" | "precision";
@@ -19,20 +19,20 @@ export interface MiniGameEvidence {
   durationMs: number;
 }
 
+// MUST stay byte-for-byte equivalent in ordering/category semantics to
+// lib/features/minigames/data/game_registry.dart for REGISTRY_VERSION 7.
 export const APPROVED_GAMES: ReadonlyArray<GameDescriptor> = [
-  { id: "tap_target", category: "precision" },
-  { id: "quick_math", category: "logic" },
-  { id: "color_match", category: "reaction" },
-  { id: "odd_one_out", category: "logic" },
-  { id: "memory_flash", category: "memory" },
-  { id: "direction_swipe", category: "reaction" },
-  { id: "number_order", category: "memory" },
-  { id: "shape_count", category: "logic" },
-  { id: "reaction_stop", category: "reaction" },
-  { id: "symbol_pair", category: "precision" },
-  { id: "mole_strike", category: "reaction" },
+  { id: "find_differences", category: "precision" },
   { id: "follow_the_cup", category: "memory" },
+  { id: "key_escape", category: "logic" },
+  { id: "level_devil", category: "reaction" },
+  { id: "mirror_control", category: "precision" },
+  { id: "mole_strike", category: "reaction" },
+  { id: "ninja_slice", category: "reaction" },
+  { id: "onet_connect", category: "logic" },
   { id: "path_rush", category: "logic" },
+  { id: "traffic_loop", category: "logic" },
+  { id: "hidden_pigeon", category: "precision" },
 ];
 
 const CATEGORIES: ReadonlyArray<GameCategory> = ["reaction", "logic", "memory", "precision"];
@@ -123,7 +123,7 @@ export function validateEvidence(options: {
   evidence: MiniGameEvidence[];
 }): boolean {
   const { matchSeed, gameCount, completedGames, evidence } = options;
-  if (gameCount < 1 || gameCount > APPROVED_GAMES.length) return false;
+  if (gameCount !== MATCH_GAME_COUNT) return false;
   if (completedGames < 0 || completedGames > gameCount) return false;
   if (evidence.length !== completedGames) return false;
   const expected = gameSequence(matchSeed, gameCount);
