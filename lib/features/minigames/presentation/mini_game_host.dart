@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../domain/competitive_result_policy.dart';
 import '../domain/mini_game_contract.dart';
 import 'find_differences/find_differences_game.dart';
 import 'follow_the_cup/follow_the_cup_game.dart';
@@ -29,28 +30,7 @@ class MiniGameHost extends StatelessWidget {
   Key get _runtimeKey => ValueKey('${game.id}-${config.seed}');
 
   void _complete(MiniGameResult raw) {
-    // Compatibility boundary for the existing game catalog. Mini-games may
-    // keep their internal counters for UI/reporting, but competitive match
-    // points are deliberately binary and universal: objective clear = 1000,
-    // objective failed = 0. This keeps old games from inventing their own
-    // economy/score formula while allowing future games to adopt the contract
-    // directly without touching MatchEngine.
-    final stepCount = raw.progressStepCount < 1 ? 1 : raw.progressStepCount;
-    final normalizedProgress = raw.completed
-        ? stepCount
-        : raw.progressStep.clamp(0, stepCount - 1).toInt();
-
-    onComplete(
-      MiniGameResult(
-        completed: raw.completed,
-        score: raw.completed ? 1000 : 0,
-        accuracy: raw.accuracy.clamp(0.0, 1.0).toDouble(),
-        mistakes: raw.mistakes < 0 ? 0 : raw.mistakes,
-        duration: raw.duration.isNegative ? Duration.zero : raw.duration,
-        progressStep: normalizedProgress,
-        progressStepCount: stepCount,
-      ),
-    );
+    onComplete(CompetitiveResultPolicy.normalize(raw));
   }
 
   @override
