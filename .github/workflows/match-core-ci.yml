@@ -7,9 +7,11 @@ on:
     paths:
       - 'functions/src/**'
       - 'functions/package.json'
+      - 'lib/features/competition/domain/ranked_settlement_player.dart'
       - 'lib/features/match/domain/**'
       - 'lib/features/match/data/match_backend.dart'
       - 'lib/features/match/data/cloud_functions_match_backend.dart'
+      - 'lib/features/match/presentation/arena_match_result_view.dart'
       - 'lib/features/match/presentation/game_selection_panel.dart'
       - 'lib/features/match/presentation/matchmaking_screen.dart'
       - 'lib/features/match/presentation/match_room_screen.dart'
@@ -58,9 +60,11 @@ jobs:
       - name: Analyze match core
         run: >-
           flutter analyze --no-fatal-infos --no-fatal-warnings
+          lib/features/competition/domain/ranked_settlement_player.dart
           lib/features/match/domain
           lib/features/match/data/match_backend.dart
           lib/features/match/data/cloud_functions_match_backend.dart
+          lib/features/match/presentation/arena_match_result_view.dart
           lib/features/match/presentation/game_selection_panel.dart
           lib/features/match/presentation/matchmaking_screen.dart
           lib/features/match/presentation/match_room_screen.dart
