@@ -46,6 +46,9 @@ class MiniGameCopy {
   String get findDifferencesFound => isArabic ? 'وجدت' : 'Found';
   String get findDifferencesMistakes => isArabic ? 'الأخطاء' : 'Mistakes';
   String get findDifferencesTime => isArabic ? 'الوقت' : 'Time';
+  String get hiddenPigeonInstruction => isArabic
+      ? 'اعثر على الحمامات العشر المخفية في كل جولة وتجنب الضغط الخاطئ'
+      : 'Find all 10 hidden pigeons in each round and avoid wrong taps';
   String get findOdd => isArabic ? 'اختر الشكل المختلف' : 'Find the odd one';
   String get howMany => isArabic ? 'كم عددها؟' : 'How many?';
   String matchSymbol(String symbol) =>
