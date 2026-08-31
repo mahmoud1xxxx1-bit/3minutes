@@ -48,6 +48,7 @@ jobs:
           cache: true
 
       - name: Restore stable debug signing key
+        if: github.event_name == 'workflow_dispatch'
         id: debug-key-cache
         uses: actions/cache@v5
         with:
@@ -55,7 +56,7 @@ jobs:
           key: 3minutes-ci-debug-keystore-v1
 
       - name: Create stable debug signing key
-        if: steps.debug-key-cache.outputs.cache-hit != 'true'
+        if: github.event_name == 'workflow_dispatch' && steps.debug-key-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/.android
           keytool -genkeypair \
@@ -69,6 +70,7 @@ jobs:
             -dname "CN=3 Minutes CI Debug,O=3 Minutes,C=SA"
 
       - name: Verify debug signing fingerprints
+        if: github.event_name == 'workflow_dispatch'
         run: |
           keytool -list -v \
             -keystore ~/.android/debug.keystore \
