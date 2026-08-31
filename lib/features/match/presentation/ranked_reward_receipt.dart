@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../competition/domain/ranked_settlement_player.dart';
 
