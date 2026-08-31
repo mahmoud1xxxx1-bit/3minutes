@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import '../../../minigames_VBN/presentation/mini_game_copy.dart';
+import '../mini_game_copy.dart';
 import '../../domain/hidden_pigeon_plan.dart';
 import '../../domain/mini_game_contract.dart';
 import 'master_pigeon_painter.dart';
@@ -32,7 +32,7 @@ class _HiddenPigeonGameState extends State<HiddenPigeonGame>
   int _clearedRounds = 0;
   bool _finished = false;
 
-  Set<int> _foundPigeons = {};
+  final Set<int> _foundPigeons = {};
   int? _hintedPigeon;
   int _totalMistakes = 0;
 
@@ -81,9 +81,6 @@ class _HiddenPigeonGameState extends State<HiddenPigeonGame>
       _totalMistakes++;
     });
 
-    // Losing all three hearts means the objective has failed. We finish the
-    // mini-game immediately instead of silently advancing and later reporting
-    // a false success. The reached round remains report-only progress.
     Future.delayed(const Duration(milliseconds: 500), _finishFailure);
   }
 
@@ -118,8 +115,6 @@ class _HiddenPigeonGameState extends State<HiddenPigeonGame>
         .toList(growable: false);
     if (unfound.isEmpty) return;
 
-    // The board positions are already deterministic. The hint only reveals an
-    // existing target and does not affect competitive scoring.
     final hintIndex = unfound[widget.config.seed.abs() % unfound.length];
     setState(() {
       _hintsLeft--;
@@ -243,8 +238,7 @@ class _HiddenPigeonGameState extends State<HiddenPigeonGame>
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      MiniGameCopy.fromContext(context)
-                          .hiddenPigeonInstruction,
+                      MiniGameCopy.fromContext(context).hiddenPigeonInstruction,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
