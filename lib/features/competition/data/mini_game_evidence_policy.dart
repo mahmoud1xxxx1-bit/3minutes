@@ -5,7 +5,7 @@ class MiniGameEvidencePolicy {
   const MiniGameEvidencePolicy._();
 
   static const int _seedMix = 0x45d9f3b;
-  static const int maxScorePerGame = 10000;
+  static const int maxScorePerGame = 1000;
   static const int maxMatchDurationMs = 180000;
 
   static int gameSeed({
@@ -19,20 +19,23 @@ class MiniGameEvidencePolicy {
     required int matchSeed,
     required int gameCount,
     required List<MiniGameEvidence> evidence,
+    List<String>? lockedGameIds,
   }) {
-    if (gameCount < 1 || gameCount > GameRegistry.games.length) return false;
+    if (gameCount != 4) return false;
     if (evidence.length > gameCount) return false;
 
-    final expectedGames = GameRegistry.sequence(
-      seed: matchSeed,
-      count: gameCount,
-    );
+    final expectedGames = lockedGameIds == null
+        ? GameRegistry.sequence(seed: matchSeed, count: gameCount)
+        : _descriptorsForLockedIds(lockedGameIds);
+    if (expectedGames.length != gameCount) return false;
 
     var totalDurationMs = 0;
     for (var index = 0; index < evidence.length; index++) {
       final item = evidence[index];
+      final expected = expectedGames[index];
       if (item.gameIndex != index) return false;
-      if (item.gameId != expectedGames[index].id) return false;
+      if (item.gameId != expected.id) return false;
+      if (item.gameVersion != expected.version) return false;
       if (item.gameSeed != gameSeed(matchSeed: matchSeed, gameIndex: index)) {
         return false;
       }
@@ -47,5 +50,16 @@ class MiniGameEvidencePolicy {
     }
 
     return true;
+  }
+
+  static List<MiniGameDescriptor> _descriptorsForLockedIds(List<String> ids) {
+    if (ids.length != 4 || ids.toSet().length != 4) return const [];
+    final result = <MiniGameDescriptor>[];
+    for (final id in ids) {
+      final matches = GameRegistry.games.where((game) => game.id == id);
+      if (matches.length != 1) return const [];
+      result.add(matches.single);
+    }
+    return List.unmodifiable(result);
   }
 }
