@@ -7,6 +7,7 @@ import type { MiniGameEvidence } from "./registry.js";
 function evidence(gameIndex: number, score: number, durationMs: number): MiniGameEvidence {
   return {
     gameId: `game_${gameIndex}`,
+    gameVersion: 1,
     gameIndex,
     gameSeed: 1000 + gameIndex,
     score,
