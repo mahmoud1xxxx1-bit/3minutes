@@ -55,6 +55,14 @@ abstract class MatchBackend {
   });
 }
 
+abstract interface class MatchGameSelectionBackend {
+  Future<void> submitGameSelection({
+    required String matchId,
+    required String uid,
+    required List<String> gameIds,
+  });
+}
+
 /// Optional capability implemented only by ranked backends that can return the
 /// server-authoritative settlement receipt. Spark fallbacks intentionally do
 /// not implement this interface because they do not award Ranked RP.
