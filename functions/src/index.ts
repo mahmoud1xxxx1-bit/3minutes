@@ -8,6 +8,8 @@ export {
   markRankedReady,
   cancelRankedMatch,
   submitRankedProgress,
+  forfeitRankedMatch,
+  technicalCancelRankedMatch,
 } from "./match.js";
 export {
   submitRankedGameResult,

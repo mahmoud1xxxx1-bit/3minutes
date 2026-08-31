@@ -459,6 +459,9 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
 
     const previous = previousEvidenceSnap.data()?.evidence;
     const previousLength = Array.isArray(previous) ? previous.length : 0;
+    if (evidence.length === previousLength) {
+      return { ok: true, completedGames: evidence.length, idempotent: true };
+    }
     if (evidence.length < previousLength || evidence.length > previousLength + 1) {
       throw new HttpsError("failed-precondition", "Progress must move forward one game at a time.");
     }
@@ -467,6 +470,13 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
     const accuracyTotal = evidence.reduce((sum, item) => sum + item.accuracy, 0);
     const mistakes = evidence.reduce((sum, item) => sum + item.mistakes, 0);
     const elapsedMs = evidence.reduce((sum, item) => sum + item.durationMs, 0);
+    const startMs = timestampMillis(match.countdownStartedAt);
+    if (startMs !== null) {
+      const realElapsed = Date.now() - startMs;
+      if (elapsedMs > realElapsed + 10000) {
+        throw new HttpsError("failed-precondition", "Time manipulation detected (duration > real elapsed time).");
+      }
+    }
     const progressField = uid === playerAId ? "progressA" : "progressB";
     const saved = parseProgress(match[progressField]);
 
@@ -503,6 +513,126 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
   });
 
   return { ok: true, completedGames: evidence.length };
+});
+
+export const forfeitRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
+  const uid = requireUid(request.auth?.uid);
+  const matchId = requireString(request.data?.matchId, "matchId");
+  const db = getFirestore();
+  const ref = db.collection(COLLECTIONS.matches).doc(matchId);
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.data();
+    if (!data) throw new HttpsError("not-found", "Match not found.");
+    const playerAId = stringValue(data.playerAId);
+    const playerBId = stringValue(data.playerBId);
+    if (uid !== playerAId && uid !== playerBId) {
+      throw new HttpsError("permission-denied", "Not a participant.");
+    }
+    if (data.status === "cancelled" || data.status === "finished") {
+      throw new HttpsError("failed-precondition", "Match already settled.");
+    }
+
+    const field = uid === playerAId ? "forfeitedA" : "forfeitedB";
+    transaction.update(ref, {
+      [field]: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  return { ok: true };
+});
+
+export const technicalCancelRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
+  const uid = requireUid(request.auth?.uid);
+  const matchId = requireString(request.data?.matchId, "matchId");
+  const db = getFirestore();
+  const ref = db.collection(COLLECTIONS.matches).doc(matchId);
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.data();
+    if (!data) throw new HttpsError("not-found", "Match not found.");
+    const playerAId = stringValue(data.playerAId);
+    const playerBId = stringValue(data.playerBId);
+    if (uid !== playerAId && uid !== playerBId) {
+      throw new HttpsError("permission-denied", "Not a participant.");
+    }
+    if (data.status === "cancelled" || data.status === "finished") {
+      throw new HttpsError("failed-precondition", "Match already settled or cancelled.");
+    }
+
+    const startMs = timestampMillis(data.countdownStartedAt);
+    if (startMs !== null) {
+      const realElapsed = Date.now() - startMs;
+      if (realElapsed > 15000) {
+        throw new HttpsError("failed-precondition", "Technical cancellation is only allowed early in the match.");
+      }
+    }
+
+    const wagerCoins = Math.max(0, intValue(data.wagerCoins));
+    if (wagerCoins > 0 && data.wagerStatus === "held") {
+      const playerAInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerAId);
+      const playerBInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerBId);
+      const [playerAInventorySnap, playerBInventorySnap] = await Promise.all([
+        transaction.get(playerAInventoryRef),
+        transaction.get(playerBInventoryRef),
+      ]);
+      const playerABalance = Math.max(0, intValue(playerAInventorySnap.data()?.coins));
+      const playerBBalance = Math.max(0, intValue(playerBInventorySnap.data()?.coins));
+      const playerAAfter = playerABalance + wagerCoins;
+      const playerBAfter = playerBBalance + wagerCoins;
+      const seasonId = stringValue(data.seasonId);
+
+      transaction.set(
+        playerAInventoryRef,
+        { coins: playerAAfter, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.set(
+        playerBInventoryRef,
+        { coins: playerBAfter, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerAId}_wager_refund_tech`),
+        {
+          transactionId: `${matchId}_${playerAId}_wager_refund_tech`,
+          uid: playerAId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerRefund",
+          amount: wagerCoins,
+          balanceAfter: playerAAfter,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerBId}_wager_refund_tech`),
+        {
+          transactionId: `${matchId}_${playerBId}_wager_refund_tech`,
+          uid: playerBId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerRefund",
+          amount: wagerCoins,
+          balanceAfter: playerBAfter,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+    }
+
+    transaction.update(ref, {
+      status: "cancelled",
+      cancelledBy: uid,
+      cancelReason: "technical",
+      wagerStatus: wagerCoins > 0 ? "refunded" : data.wagerStatus ?? "none",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  return { ok: true };
 });
 
 export function matchDeadlineMs(countdownStartedAtMs: number): number {
