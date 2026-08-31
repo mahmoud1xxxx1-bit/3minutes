@@ -2,7 +2,7 @@ import type { MiniGameEvidence } from "./registry.js";
 
 export type MatchDecisionReason =
   | "score"
-  | "progress"
+  | "gameProgress"
   | "timeTieBreaker"
   | "doubleFail"
   | "exactTie";
@@ -12,21 +12,8 @@ export interface MatchGameReceipt {
   gameVersion: number;
   gameIndex: number;
   gameSeed: number;
-  playerACompleted: boolean;
-  playerBCompleted: boolean;
-  playerAProgressStep: number;
-  playerAProgressStepCount: number;
-  playerBProgressStep: number;
-  playerBProgressStepCount: number;
-  playerAScore: number;
-  playerBScore: number;
-  playerADurationMs: number;
-  playerBDurationMs: number;
-  playerAAccuracy: number;
-  playerBAccuracy: number;
-  playerAMistakes: number;
-  playerBMistakes: number;
-  progressWinner: "playerA" | "playerB" | "tie";
+  playerA: MiniGameEvidence | null;
+  playerB: MiniGameEvidence | null;
 }
 
 export interface MatchReceipt {
@@ -41,10 +28,10 @@ export interface MatchReceipt {
   playerBTotalScore: number;
   playerATotalDurationMs: number;
   playerBTotalDurationMs: number;
+  playerAAttemptedGames: number;
+  playerBAttemptedGames: number;
   playerACompletedGames: number;
   playerBCompletedGames: number;
-  playerAProgressWins: number;
-  playerBProgressWins: number;
   scoreDifference: number;
   timeDifferenceMs: number;
   games: MatchGameReceipt[];
@@ -52,21 +39,6 @@ export interface MatchReceipt {
 
 function sum(values: MiniGameEvidence[], key: "score" | "durationMs"): number {
   return values.reduce((total, item) => total + item[key], 0);
-}
-
-function compareDiscreteProgress(
-  a: MiniGameEvidence,
-  b: MiniGameEvidence,
-): "playerA" | "playerB" | "tie" {
-  if (a.completed !== b.completed) return a.completed ? "playerA" : "playerB";
-  if (a.completed && b.completed) return "tie";
-
-  // Compare a/b progress without floating-point rounding.
-  const left = a.progressStep * b.progressStepCount;
-  const right = b.progressStep * a.progressStepCount;
-  if (left > right) return "playerA";
-  if (right > left) return "playerB";
-  return "tie";
 }
 
 export function buildMatchReceipt(options: {
@@ -80,84 +52,79 @@ export function buildMatchReceipt(options: {
   if (!matchId || !playerAId || !playerBId || playerAId === playerBId) {
     throw new Error("invalid match receipt identity");
   }
-  if (evidenceA.length === 0 || evidenceA.length !== evidenceB.length) {
-    throw new Error("match receipt requires equal non-empty evidence chains");
+  if (evidenceA.length === 0 && evidenceB.length === 0) {
+    throw new Error("match receipt requires at least one submitted game result");
   }
 
-  let playerAProgressWins = 0;
-  let playerBProgressWins = 0;
-  const games = evidenceA.map((a, index) => {
-    const b = evidenceB[index];
-    if (!b || a.gameIndex !== index || b.gameIndex !== index) {
-      throw new Error(`invalid evidence index ${index}`);
-    }
+  const maxGames = Math.max(evidenceA.length, evidenceB.length);
+  const games: MatchGameReceipt[] = [];
+  for (let index = 0; index < maxGames; index += 1) {
+    const a = evidenceA[index] ?? null;
+    const b = evidenceB[index] ?? null;
+    const source = a ?? b;
+    if (!source) throw new Error(`missing evidence at index ${index}`);
+    if (source.gameIndex !== index) throw new Error(`invalid evidence index ${index}`);
+    if (a && a.gameIndex !== index) throw new Error(`invalid player A evidence index ${index}`);
+    if (b && b.gameIndex !== index) throw new Error(`invalid player B evidence index ${index}`);
     if (
-      a.gameId !== b.gameId ||
-      a.gameVersion !== b.gameVersion ||
-      a.gameSeed !== b.gameSeed
+      a && b &&
+      (a.gameId !== b.gameId || a.gameVersion !== b.gameVersion || a.gameSeed !== b.gameSeed)
     ) {
       throw new Error(`players do not share the same locked game/version at index ${index}`);
     }
-    const progressWinner = compareDiscreteProgress(a, b);
-    if (progressWinner === "playerA") playerAProgressWins += 1;
-    if (progressWinner === "playerB") playerBProgressWins += 1;
-    return {
-      gameId: a.gameId,
-      gameVersion: a.gameVersion,
+    games.push({
+      gameId: source.gameId,
+      gameVersion: source.gameVersion,
       gameIndex: index,
-      gameSeed: a.gameSeed,
-      playerACompleted: a.completed,
-      playerBCompleted: b.completed,
-      playerAProgressStep: a.progressStep,
-      playerAProgressStepCount: a.progressStepCount,
-      playerBProgressStep: b.progressStep,
-      playerBProgressStepCount: b.progressStepCount,
-      playerAScore: a.score,
-      playerBScore: b.score,
-      playerADurationMs: a.durationMs,
-      playerBDurationMs: b.durationMs,
-      playerAAccuracy: a.accuracy,
-      playerBAccuracy: b.accuracy,
-      playerAMistakes: a.mistakes,
-      playerBMistakes: b.mistakes,
-      progressWinner,
-    };
-  });
+      gameSeed: source.gameSeed,
+      playerA: a,
+      playerB: b,
+    });
+  }
 
   const playerATotalScore = sum(evidenceA, "score");
   const playerBTotalScore = sum(evidenceB, "score");
   const playerATotalDurationMs = sum(evidenceA, "durationMs");
   const playerBTotalDurationMs = sum(evidenceB, "durationMs");
+  const playerAAttemptedGames = evidenceA.length;
+  const playerBAttemptedGames = evidenceB.length;
   const playerACompletedGames = evidenceA.filter((item) => item.completed).length;
   const playerBCompletedGames = evidenceB.filter((item) => item.completed).length;
-  const bothClearedEverything =
-    playerACompletedGames === evidenceA.length && playerBCompletedGames === evidenceB.length;
+  const bothClearedAllFour =
+    evidenceA.length === 4 &&
+    evidenceB.length === 4 &&
+    evidenceA.every((item) => item.completed) &&
+    evidenceB.every((item) => item.completed);
 
   let winnerId: string | null = null;
   let loserId: string | null = null;
   let reason: MatchDecisionReason;
 
+  // Rule 1: every successfully completed mini-game is exactly 1000 points.
   if (playerATotalScore !== playerBTotalScore) {
     const aWins = playerATotalScore > playerBTotalScore;
     winnerId = aWins ? playerAId : playerBId;
     loserId = aWins ? playerBId : playerAId;
     reason = "score";
-  } else if (!bothClearedEverything && playerAProgressWins !== playerBProgressWins) {
-    const aWins = playerAProgressWins > playerBProgressWins;
+  // Rule 2: if points are equal when time expires, the player who reached a
+  // later game in the locked four-game sequence is ahead.
+  } else if (playerAAttemptedGames !== playerBAttemptedGames) {
+    const aWins = playerAAttemptedGames > playerBAttemptedGames;
     winnerId = aWins ? playerAId : playerBId;
     loserId = aWins ? playerBId : playerAId;
-    reason = "progress";
-  } else if (!bothClearedEverything) {
-    // Equal completed objectives and equal discrete progress means both failed
-    // at the same competitive position. Gold penalty/refund is phase 2.
-    reason = "doubleFail";
-  } else if (playerATotalDurationMs !== playerBTotalDurationMs) {
+    reason = "gameProgress";
+  // Rule 3: time is used only when both players correctly clear all 4 games.
+  } else if (bothClearedAllFour && playerATotalDurationMs !== playerBTotalDurationMs) {
     const aWins = playerATotalDurationMs < playerBTotalDurationMs;
     winnerId = aWins ? playerAId : playerBId;
     loserId = aWins ? playerBId : playerAId;
     reason = "timeTieBreaker";
-  } else {
+  } else if (bothClearedAllFour) {
     reason = "exactTie";
+  } else {
+    // Same official points + same game position + at least one failed objective.
+    // Phase 2 applies the approved 50% wager-return / 50% failure penalty.
+    reason = "doubleFail";
   }
 
   return {
@@ -172,10 +139,10 @@ export function buildMatchReceipt(options: {
     playerBTotalScore,
     playerATotalDurationMs,
     playerBTotalDurationMs,
+    playerAAttemptedGames,
+    playerBAttemptedGames,
     playerACompletedGames,
     playerBCompletedGames,
-    playerAProgressWins,
-    playerBProgressWins,
     scoreDifference: Math.abs(playerATotalScore - playerBTotalScore),
     timeDifferenceMs: Math.abs(playerATotalDurationMs - playerBTotalDurationMs),
     games,
