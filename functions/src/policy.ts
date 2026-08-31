@@ -122,64 +122,37 @@ export function applyXp(current: Progression, earnedXp: number): Progression {
   return { level, xp };
 }
 
-function averageAccuracy(progress: MatchProgress): number {
-  return progress.completedGames <= 0
-    ? 0
-    : progress.accuracyTotal / progress.completedGames;
-}
-
 export function compareMatch(
   playerA: MatchProgress,
   playerB: MatchProgress,
   gameCount: number,
 ): "playerA" | "playerB" | "tie" {
-  const aFinished = playerA.completedGames >= gameCount;
-  const bFinished = playerB.completedGames >= gameCount;
-
-  // Official completed-match policy:
-  // 1) highest total score wins;
-  // 2) only when score is exactly tied, lowest accumulated gameplay time wins;
-  // 3) exact score+time equality remains a true tie (never random).
-  if (aFinished && bFinished) {
-    if (playerA.totalScore !== playerB.totalScore) {
-      return playerA.totalScore > playerB.totalScore ? "playerA" : "playerB";
-    }
-    if (playerA.elapsedMs !== playerB.elapsedMs) {
-      return playerA.elapsedMs < playerB.elapsedMs ? "playerA" : "playerB";
-    }
-    return "tie";
-  }
-
-  // Deadline/incomplete fallback. Disconnect/forfeit policy is handled by the
-  // dedicated match-state layer; this keeps settlement deterministic meanwhile.
-  if (aFinished !== bFinished) {
-    return aFinished ? "playerA" : "playerB";
-  }
-
-  if (playerA.completedGames !== playerB.completedGames) {
-    return playerA.completedGames > playerB.completedGames
-      ? "playerA"
-      : "playerB";
-  }
-
+  // Simple public rule: completed objectives are worth exactly 1000 each.
   if (playerA.totalScore !== playerB.totalScore) {
     return playerA.totalScore > playerB.totalScore ? "playerA" : "playerB";
   }
 
-  const aAccuracy = averageAccuracy(playerA);
-  const bAccuracy = averageAccuracy(playerB);
-  if (aAccuracy !== bAccuracy) {
-    return aAccuracy > bAccuracy ? "playerA" : "playerB";
+  // If points are tied when the match expires, whoever has advanced farther
+  // through the locked four-game sequence is ahead.
+  if (playerA.completedGames !== playerB.completedGames) {
+    return playerA.completedGames > playerB.completedGames ? "playerA" : "playerB";
   }
 
-  if (playerA.mistakes !== playerB.mistakes) {
-    return playerA.mistakes < playerB.mistakes ? "playerA" : "playerB";
-  }
+  const bothAttemptedAll =
+    playerA.completedGames >= gameCount && playerB.completedGames >= gameCount;
+  const perfectScore = gameCount * 1000;
+  const bothClearedAll =
+    bothAttemptedAll &&
+    playerA.totalScore === perfectScore &&
+    playerB.totalScore === perfectScore;
 
-  if (playerA.elapsedMs !== playerB.elapsedMs) {
+  // Time is a tie-breaker only after both players correctly clear all games.
+  if (bothClearedAll && playerA.elapsedMs !== playerB.elapsedMs) {
     return playerA.elapsedMs < playerB.elapsedMs ? "playerA" : "playerB";
   }
 
+  // Same points + same game position with a failed objective is a true failure
+  // tie. Accuracy, deaths and mistakes are report-only and never decide it.
   return "tie";
 }
 
