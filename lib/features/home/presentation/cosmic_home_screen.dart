@@ -11,9 +11,8 @@ import '../../competition/domain/rank_tier.dart';
 import '../../competition/presentation/leaderboard_screen.dart';
 import '../../competition/presentation/rank_badge.dart';
 import '../../competition/presentation/season_screen.dart';
-import '../../competition/presentation/season_star_badge.dart';
 import '../../economy/data/economy_backend.dart';
-import '../../economy/presentation/avatar_artwork.dart';
+import '../../economy/domain/cosmetic_item.dart';
 import '../../economy/presentation/shop_screen.dart';
 import '../../match/data/match_backend.dart';
 import '../../match/data/social_match_backend.dart';
@@ -29,6 +28,7 @@ import '../../social/data/social_backend.dart';
 import '../../social/presentation/friends_screen.dart';
 import '../../social/presentation/room_hub_screen.dart';
 import '../../social/presentation/social_copy.dart';
+import 'home_identity_card.dart';
 
 class CosmicHomeScreen extends StatelessWidget {
   const CosmicHomeScreen({
@@ -137,7 +137,10 @@ class CosmicHomeScreen extends StatelessWidget {
                 96,
               ),
               children: [
-                _ProfileHero(profile: profile),
+                _ProfileHero(
+                  profile: profile,
+                  economyBackend: economyBackend,
+                ),
                 const SizedBox(height: GameSpacing.md),
                 _SeasonSummary(profile: profile),
                 const SizedBox(height: GameSpacing.lg),
@@ -218,88 +221,26 @@ class CosmicHomeScreen extends StatelessWidget {
 }
 
 class _ProfileHero extends StatelessWidget {
-  const _ProfileHero({required this.profile});
+  const _ProfileHero({
+    required this.profile,
+    required this.economyBackend,
+  });
 
   final PlayerProfile? profile;
+  final EconomyBackend economyBackend;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final player = profile;
-    final rp = player?.rankPoints ?? 0;
-    final tier = RankPolicy.tierFor(rp);
-    final avatarId = player?.avatarId ?? 'avatar_free_vanguard';
+    if (player == null) {
+      return const HomeIdentityCard(profile: null);
+    }
 
-    return CosmicPanel(
-      child: Row(
-        children: [
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: GameColors.cosmicGradient,
-              boxShadow: GameShadows.primaryGlow,
-            ),
-            padding: const EdgeInsets.all(2),
-            child: ClipOval(
-              child: DecoratedBox(
-                decoration: const BoxDecoration(color: GameColors.surface),
-                child: AvatarArtwork(
-                  avatarId: avatarId,
-                  size: 64,
-                  borderRadius: 32,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: GameSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  player?.gameName ?? '—',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: GameSpacing.xs),
-                Wrap(
-                  spacing: GameSpacing.sm,
-                  runSpacing: GameSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    RankBadge(
-                      tier: tier,
-                      compact: true,
-                      legendarySeasons: player?.legendarySeasons ?? 0,
-                    ),
-                    Text(
-                      l10n.levelWithValue(player?.level ?? 1),
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: GameSpacing.sm),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                l10n.rpWithValue(rp),
-                style: const TextStyle(
-                  color: GameColors.accentBright,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: GameSpacing.xs),
-              SeasonStarBadge(stars: player?.stars ?? 0, compact: true),
-            ],
-          ),
-        ],
+    return StreamBuilder<PlayerInventory?>(
+      stream: economyBackend.watchInventory(player.uid),
+      builder: (context, snapshot) => HomeIdentityCard(
+        profile: player,
+        inventory: snapshot.data,
       ),
     );
   }
@@ -362,7 +303,8 @@ class _RankedPlayButton extends StatelessWidget {
   final MatchBackend matchBackend;
 
   void _open(BuildContext context, PlayerProfile player, MatchTicket? ticket) {
-    final resumable = ticket?.status == MatchTicketStatus.matched && ticket?.matchId != null;
+    final resumable = ticket?.status == MatchTicketStatus.matched &&
+        ticket?.matchId != null;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => resumable
@@ -388,17 +330,25 @@ class _RankedPlayButton extends StatelessWidget {
       stream: matchBackend.watchTicket(player.uid),
       builder: (context, snapshot) {
         final ticket = snapshot.data;
-        final resumable = ticket?.status == MatchTicketStatus.matched && ticket?.matchId != null;
+        final resumable = ticket?.status == MatchTicketStatus.matched &&
+            ticket?.matchId != null;
         return CosmicPrimaryButton(
           onPressed: () => _open(context, player, ticket),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(resumable ? Icons.play_circle_fill_rounded : Icons.bolt_rounded),
+              Icon(
+                resumable
+                    ? Icons.play_circle_fill_rounded
+                    : Icons.bolt_rounded,
+              ),
               const SizedBox(width: GameSpacing.sm),
               Text(
                 resumable ? l10n.resume : l10n.play,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
           ),
@@ -418,7 +368,8 @@ class _QuickPlayButton extends StatelessWidget {
       Localizations.localeOf(context).languageCode == 'ar';
 
   void _open(BuildContext context, PlayerProfile player, MatchTicket? ticket) {
-    final resumable = ticket?.status == MatchTicketStatus.matched && ticket?.matchId != null;
+    final resumable = ticket?.status == MatchTicketStatus.matched &&
+        ticket?.matchId != null;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => resumable
@@ -448,7 +399,10 @@ class _QuickPlayButton extends StatelessWidget {
         label: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
             Text(
               serverReady
                   ? subtitle
@@ -466,16 +420,23 @@ class _QuickPlayButton extends StatelessWidget {
       stream: matchBackend.watchTicket(player.uid),
       builder: (context, snapshot) {
         final ticket = snapshot.data;
-        final resumable = ticket?.status == MatchTicketStatus.matched && ticket?.matchId != null;
+        final resumable = ticket?.status == MatchTicketStatus.matched &&
+            ticket?.matchId != null;
         return OutlinedButton.icon(
           onPressed: () => _open(context, player, ticket),
-          icon: Icon(resumable ? Icons.play_circle_fill_rounded : Icons.flash_on_rounded),
+          icon: Icon(
+            resumable
+                ? Icons.play_circle_fill_rounded
+                : Icons.flash_on_rounded,
+          ),
           label: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 resumable
-                    ? (_isArabic(context) ? 'استئناف المباراة السريعة' : 'RESUME QUICK')
+                    ? (_isArabic(context)
+                        ? 'استئناف المباراة السريعة'
+                        : 'RESUME QUICK')
                     : title,
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
@@ -531,16 +492,23 @@ class _QuickLinks extends StatelessWidget {
             onTap: item.$3,
             borderRadius: BorderRadius.circular(GameRadii.card),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: GameSpacing.md),
+              padding: const EdgeInsets.symmetric(
+                horizontal: GameSpacing.md,
+              ),
               decoration: BoxDecoration(
-                border: Border.all(color: GameColors.surfaceStrong, width: 0.8),
+                border: Border.all(
+                  color: GameColors.surfaceStrong,
+                  width: 0.8,
+                ),
                 borderRadius: BorderRadius.circular(GameRadii.card),
               ),
               child: Row(
                 children: [
                   Icon(
                     item.$1,
-                    color: item.$3 == null ? GameColors.muted : GameColors.accent,
+                    color: item.$3 == null
+                        ? GameColors.muted
+                        : GameColors.accent,
                   ),
                   const SizedBox(width: GameSpacing.sm),
                   Expanded(
@@ -549,7 +517,9 @@ class _QuickLinks extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: item.$3 == null ? GameColors.muted : GameColors.textStrong,
+                        color: item.$3 == null
+                            ? GameColors.muted
+                            : GameColors.textStrong,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
