@@ -9,6 +9,7 @@ import {
   stringValue,
   timestampMillis,
 } from "./firestore.js";
+import { buildMatchReceipt } from "./match_receipt.js";
 import {
   applyRp,
   applyXp,
@@ -21,6 +22,7 @@ import {
 } from "./policy.js";
 import {
   MATCH_DURATION_MS,
+  MATCH_GAME_COUNT,
   REGISTRY_VERSION,
   parseEvidence,
   validateEvidence,
@@ -128,7 +130,13 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       throw new HttpsError("failed-precondition", "The match season is already closed.");
     }
 
-    const gameCount = intValue(match.gameCount, 8);
+    const gameCount = intValue(match.gameCount, MATCH_GAME_COUNT);
+    if (gameCount !== MATCH_GAME_COUNT) {
+      throw new HttpsError(
+        "failed-precondition",
+        `Ranked registry v${REGISTRY_VERSION} requires exactly ${MATCH_GAME_COUNT} games.`,
+      );
+    }
     const seed = intValue(match.seed);
     const progressA = parseProgress(match.progressA);
     const progressB = parseProgress(match.progressB);
@@ -185,6 +193,16 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       throw new HttpsError("failed-precondition", "Ranked evidence failed integrity checks.");
     }
 
+    const resolution = bothComplete
+      ? buildMatchReceipt({
+          matchId,
+          playerAId,
+          playerBId,
+          evidenceA,
+          evidenceB,
+        })
+      : null;
+
     const playerARef = db.collection(COLLECTIONS.users).doc(playerAId);
     const playerBRef = db.collection(COLLECTIONS.users).doc(playerBId);
     const inventoryARef = db.collection(COLLECTIONS.inventories).doc(playerAId);
@@ -217,6 +235,19 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     }
 
     const outcome = compareMatch(progressA, progressB, gameCount);
+    if (resolution !== null) {
+      const expectedOutcome = resolution.winnerId === playerAId
+        ? "playerA"
+        : resolution.winnerId === playerBId
+          ? "playerB"
+          : "tie";
+      if (expectedOutcome !== outcome) {
+        throw new HttpsError(
+          "data-loss",
+          "Authoritative progress and detailed evidence disagree on the winner.",
+        );
+      }
+    }
     const resultA = resultForPlayer(outcome, "playerA");
     const resultB = resultForPlayer(outcome, "playerB");
     const rewardA = rewardFor(resultA);
@@ -288,6 +319,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const payload = {
       matchId,
       seasonId,
+      resolution,
       playerA: settlementPlayer({
         uid: playerAId,
         previousRp: previousRpA,
