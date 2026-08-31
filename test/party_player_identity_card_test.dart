@@ -4,6 +4,13 @@ import 'package:game/features/competition/presentation/rank_badge.dart';
 import 'package:game/features/economy/presentation/cosmetic_runtime.dart';
 import 'package:game/features/social/domain/social_player_summary.dart';
 import 'package:game/features/social/presentation/party_screen.dart';
+import 'package:game/l10n/app_localizations.dart';
+
+Widget _host(Widget child) => MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: child),
+    );
 
 void main() {
   testWidgets('party player card renders equipped public identity', (tester) async {
@@ -22,13 +29,11 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: PartyPlayerIdentityCard(
-            player: player,
-            subtitle: 'Leader',
-            trailing: Icon(Icons.more_horiz_rounded),
-          ),
+      _host(
+        const PartyPlayerIdentityCard(
+          player: player,
+          subtitle: 'Leader',
+          trailing: Icon(Icons.more_horiz_rounded),
         ),
       ),
     );
@@ -70,12 +75,10 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: Scaffold(
-          body: PartyPlayerIdentityCard(
-            player: player,
-            trailing: SizedBox.shrink(),
-          ),
+      _host(
+        const PartyPlayerIdentityCard(
+          player: player,
+          trailing: SizedBox.shrink(),
         ),
       ),
     );
