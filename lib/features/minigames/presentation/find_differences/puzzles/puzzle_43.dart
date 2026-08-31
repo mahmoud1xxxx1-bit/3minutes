@@ -19,8 +19,11 @@ class Puzzle43 extends PuzzleDefinition {
     c.beginPath(); 
     for(int i=0; i<=6; i++) {
       double a = i * math.pi/3 - math.pi/6;
-      if (i==0) c.moveTo(x + math.cos(a)*r, y + math.sin(a)*r);
-      else c.lineTo(x + math.cos(a)*r, y + math.sin(a)*r);
+      if (i==0) {
+        c.moveTo(x + math.cos(a)*r, y + math.sin(a)*r);
+      } else {
+        c.lineTo(x + math.cos(a)*r, y + math.sin(a)*r);
+      }
     }
     c.stroke();
     c.beginPath(); c.moveTo(x, y); c.lineTo(x, y+r); c.stroke();

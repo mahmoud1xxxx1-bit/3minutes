@@ -1,4 +1,4 @@
-import 'dart:math';
+// deleted
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -116,7 +116,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
                 color: const Color(0xFF0F111A),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.8), blurRadius: 10, offset: const Offset(0, -5))]
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 10, offset: const Offset(0, -5))]
               ),
               child: Directionality(
                 textDirection: TextDirection.ltr,
@@ -173,9 +173,9 @@ class _ControlButton extends StatelessWidget {
         width: 80,
         height: 80,
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
+          color: color.withValues(alpha: 0.05),
           shape: BoxShape.circle,
-          border: Border.all(color: color.withOpacity(0.2), width: 2),
+          border: Border.all(color: color.withValues(alpha: 0.2), width: 2),
         ),
         child: Icon(icon, size: 50, color: color),
       ),
@@ -220,7 +220,7 @@ class _TrollPainter extends CustomPainter {
           RRect.fromRectAndRadius(e.rect.toRect(), const Radius.circular(4)),
           paint
         );
-        paint.color = Colors.white.withOpacity(0.05);
+        paint.color = Colors.white.withValues(alpha: 0.05);
         canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 4), paint);
         
       } else if (e.type == TrollEntityType.spike) {
@@ -254,7 +254,7 @@ class _TrollPainter extends CustomPainter {
     }
     
     for (var p in engine.particles) {
-      paint.color = p.color.withOpacity(p.life / p.maxLife);
+      paint.color = p.color.withValues(alpha: p.life / p.maxLife);
       canvas.drawCircle(Offset(p.x, p.y), 4 * (p.life / p.maxLife), paint);
     }
     
@@ -310,7 +310,7 @@ class _TrollPainter extends CustomPainter {
     
     // --- LAVA EFFECT ---
     if (engine.isLavaLevel) {
-      double lavaScreenY = engine.lavaY; // lava is static in world, wait, screen space?
+// deleted
       // No, world space! Need to apply camera.
       canvas.save();
       canvas.translate(-engine.cameraX, 0);
@@ -331,7 +331,7 @@ class _TrollPainter extends CustomPainter {
 
     // UI Layer (overlay, text, wipe)
     if (engine.isDead) {
-      paint.color = Colors.black.withOpacity(1.0 - engine.deathTimer);
+      paint.color = Colors.black.withValues(alpha: 1.0 - engine.deathTimer);
       canvas.drawRect(Rect.fromLTWH(0, 0, engine.logicalWidth, engine.logicalHeight), paint);
     }
 
@@ -480,10 +480,10 @@ class _TrollPainter extends CustomPainter {
     Paint paint = Paint();
 
     // Glowing Moon
-    paint.color = moonColor.withOpacity(0.3);
+    paint.color = moonColor.withValues(alpha: 0.3);
     paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
     canvas.drawCircle(Offset(moonX, 300), 100, paint);
-    paint.color = moonColor.withOpacity(0.6);
+    paint.color = moonColor.withValues(alpha: 0.6);
     paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     canvas.drawCircle(Offset(moonX, 300), 60, paint);
     paint.maskFilter = null;
@@ -522,7 +522,7 @@ class _TrollPainter extends CustomPainter {
 
   void _drawGrid(Canvas canvas) {
     var paint = Paint()
-      ..color = Colors.white.withOpacity(0.01)
+      ..color = Colors.white.withValues(alpha: 0.01)
       ..strokeWidth = 1;
     // Extend grid to maxMapWidth
     for(double i=0; i<=engine.maxMapWidth; i+=40) {
@@ -580,14 +580,14 @@ class _TrollPainter extends CustomPainter {
       Rect.fromLTWH(rect.x + 5, rect.y + 5, rect.w - 10, rect.h - 5), 
       const Radius.circular(6)
     ), paint);
-    paint.color = color.withOpacity(0.3);
+    paint.color = color.withValues(alpha: 0.3);
     paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 15);
     canvas.drawRRect(r, paint);
     paint.maskFilter = null;
   }
 
   void _drawPlayer(Canvas canvas, TrollEntity p, {double opacity = 1.0}) {
-    var paint = Paint()..color = p.color.withOpacity(opacity);
+    var paint = Paint()..color = p.color.withValues(alpha: opacity);
     
     canvas.save();
     canvas.translate(p.rect.x + p.rect.w/2, p.rect.y + p.rect.h/2);
@@ -602,7 +602,7 @@ class _TrollPainter extends CustomPainter {
     var r = RRect.fromRectAndRadius(p.rect.toRect(), const Radius.circular(6));
     canvas.drawRRect(r, paint);
     
-    paint.color = p.color.withOpacity(0.4 * opacity);
+    paint.color = p.color.withValues(alpha: 0.4 * opacity);
     paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     canvas.drawRRect(r, paint);
     paint.maskFilter = null;

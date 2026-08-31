@@ -1,7 +1,8 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'dart:ui' as ui;
-import '../mini_game_copy.dart';
+
 import '../../domain/mini_game_contract.dart';
 import 'advanced_traffic_engine.dart';
 import 'dart:math';
@@ -235,29 +236,29 @@ class _TrafficLoopGameState extends State<TrafficLoopGame>
   }
 }
 
-class _Pill extends StatelessWidget {
-  const _Pill({required this.label});
-  final String label;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1C202B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF32384A)),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          fontSize: 16,
-        ),
-      ),
-    );
-  }
-}
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
 
 class _TrafficPainter extends CustomPainter {
   _TrafficPainter(this.engine, this.transitionTimer);
@@ -420,10 +421,7 @@ class _TrafficPainter extends CustomPainter {
     _drawArrows(canvas, engine.loopMetric);
     _drawArrows(canvas, engine.entranceMetric);
 
-    final stopLinePaint = Paint()
-      ..color = toGray(Colors.white)
-      ..strokeWidth = 6.0
-      ..style = PaintingStyle.stroke;
+
 
     ui.Tangent? tStop = engine.entranceMetric.getTangentForOffset(
       engine.stopLineS,

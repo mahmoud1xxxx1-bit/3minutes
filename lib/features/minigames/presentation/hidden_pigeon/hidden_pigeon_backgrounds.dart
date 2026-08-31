@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 class PigeonBackgroundPainter extends CustomPainter {
@@ -82,7 +82,7 @@ class PigeonBackgroundPainter extends CustomPainter {
       Color c = [Color(0xFFE74C3C), Color(0xFF8E44AD), Color(0xFF3498DB), Colors.white][rand.nextInt(4)];
       int shape = rand.nextInt(3);
       
-      final paint = Paint()..color = c.withOpacity(0.9);
+      final paint = Paint()..color = c.withValues(alpha: 0.9);
       final stroke = Paint()..color = Colors.black..style = PaintingStyle.stroke..strokeWidth = 1.5;
 
       if (shape == 0) {

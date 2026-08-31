@@ -44,7 +44,7 @@ class PigeonPainterPack1 extends CustomPainter {
           const Color(0xFFFF00FF),
           const Color(0xFFFFFF00),
           const Color(0xFFFF0055),
-        ][rand.nextInt(4)].withOpacity(0.8);
+        ][rand.nextInt(4)].withValues(alpha: 0.8);
         Paint windowPaint = Paint()..color = neonColor;
         for (int r = 0; r < windowRows; r++) {
           for (int c = 0; c < windowCols; c++) {
@@ -66,7 +66,7 @@ class PigeonPainterPack1 extends CustomPainter {
           const Color(0xFF00FFCC),
           const Color(0xFFFF00FF),
           const Color(0xFFFFFF00),
-      ][rand.nextInt(3)].withOpacity(0.6);
+      ][rand.nextInt(3)].withValues(alpha: 0.6);
       canvas.drawRect(Rect.fromLTWH(x, y, w, h), Paint()..color = neonColor..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0));
     }
   }
@@ -79,7 +79,7 @@ class PigeonPainterPack1 extends CustomPainter {
     final gradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [const Color(0xFF004080).withOpacity(0.8), const Color(0xFF001122).withOpacity(0.9)],
+      colors: [const Color(0xFF004080).withValues(alpha: 0.8), const Color(0xFF001122).withValues(alpha: 0.9)],
     );
     canvas.drawRect(Offset.zero & size, Paint()..shader = gradient.createShader(Offset.zero & size));
 
@@ -114,7 +114,7 @@ class PigeonPainterPack1 extends CustomPainter {
            Path p = Path();
            p.moveTo(x + rand.nextDouble()*r - r/2, y + rand.nextDouble()*r - r/2);
            p.quadraticBezierTo(x + rand.nextDouble()*r - r/2, y + rand.nextDouble()*r - r/2, x + rand.nextDouble()*r - r/2, y + rand.nextDouble()*r - r/2);
-           canvas.drawPath(p, Paint()..color = coralColor.withOpacity(0.5)..style = PaintingStyle.stroke..strokeWidth = 2);
+           canvas.drawPath(p, Paint()..color = coralColor.withValues(alpha: 0.5)..style = PaintingStyle.stroke..strokeWidth = 2);
         }
       } else {
         // Seaweed
@@ -145,7 +145,7 @@ class PigeonPainterPack1 extends CustomPainter {
       double y = rand.nextDouble() * size.height;
       double r = rand.nextDouble() * 15 + 2;
       canvas.drawCircle(Offset(x, y), r, Paint()
-        ..color = Colors.white.withOpacity(0.3)
+        ..color = Colors.white.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
       );
@@ -194,8 +194,11 @@ class PigeonPainterPack1 extends CustomPainter {
            double r2 = (t / (pi * 4)) * r;
            double px = x + r2 * cos(t);
            double py = y + r2 * sin(t);
-           if (t == 0) swirl.moveTo(px, py);
-           else swirl.lineTo(px, py);
+           if (t == 0) {
+             swirl.moveTo(px, py);
+           } else {
+             swirl.lineTo(px, py);
+           }
         }
         canvas.drawPath(swirl, Paint()..color = c2..style = PaintingStyle.stroke..strokeWidth = 3);
 
@@ -248,7 +251,7 @@ class PigeonPainterPack1 extends CustomPainter {
         const Color(0xFFF5F5DC),
         const Color(0xFFD3D3D3),
         const Color(0xFFC0C0C0),
-        const Color(0xFFA9A9A9).withOpacity(0.8),
+        const Color(0xFFA9A9A9).withValues(alpha: 0.8),
       ][rand.nextInt(5)];
 
       canvas.save();
@@ -418,7 +421,7 @@ class PigeonPainterPack1 extends CustomPainter {
           ..color = lavaColor
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0)
         );
-        canvas.drawCircle(Offset(x, y), r * 0.6, Paint()..color = const Color(0xFFFFFFFF).withOpacity(0.5));
+        canvas.drawCircle(Offset(x, y), r * 0.6, Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: 0.5));
       } else if (type == 1) {
         // Flow
         Path p = Path();

@@ -24,7 +24,7 @@ class Puzzle27 extends PuzzleDefinition {
   void drawBaseScene(HtmlCanvas c) {
     
     final sky = c.createLinearGradient(0,0,0,400);
-    sky..addColorStop(0, '#10051a'); sky..addColorStop(1, '#2b0a3d');
+    sky.addColorStop(0, '#10051a'); sky.addColorStop(1, '#2b0a3d');
     c.fillStyle = sky; c.fillRect(0,0,800,600);
     c.fillStyle = '#fff';
     for(double i=0.0; i<40; i++) {
@@ -111,7 +111,7 @@ class Puzzle27 extends PuzzleDefinition {
       (HtmlCanvas c) {
         
         final grad = c.createLinearGradient(380, 160, 480, 180);
-        grad..addColorStop(0, 'transparent'); grad..addColorStop(1, '#fff');
+        grad.addColorStop(0, 'transparent'); grad.addColorStop(1, '#fff');
         c.strokeStyle = grad; c.lineWidth = 3; c.lineCap = 'round';
         c.beginPath(); c.moveTo(380, 160); c.lineTo(480, 180); c.stroke();
         c.fillStyle = '#fff'; c.beginPath(); c.arc(480, 180, 3, 0, math.pi*2); c.fill();

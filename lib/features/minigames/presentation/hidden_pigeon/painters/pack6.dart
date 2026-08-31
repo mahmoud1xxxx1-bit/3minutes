@@ -115,7 +115,7 @@ class PigeonPainterPack6 extends CustomPainter {
       
       // Some glow
       if (rand.nextDouble() < 0.1) {
-        canvas.drawCircle(p1, rand.nextDouble() * 5 + 2, Paint()..color = paintDot.color.withOpacity(0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+        canvas.drawCircle(p1, rand.nextDouble() * 5 + 2, Paint()..color = paintDot.color.withValues(alpha: 0.3)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
       }
     }
   }
@@ -272,7 +272,7 @@ class PigeonPainterPack6 extends CustomPainter {
 
     for (int i = 0; i < 2000; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(rand.nextDouble() * 0.6 + 0.1)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: rand.nextDouble() * 0.6 + 0.1)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 8 + 1
         ..strokeCap = StrokeCap.round;
@@ -326,7 +326,7 @@ class PigeonPainterPack6 extends CustomPainter {
       final color = colors[rand.nextInt(colors.length)];
       
       final paint = Paint()
-        ..color = color.withOpacity(0.9)
+        ..color = color.withValues(alpha: 0.9)
         ..style = PaintingStyle.fill;
         
       final veinPaint = Paint()

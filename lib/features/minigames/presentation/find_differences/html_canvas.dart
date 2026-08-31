@@ -1,7 +1,8 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
 
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+// deleted
 
 class CanvasGradient {
   final ui.Gradient shader;
@@ -61,15 +62,16 @@ class HtmlCanvas {
   final Canvas canvas;
   final Size size;
   
-  Paint _fillPaint = Paint()..style = PaintingStyle.fill..color = Colors.black;
-  Paint _strokePaint = Paint()..style = PaintingStyle.stroke..color = Colors.black..strokeWidth = 1.0;
+  final Paint _fillPaint = Paint()..style = PaintingStyle.fill..color = Colors.black;
+  final Paint _strokePaint = Paint()..style = PaintingStyle.stroke..color = Colors.black..strokeWidth = 1.0;
   Path _currentPath = Path();
   
   double globalAlpha = 1.0;
   Color _shadowColor = Colors.transparent;
   set shadowColor(dynamic value) {
-    if (value is String) _shadowColor = parseColor(value);
-    else if (value is Color) _shadowColor = value;
+    if (value is String) {
+      _shadowColor = parseColor(value);
+    } else if (value is Color) _shadowColor = value;
   }
   Color get shadowColor => _shadowColor;
   double shadowBlur = 0.0;
@@ -77,7 +79,7 @@ class HtmlCanvas {
   String textAlign = 'left';
   String textBaseline = 'top';
   
-  List<CanvasState> _stateStack = [];
+  final List<CanvasState> _stateStack = [];
 
   HtmlCanvas(this.canvas, this.size);
 
@@ -89,7 +91,7 @@ class HtmlCanvas {
         c = c[0]+c[0]+c[1]+c[1]+c[2]+c[2];
       }
       if (c.length == 6) {
-        return Color(int.parse('FF' + c, radix: 16));
+        return Color(int.parse('FF$c', radix: 16));
       } else if (c.length == 8) {
         // RRGGBBAA to AARRGGBB
         String r = c.substring(0,2);
@@ -144,14 +146,16 @@ class HtmlCanvas {
   set lineWidth(double w) { _strokePaint.strokeWidth = w; }
   
   set lineCap(String cap) {
-    if (cap == 'round') _strokePaint.strokeCap = StrokeCap.round;
-    else if (cap == 'square') _strokePaint.strokeCap = StrokeCap.square;
+    if (cap == 'round') {
+      _strokePaint.strokeCap = StrokeCap.round;
+    } else if (cap == 'square') _strokePaint.strokeCap = StrokeCap.square;
     else _strokePaint.strokeCap = StrokeCap.butt;
   }
   
   set lineJoin(String join) {
-    if (join == 'round') _strokePaint.strokeJoin = StrokeJoin.round;
-    else if (join == 'bevel') _strokePaint.strokeJoin = StrokeJoin.bevel;
+    if (join == 'round') {
+      _strokePaint.strokeJoin = StrokeJoin.round;
+    } else if (join == 'bevel') _strokePaint.strokeJoin = StrokeJoin.bevel;
     else _strokePaint.strokeJoin = StrokeJoin.miter;
   }
 
@@ -193,10 +197,12 @@ class HtmlCanvas {
     tp.layout();
     double dx = x.toDouble();
     double dy = y.toDouble();
-    if (textAlign == 'center') dx -= tp.width / 2;
-    else if (textAlign == 'right') dx -= tp.width;
-    if (textBaseline == 'middle') dy -= tp.height / 2;
-    else if (textBaseline == 'bottom') dy -= tp.height;
+    if (textAlign == 'center') {
+      dx -= tp.width / 2;
+    } else if (textAlign == 'right') dx -= tp.width;
+    if (textBaseline == 'middle') {
+      dy -= tp.height / 2;
+    } else if (textBaseline == 'bottom') dy -= tp.height;
     tp.paint(canvas, Offset(dx, dy));
   }
 
@@ -221,8 +227,9 @@ class HtmlCanvas {
 
   void roundRect(num x, num y, num w, num h, dynamic r) {
     double rad = 0.0;
-    if (r is num) rad = r.toDouble();
-    else if (r is List && r.isNotEmpty) rad = r[0].toDouble();
+    if (r is num) {
+      rad = r.toDouble();
+    } else if (r is List && r.isNotEmpty) rad = r[0].toDouble();
     _currentPath.addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(x.toDouble(), y.toDouble(), w.toDouble(), h.toDouble()), Radius.circular(rad)));
   }
 }

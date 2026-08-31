@@ -41,8 +41,11 @@ class Puzzle25 extends PuzzleDefinition {
     c.beginPath();
     for(double i=0.0; i<30; i++) {
         double a = i*0.5; double r = i*3;
-        if(i==0) c.moveTo(400, 150);
-        else c.lineTo(400+math.cos(a)*r, 150+math.sin(a)*r);
+        if(i==0) {
+          c.moveTo(400, 150);
+        } else {
+          c.lineTo(400+math.cos(a)*r, 150+math.sin(a)*r);
+        }
     }
     c.stroke();
     c.fillStyle = '#fff';

@@ -41,7 +41,7 @@ class PigeonPainterPack13 extends CustomPainter {
     final paint = Paint()..style = PaintingStyle.stroke;
     
     // Draw background grid
-    paint.color = const Color(0xFF003300).withOpacity(0.5);
+    paint.color = const Color(0xFF003300).withValues(alpha: 0.5);
     paint.strokeWidth = 1.0;
     for (int i = 0; i < size.width; i += 20) {
       canvas.drawLine(Offset(i.toDouble(), 0), Offset(i.toDouble(), size.height), paint);
@@ -56,7 +56,7 @@ class PigeonPainterPack13 extends CustomPainter {
       final cy = rand.nextDouble() * size.height;
       final maxRadius = rand.nextDouble() * 100 + 20;
 
-      paint.color = const Color(0xFF00FF00).withOpacity(rand.nextDouble() * 0.3 + 0.1);
+      paint.color = const Color(0xFF00FF00).withValues(alpha: rand.nextDouble() * 0.3 + 0.1);
       paint.strokeWidth = rand.nextDouble() * 2 + 0.5;
       
       for (int j = 1; j <= 5; j++) {
@@ -68,7 +68,7 @@ class PigeonPainterPack13 extends CustomPainter {
       
       final fillPaint = Paint()
         ..style = PaintingStyle.fill
-        ..color = const Color(0xFF00FF00).withOpacity(rand.nextDouble() * 0.15);
+        ..color = const Color(0xFF00FF00).withValues(alpha: rand.nextDouble() * 0.15);
       
       canvas.drawArc(
         Rect.fromCircle(center: Offset(cx, cy), radius: maxRadius),
@@ -93,7 +93,7 @@ class PigeonPainterPack13 extends CustomPainter {
     }
     
     for (int i = 0; i < 500; i++) {
-      paint.color = Color.lerp(const Color(0xFF00FF00), const Color(0xFF00FFFF), rand.nextDouble())!.withOpacity(rand.nextDouble() * 0.4);
+      paint.color = Color.lerp(const Color(0xFF00FF00), const Color(0xFF00FFFF), rand.nextDouble())!.withValues(alpha: rand.nextDouble() * 0.4);
       final x1 = rand.nextDouble() * size.width;
       final y1 = rand.nextDouble() * size.height;
       final x2 = rand.nextDouble() * size.width;
@@ -122,7 +122,7 @@ class PigeonPainterPack13 extends CustomPainter {
       canvas.drawCircle(
         Offset(cx, cy),
         r,
-        Paint()..color = bgColors[rand.nextInt(bgColors.length)].withOpacity(0.6),
+        Paint()..color = bgColors[rand.nextInt(bgColors.length)].withValues(alpha: 0.6),
       );
     }
 
@@ -150,7 +150,7 @@ class PigeonPainterPack13 extends CustomPainter {
       );
 
       // Blades
-      paint.color = bladeColors[rand.nextInt(bladeColors.length)].withOpacity(0.9);
+      paint.color = bladeColors[rand.nextInt(bladeColors.length)].withValues(alpha: 0.9);
       for (int j = 0; j < blades; j++) {
         final currentAngle = angle + j * (2 * pi / blades);
         final path = Path()
@@ -188,7 +188,7 @@ class PigeonPainterPack13 extends CustomPainter {
       final h = rand.nextDouble() * 30 + 15;
 
       final paint = Paint()
-        ..color = tentColors[rand.nextInt(tentColors.length)].withOpacity(0.85)
+        ..color = tentColors[rand.nextInt(tentColors.length)].withValues(alpha: 0.85)
         ..style = PaintingStyle.fill;
       
       final path = Path()
@@ -238,7 +238,7 @@ class PigeonPainterPack13 extends CustomPainter {
         ..lineTo(x + sizeFactor * 0.2, y + sizeFactor * 0.2)
         ..close();
       
-      canvas.drawPath(pathLight, Paint()..color = lightColor.withOpacity(0.9));
+      canvas.drawPath(pathLight, Paint()..color = lightColor.withValues(alpha: 0.9));
 
       // Shadow side
       final pathShadow = Path()
@@ -247,7 +247,7 @@ class PigeonPainterPack13 extends CustomPainter {
         ..lineTo(x + sizeFactor, y - sizeFactor * 0.1)
         ..close();
       
-      canvas.drawPath(pathShadow, Paint()..color = shadowColor.withOpacity(0.9));
+      canvas.drawPath(pathShadow, Paint()..color = shadowColor.withValues(alpha: 0.9));
       
       // Horizontal lines on pyramid for block effect
       final linePaint = Paint()
@@ -360,8 +360,8 @@ class PigeonPainterPack13 extends CustomPainter {
 
       void drawEye(double ex, double ey, double r) {
         // Glow
-        canvas.drawCircle(Offset(ex, ey), r * 2.5, Paint()..color = color.withOpacity(0.3));
-        canvas.drawCircle(Offset(ex, ey), r * 1.5, Paint()..color = color.withOpacity(0.6));
+        canvas.drawCircle(Offset(ex, ey), r * 2.5, Paint()..color = color.withValues(alpha: 0.3));
+        canvas.drawCircle(Offset(ex, ey), r * 1.5, Paint()..color = color.withValues(alpha: 0.6));
         // Solid
         canvas.drawCircle(Offset(ex, ey), r, Paint()..color = color);
         // Pupil/highlight

@@ -50,7 +50,7 @@ class GamePainterA53 extends CustomPainter {
     for(int i = 0; i < 15; i++) {
       double fx = (rnd.nextDouble() * GameEngine.fieldSize + math.sin(engine.time+i) * 20) % GameEngine.fieldSize;
       double fy = (rnd.nextDouble() * GameEngine.fieldSize + math.cos(engine.time+i) * 20) % GameEngine.fieldSize;
-      canvas.drawCircle(Offset(fx, fy), 20 + rnd.nextDouble()*30, Paint()..color=Colors.purpleAccent.withOpacity(0.05)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
+      canvas.drawCircle(Offset(fx, fy), 20 + rnd.nextDouble()*30, Paint()..color=Colors.purpleAccent.withValues(alpha: 0.05)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
     }
 
     // 3. OBSTACLES - Bookcases / Victorian Furniture
@@ -77,11 +77,11 @@ class GamePainterA53 extends CustomPainter {
 
         if (isActive) {
             double p = 1.0 + math.sin(engine.time*10)*0.1;
-            canvas.drawCircle(target, 30*p, Paint()..color=Colors.deepOrangeAccent.withOpacity(0.6)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
-            canvas.drawCircle(target, 15*p, Paint()..color=Colors.yellow.withOpacity(0.8)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 5));
+            canvas.drawCircle(target, 30*p, Paint()..color=Colors.deepOrangeAccent.withValues(alpha: 0.6)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
+            canvas.drawCircle(target, 15*p, Paint()..color=Colors.yellow.withValues(alpha: 0.8)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 5));
         }
 
-        canvas.saveLayer(Rect.fromCenter(center: target, width: 80, height: 80), Paint()..color=Colors.white.withOpacity(isActive ? 1.0 : 0.3));
+        canvas.saveLayer(Rect.fromCenter(center: target, width: 80, height: 80), Paint()..color=Colors.white.withValues(alpha: isActive ? 1.0 : 0.3));
         
         // Candle stick
         canvas.drawRect(Rect.fromCenter(center: target+const Offset(0, 5), width: 10, height: 20), Paint()..color=Colors.grey[300]!);
@@ -93,7 +93,7 @@ class GamePainterA53 extends CustomPainter {
 
     // 5. EXIT GATE - Creepy Mirror
     if (engine.exitGate != null) {
-        canvas.drawOval(Rect.fromCenter(center: engine.exitGate!, width: 60, height: 90), Paint()..color=Colors.teal.withOpacity(0.3)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
+        canvas.drawOval(Rect.fromCenter(center: engine.exitGate!, width: 60, height: 90), Paint()..color=Colors.teal.withValues(alpha: 0.3)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
         canvas.drawOval(Rect.fromCenter(center: engine.exitGate!, width: 60, height: 90), Paint()..color=Colors.amber[900]!..style=PaintingStyle.stroke..strokeWidth=6);
     }
 
@@ -104,23 +104,23 @@ class GamePainterA53 extends CustomPainter {
       if (engine.chaserInWall) {
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
-          final eyeGlow = Paint()..color = Colors.red.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
       } else {
-          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withOpacity(0.35));
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
           if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
              double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
-             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withOpacity(0.3));
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
           }
           canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
           if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
           canvas.translate(0, math.sin(engine.time * 6) * 4); 
           
           Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
-              ? (Paint()..color=Colors.grey.withOpacity(0.5)) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
               : Paint();
               
           canvas.drawImageRect(images!['enemy']!, 
@@ -135,13 +135,13 @@ class GamePainterA53 extends CustomPainter {
     // 6. UNIFIED PLAYER IDENTITY
     // ==========================================
     if (images != null && images!['player'] != null) {
-      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withOpacity(0.35));
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
       
       double vLen = engine.playerVelocity.distance;
       if (vLen > 0) {
         canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
         canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
-        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withOpacity(0.5));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
         canvas.restore();
       }
       

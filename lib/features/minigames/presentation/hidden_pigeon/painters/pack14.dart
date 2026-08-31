@@ -51,7 +51,7 @@ class PigeonPainterPack14 extends CustomPainter {
       final y = rand.nextDouble() * size.height;
       final length = rand.nextDouble() * 50 + 10;
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.6)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6)
         ..strokeWidth = rand.nextDouble() * 3 + 1
         ..style = PaintingStyle.stroke;
 
@@ -102,7 +102,7 @@ class PigeonPainterPack14 extends CustomPainter {
       final radius = rand.nextDouble() * 60 + 20;
 
       final paintBase = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.5)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.5)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(Offset(cx, cy), radius, paintBase);
 
@@ -152,13 +152,13 @@ class PigeonPainterPack14 extends CustomPainter {
       canvas.drawOval(
           Rect.fromCenter(center: Offset.zero, width: rX * 2, height: rY * 2),
           Paint()
-            ..color = craterColor.withOpacity(0.4)
+            ..color = craterColor.withValues(alpha: 0.4)
             ..style = PaintingStyle.fill);
 
       canvas.drawOval(
           Rect.fromCenter(center: const Offset(3, 3), width: rX * 2, height: rY * 2),
           Paint()
-            ..color = Colors.black.withOpacity(0.3)
+            ..color = Colors.black.withValues(alpha: 0.3)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2);
 
@@ -197,7 +197,7 @@ class PigeonPainterPack14 extends CustomPainter {
       canvas.rotate(rand.nextDouble() * pi * 2);
 
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.6)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 2 + 0.5;
 
@@ -246,7 +246,7 @@ class PigeonPainterPack14 extends CustomPainter {
       canvas.rotate(rand.nextDouble() * pi * 2);
 
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.7)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.7)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 2 + 1;
 
@@ -287,7 +287,7 @@ class PigeonPainterPack14 extends CustomPainter {
       final radius = rand.nextDouble() * 30 + 5;
 
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.8)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 2 + 0.5
         ..strokeCap = StrokeCap.round;

@@ -129,7 +129,9 @@ class _MoleStrikeGameState extends State<MoleStrikeGame>
     }
 
     if (_mallets.isNotEmpty) {
-      for (var m in _mallets) m.update(dt);
+      for (var m in _mallets) {
+        m.update(dt);
+      }
       _mallets.removeWhere((m) => m.life <= 0);
       setState(() {});
     }
@@ -369,12 +371,16 @@ class _MoleSlotState extends State<MoleSlot> with TickerProviderStateMixin {
 
     bool needsSetState = false;
     if (_particles.isNotEmpty) {
-      for (var p in _particles) p.update(dt);
+      for (var p in _particles) {
+        p.update(dt);
+      }
       _particles.removeWhere((p) => p.life <= 0);
       needsSetState = true;
     }
     if (_floatingTexts.isNotEmpty) {
-      for (var f in _floatingTexts) f.update(dt);
+      for (var f in _floatingTexts) {
+        f.update(dt);
+      }
       _floatingTexts.removeWhere((f) => f.life <= 0);
       needsSetState = true;
     }
@@ -629,7 +635,7 @@ class _HoleBackPainter extends CustomPainter {
     );
 
     Paint innerDepth = Paint()
-      ..color = Colors.black.withOpacity(0.8)
+      ..color = Colors.black.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
     canvas.drawOval(
@@ -795,7 +801,7 @@ class _SquirrelPainter extends CustomPainter {
         false,
         Paint()
           ..style = PaintingStyle.stroke
-          ..color = Colors.white.withOpacity(0.5)
+          ..color = Colors.white.withValues(alpha: 0.5)
           ..strokeWidth = 3,
       );
     }
@@ -805,7 +811,7 @@ class _SquirrelPainter extends CustomPainter {
       canvas.drawCircle(
         const Offset(45, 70),
         5,
-        Paint()..color = Colors.white.withOpacity(0.3),
+        Paint()..color = Colors.white.withValues(alpha: 0.3),
       );
       canvas.drawRect(
         const Rect.fromLTWH(45, 53, 10, 5),
@@ -860,7 +866,7 @@ class _ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (var p in particles) {
       double opacity = (p.life / p.maxLife).clamp(0.0, 1.0);
-      Paint paint = Paint()..color = p.color.withOpacity(opacity);
+      Paint paint = Paint()..color = p.color.withValues(alpha: opacity);
       if (p.isSmoke) {
         paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
         canvas.drawCircle(Offset(p.x, p.y), p.size * (1.5 - opacity), paint);
@@ -882,7 +888,7 @@ class _ParticlePainter extends CustomPainter {
         text: TextSpan(
           text: f.text,
           style: TextStyle(
-            color: f.color.withOpacity(opacity),
+            color: f.color.withValues(alpha: opacity),
             fontSize: 24,
             fontWeight: FontWeight.bold,
             shadows: const [Shadow(color: Colors.black, blurRadius: 4)],

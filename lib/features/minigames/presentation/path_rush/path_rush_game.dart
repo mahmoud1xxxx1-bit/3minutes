@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/mini_game_contract.dart';
 import '../../domain/path_rush_plan.dart';
-import '../mini_game_copy.dart';
+// deleted
 import '../shared/minigame_environment.dart';
 
 class PathRushGame extends StatefulWidget {
@@ -211,28 +211,28 @@ class _PathRushGameState extends State<PathRushGame>
   }
 }
 
-class _PathPill extends StatelessWidget {
-  const _PathPill({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    decoration: BoxDecoration(
-      color: const Color(0xFF19DCE8).withValues(alpha: .10),
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: const Color(0xFF52F2F2).withValues(alpha: .25)),
-    ),
-    child: Text(
-      label,
-      style: const TextStyle(
-        color: Color(0xFF52F2F2),
-        fontSize: 11,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
-}
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
 
 class _StartButton extends StatelessWidget {
   const _StartButton({

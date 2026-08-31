@@ -67,7 +67,7 @@ class PigeonPainterPack5 extends CustomPainter {
 
     // Connections (axons/dendrites)
     for (int i = 0; i < 2000; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.4 + rand.nextDouble() * 0.4);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.4 + rand.nextDouble() * 0.4);
       paint.strokeWidth = 0.5 + rand.nextDouble() * 2.5;
       
       final n1 = nodes[rand.nextInt(nodes.length)];
@@ -86,7 +86,7 @@ class PigeonPainterPack5 extends CustomPainter {
     // Nodes (somas)
     paint.style = PaintingStyle.fill;
     for (int i = 0; i < 1500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.6 + rand.nextDouble() * 0.4);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6 + rand.nextDouble() * 0.4);
       final x = rand.nextDouble() * size.width;
       final y = rand.nextDouble() * size.height;
       final r = 1.0 + rand.nextDouble() * 6.0;
@@ -111,7 +111,7 @@ class PigeonPainterPack5 extends CustomPainter {
 
     // Seaweed and wavy corals
     for (int i = 0; i < 1500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.5 + rand.nextDouble() * 0.4);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.5 + rand.nextDouble() * 0.4);
       paint.strokeWidth = 1.0 + rand.nextDouble() * 8.0;
       
       final startX = rand.nextDouble() * size.width;
@@ -143,7 +143,7 @@ class PigeonPainterPack5 extends CustomPainter {
     // Coral polyps / Bubbles
     paint.style = PaintingStyle.fill;
     for (int i = 0; i < 1500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.7);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.7);
       final x = rand.nextDouble() * size.width;
       final y = rand.nextDouble() * size.height;
       final r = 2.0 + rand.nextDouble() * 10.0;
@@ -167,7 +167,7 @@ class PigeonPainterPack5 extends CustomPainter {
 
     // Rain streaks
     for (int i = 0; i < 2500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.1 + rand.nextDouble() * 0.6);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.1 + rand.nextDouble() * 0.6);
       paint.strokeWidth = 0.5 + rand.nextDouble() * 2.0;
       
       final x = rand.nextDouble() * (size.width + 200) - 100;
@@ -184,7 +184,7 @@ class PigeonPainterPack5 extends CustomPainter {
     // Splashes / Ripples
     paint.style = PaintingStyle.stroke;
     for (int i = 0; i < 1000; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.2 + rand.nextDouble() * 0.4);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.2 + rand.nextDouble() * 0.4);
       paint.strokeWidth = 0.5 + rand.nextDouble() * 1.5;
       
       final x = rand.nextDouble() * size.width;
@@ -210,7 +210,7 @@ class PigeonPainterPack5 extends CustomPainter {
 
     // Columns of characters (simulated by small rects/shapes)
     for (int i = 0; i < 3000; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.3 + rand.nextDouble() * 0.7);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.3 + rand.nextDouble() * 0.7);
       
       final x = rand.nextDouble() * size.width;
       final y = rand.nextDouble() * size.height;
@@ -235,7 +235,7 @@ class PigeonPainterPack5 extends CustomPainter {
       if (rand.nextDouble() > 0.8) {
         final trailLength = rand.nextInt(10) + 5;
         for (int j = 1; j < trailLength; j++) {
-          paint.color = colors[1].withOpacity(0.5 * (1.0 - j / trailLength));
+          paint.color = colors[1].withValues(alpha: 0.5 * (1.0 - j / trailLength));
           canvas.drawRect(Rect.fromLTWH(x, y - (j * h * 1.5), w, h), paint);
         }
       }
@@ -257,7 +257,7 @@ class PigeonPainterPack5 extends CustomPainter {
 
     // Sand dunes (overlapping wavy polygons)
     for (int i = 0; i < 500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.1 + rand.nextDouble() * 0.2);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.1 + rand.nextDouble() * 0.2);
       
       final path = Path();
       final startY = rand.nextDouble() * size.height;
@@ -286,7 +286,7 @@ class PigeonPainterPack5 extends CustomPainter {
     
     // Sand grains
     for (int i = 0; i < 2500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.4 + rand.nextDouble() * 0.6);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.4 + rand.nextDouble() * 0.6);
       final x = rand.nextDouble() * size.width;
       final y = rand.nextDouble() * size.height;
       final r = 0.5 + rand.nextDouble() * 2.0;
@@ -296,7 +296,7 @@ class PigeonPainterPack5 extends CustomPainter {
     // Wind sweeps (curves)
     paint.style = PaintingStyle.stroke;
     for (int i = 0; i < 500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.2);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.2);
       paint.strokeWidth = 1.0 + rand.nextDouble() * 3.0;
       
       final startX = rand.nextDouble() * size.width;
@@ -335,7 +335,7 @@ class PigeonPainterPack5 extends CustomPainter {
 
     // Simulate shards/glass pieces by drawing lots of intersecting overlapping polygons
     for (int i = 0; i < 1500; i++) {
-      paint.color = colors[rand.nextInt(colors.length)].withOpacity(0.6 + rand.nextDouble() * 0.4);
+      paint.color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6 + rand.nextDouble() * 0.4);
       strokePaint.strokeWidth = 1.0 + rand.nextDouble() * 3.0;
       
       final cx = rand.nextDouble() * size.width;

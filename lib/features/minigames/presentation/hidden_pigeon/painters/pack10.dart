@@ -40,7 +40,7 @@ class PigeonPainterPack10 extends CustomPainter {
     ];
     canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
     for (int i = 0; i < 3500; i++) {
-      final color = colors[rand.nextInt(colors.length)].withOpacity(rand.nextDouble() * 0.6 + 0.2);
+      final color = colors[rand.nextInt(colors.length)].withValues(alpha: rand.nextDouble() * 0.6 + 0.2);
       final paint = Paint()..color = color..style = PaintingStyle.fill;
       final cx = rand.nextDouble() * size.width;
       final cy = rand.nextDouble() * size.height;
@@ -115,7 +115,7 @@ class PigeonPainterPack10 extends CustomPainter {
       canvas.rotate(angle);
       
       // Cloth backing
-      final clothColor = clothColors[rand.nextInt(clothColors.length)].withOpacity(0.8);
+      final clothColor = clothColors[rand.nextInt(clothColors.length)].withValues(alpha: 0.8);
       canvas.drawRect(Rect.fromLTWH(-length / 2, -width * 1.5, length, width * 3), Paint()..color = clothColor);
       
       // Teeth
@@ -156,7 +156,7 @@ class PigeonPainterPack10 extends CustomPainter {
     for (int i = 0; i < 3000; i++) {
       final shapeIdx = rand.nextInt(shapes.length);
       final shape = shapes[shapeIdx];
-      final color = colors[shapeIdx].withOpacity(0.7);
+      final color = colors[shapeIdx].withValues(alpha: 0.7);
       
       final cx = rand.nextDouble() * size.width;
       final cy = rand.nextDouble() * size.height;
@@ -193,7 +193,7 @@ class PigeonPainterPack10 extends CustomPainter {
       canvas.drawCircle(
         Offset(rand.nextDouble() * size.width, rand.nextDouble() * size.height),
         rand.nextDouble() * 1.5,
-        starPaint..color = Colors.white.withOpacity(rand.nextDouble()),
+        starPaint..color = Colors.white.withValues(alpha: rand.nextDouble()),
       );
     }
     

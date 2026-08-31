@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../../../core/config/app_config.dart';
+// deleted
 import '../../domain/mini_game_contract.dart';
 
 class TileModel {
@@ -82,8 +82,8 @@ class _OnetConnectGameState extends State<OnetConnectGame> with TickerProviderSt
   int _shuffles = 2;
   int _score = 0;
   
-  List<Particle> _particles = [];
-  List<ComboText> _comboTexts = [];
+  final List<Particle> _particles = [];
+  final List<ComboText> _comboTexts = [];
   double _screenShakeTimer = 0;
   
   int _comboCount = 0;
@@ -382,8 +382,11 @@ class _OnetConnectGameState extends State<OnetConnectGame> with TickerProviderSt
       if (dy > 0 && !canGoDown) dy = math.min(dy, 0);
       if (dy < 0 && !canGoUp) dy = math.max(dy, 0);
       
-      if (dx.abs() > dy.abs()) dy = 0;
-      else dx = 0;
+      if (dx.abs() > dy.abs()) {
+        dy = 0;
+      } else {
+        dx = 0;
+      }
       
       _dragDeltaPx = Offset(dx, dy);
     });
@@ -530,7 +533,7 @@ class _OnetConnectGameState extends State<OnetConnectGame> with TickerProviderSt
                                 ),
                               ),
                             );
-                          }).toList(),
+                          }),
                       ],
                     ),
                   ),
@@ -672,7 +675,7 @@ class _ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (var p in particles) {
       Paint paint = Paint()
-        ..color = p.color.withOpacity(math.max(0.0, p.life / p.maxLife))
+        ..color = p.color.withValues(alpha: math.max(0.0, p.life / p.maxLife))
         ..style = PaintingStyle.fill;
       canvas.drawCircle(p.position, p.size * (p.life / p.maxLife), paint);
     }

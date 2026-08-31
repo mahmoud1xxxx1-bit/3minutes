@@ -49,11 +49,11 @@ class PigeonPainterPack12 extends CustomPainter {
       final y = rand.nextDouble() * size.height;
       final diceSize = 10.0 + rand.nextDouble() * 30.0;
       final paint = Paint()
-        ..color = diceColors[rand.nextInt(diceColors.length)].withOpacity(0.8)
+        ..color = diceColors[rand.nextInt(diceColors.length)].withValues(alpha: 0.8)
         ..style = PaintingStyle.fill;
 
       final strokePaint = Paint()
-        ..color = Colors.black.withOpacity(0.5)
+        ..color = Colors.black.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
 
@@ -107,10 +107,10 @@ class PigeonPainterPack12 extends CustomPainter {
       canvas.rotate(rotation);
 
       final paint = Paint()
-        ..color = shellColors[rand.nextInt(shellColors.length)].withOpacity(0.8)
+        ..color = shellColors[rand.nextInt(shellColors.length)].withValues(alpha: 0.8)
         ..style = PaintingStyle.fill;
       final strokePaint = Paint()
-        ..color = Colors.white.withOpacity(0.3)
+        ..color = Colors.white.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
 
@@ -178,12 +178,12 @@ class PigeonPainterPack12 extends CustomPainter {
       capPath.quadraticBezierTo(0, -mHeight, mWidth * 0.5, 0);
       capPath.close();
       
-      final cPaint = Paint()..color = capColors[rand.nextInt(capColors.length)].withOpacity(0.9);
+      final cPaint = Paint()..color = capColors[rand.nextInt(capColors.length)].withValues(alpha: 0.9);
       canvas.drawPath(capPath, cPaint);
 
       // Dots
       if (rand.nextBool()) {
-        final dotPaint = Paint()..color = Colors.white.withOpacity(0.8);
+        final dotPaint = Paint()..color = Colors.white.withValues(alpha: 0.8);
         for (int d = 0; d < 3 + rand.nextInt(4); d++) {
           final dx = (rand.nextDouble() - 0.5) * mWidth * 0.8;
           final dy = -rand.nextDouble() * mHeight * 0.6;
@@ -235,7 +235,7 @@ class PigeonPainterPack12 extends CustomPainter {
       path.close();
 
       final color = paperColors[rand.nextInt(paperColors.length)];
-      canvas.drawPath(path, Paint()..color = Colors.black.withOpacity(0.1)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0));
+      canvas.drawPath(path, Paint()..color = Colors.black.withValues(alpha: 0.1)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0));
       canvas.drawPath(path, Paint()..color = color);
       
       canvas.restore();
@@ -269,7 +269,7 @@ class PigeonPainterPack12 extends CustomPainter {
 
       // Glow
       if (isLit) {
-        canvas.drawCircle(const Offset(0, -5), w, Paint()..color = color.withOpacity(0.2)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0));
+        canvas.drawCircle(const Offset(0, -5), w, Paint()..color = color.withValues(alpha: 0.2)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0));
       }
 
       // Bulb glass
@@ -280,8 +280,8 @@ class PigeonPainterPack12 extends CustomPainter {
       path.quadraticBezierTo(w, 0, w * 0.4, h * 0.3);
       path.close();
 
-      canvas.drawPath(path, Paint()..color = isLit ? color.withOpacity(0.7) : Colors.white24);
-      canvas.drawPath(path, Paint()..color = Colors.white.withOpacity(0.5)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+      canvas.drawPath(path, Paint()..color = isLit ? color.withValues(alpha: 0.7) : Colors.white24);
+      canvas.drawPath(path, Paint()..color = Colors.white.withValues(alpha: 0.5)..style = PaintingStyle.stroke..strokeWidth = 1.0);
 
       // Base
       canvas.drawRect(Rect.fromLTRB(-w * 0.4, h * 0.3, w * 0.4, h * 0.5), Paint()..color = Colors.grey[700]!);
@@ -325,8 +325,8 @@ class PigeonPainterPack12 extends CustomPainter {
       path.lineTo(-w * 0.5, 0); // Left
       path.close();
 
-      final fillPaint = Paint()..color = color.withOpacity(0.6 + rand.nextDouble() * 0.4);
-      final strokePaint = Paint()..color = Colors.white.withOpacity(0.5)..style = PaintingStyle.stroke..strokeWidth = 1.0;
+      final fillPaint = Paint()..color = color.withValues(alpha: 0.6 + rand.nextDouble() * 0.4);
+      final strokePaint = Paint()..color = Colors.white.withValues(alpha: 0.5)..style = PaintingStyle.stroke..strokeWidth = 1.0;
 
       canvas.drawPath(path, fillPaint);
       

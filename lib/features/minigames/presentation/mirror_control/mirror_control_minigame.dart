@@ -4,7 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'game_engine.dart';
-import '../mini_game_copy.dart';
+// deleted
 import 'painter_a1_forest.dart';
 import 'painter_a2_ocean.dart';
 import 'painter_a3_heist.dart';
@@ -121,10 +121,10 @@ import '../shared/minigame_environment.dart';
 
 class MirrorControlMiniGame extends StatefulWidget {
   const MirrorControlMiniGame({
-    Key? key,
+    super.key,
     required this.config,
     required this.onComplete,
-  }) : super(key: key);
+  });
 
   final MiniGameConfig config;
   final ValueChanged<MiniGameResult> onComplete;

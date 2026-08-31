@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../domain/mini_game_contract.dart';
@@ -245,7 +246,7 @@ class _KeyEscapeGameState extends State<KeyEscapeGame> {
                   color: Colors.black45,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Colors.purpleAccent.withOpacity(0.5),
+                    color: Colors.purpleAccent.withValues(alpha: 0.5),
                   ),
                 ),
                 child: Row(
@@ -324,7 +325,7 @@ class _KeyEscapeGameState extends State<KeyEscapeGame> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF5D2E8C).withOpacity(0.5),
+                                color: const Color(0xFF5D2E8C).withValues(alpha: 0.5),
                                 blurRadius: 30,
                                 spreadRadius: 10,
                               ),
@@ -340,7 +341,7 @@ class _KeyEscapeGameState extends State<KeyEscapeGame> {
                                 height: cellSize,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.yellowAccent.withOpacity(0.3),
+                                    color: Colors.yellowAccent.withValues(alpha: 0.3),
                                     borderRadius: const BorderRadius.only(
                                       topRight: Radius.circular(12),
                                       bottomRight: Radius.circular(12),
@@ -419,7 +420,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withValues(alpha: 0.05)
       ..strokeWidth = 2;
     for (int i = 1; i < 6; i++) {
       canvas.drawLine(
@@ -461,7 +462,7 @@ class _GlossyBlockPainter extends CustomPainter {
     canvas.drawRRect(
       rrect.shift(const Offset(3, 5)),
       Paint()
-        ..color = Colors.black.withOpacity(0.6)
+        ..color = Colors.black.withValues(alpha: 0.6)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
 
@@ -508,8 +509,8 @@ class _GlossyBlockPainter extends CustomPainter {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Colors.white.withOpacity(0.6),
-            Colors.black.withOpacity(0.3),
+            Colors.white.withValues(alpha: 0.6),
+            Colors.black.withValues(alpha: 0.3),
           ],
         ).createShader(Offset.zero & size),
     );
@@ -528,14 +529,14 @@ class _GlossyBlockPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.white.withOpacity(0.5),
-            Colors.white.withOpacity(0.0),
+            Colors.white.withValues(alpha: 0.5),
+            Colors.white.withValues(alpha: 0.0),
           ],
         ).createShader(Offset.zero & size),
     );
 
     Paint detailPaint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
     if (isTarget) {
@@ -591,7 +592,7 @@ class _MagicBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final math.Random r = math.Random(42);
-    Paint starPaint = Paint()..color = Colors.white.withOpacity(0.5);
+    Paint starPaint = Paint()..color = Colors.white.withValues(alpha: 0.5);
     for (int i = 0; i < 100; i++) {
       double x = r.nextDouble() * size.width;
       double y = r.nextDouble() * size.height;
@@ -599,7 +600,7 @@ class _MagicBackgroundPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(x, y),
         s,
-        starPaint..color = Colors.white.withOpacity(r.nextDouble() * 0.5 + 0.1),
+        starPaint..color = Colors.white.withValues(alpha: r.nextDouble() * 0.5 + 0.1),
       );
     }
   }

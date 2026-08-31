@@ -38,7 +38,7 @@ class PigeonPainterPack9 extends CustomPainter {
       );
       
       final paint = Paint()
-        ..color = Color(colors[rand.nextInt(colors.length)]).withOpacity(rand.nextDouble() * 0.4 + 0.1)
+        ..color = Color(colors[rand.nextInt(colors.length)]).withValues(alpha: rand.nextDouble() * 0.4 + 0.1)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 8 + 1;
       canvas.drawPath(path, paint);
@@ -60,7 +60,7 @@ class PigeonPainterPack9 extends CustomPainter {
       canvas.rotate(angle);
       
       final paint = Paint()
-        ..color = Color(colors[rand.nextInt(colors.length)]).withOpacity(0.8)
+        ..color = Color(colors[rand.nextInt(colors.length)]).withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 4 + 2;
         
@@ -111,7 +111,7 @@ class PigeonPainterPack9 extends CustomPainter {
       double radius = rand.nextDouble() * 20 + 10;
       
       final stringPaint = Paint()
-        ..color = Colors.black.withOpacity(0.5)
+        ..color = Colors.black.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1;
         
@@ -123,7 +123,7 @@ class PigeonPainterPack9 extends CustomPainter {
       
       final baseColor = Color(colors[rand.nextInt(colors.length)]);
       final paint = Paint()
-        ..color = baseColor.withOpacity(0.85)
+        ..color = baseColor.withValues(alpha: 0.85)
         ..style = PaintingStyle.fill;
         
       canvas.save();
@@ -133,7 +133,7 @@ class PigeonPainterPack9 extends CustomPainter {
       canvas.restore();
       
       final highlightPaint = Paint()
-        ..color = Colors.white.withOpacity(0.4)
+        ..color = Colors.white.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
       canvas.drawOval(Rect.fromCenter(center: Offset(cx - radius*0.3, cy - radius*0.4), width: radius*0.3, height: radius*0.6), highlightPaint);
     }
@@ -147,7 +147,7 @@ class PigeonPainterPack9 extends CustomPainter {
       double cy = rand.nextDouble() * size.height;
       
       int burstCount = rand.nextInt(5) + 5;
-      final color = Color(colors[rand.nextInt(colors.length)]).withOpacity(rand.nextDouble() * 0.5 + 0.3);
+      final color = Color(colors[rand.nextInt(colors.length)]).withValues(alpha: rand.nextDouble() * 0.5 + 0.3);
       final paint = Paint()
         ..color = color
         ..style = PaintingStyle.stroke
@@ -182,7 +182,7 @@ class PigeonPainterPack9 extends CustomPainter {
       double width = rand.nextDouble() * 8 + 2;
       
       final paint = Paint()
-        ..color = Color(colors[rand.nextInt(colors.length)]).withOpacity(0.9)
+        ..color = Color(colors[rand.nextInt(colors.length)]).withValues(alpha: 0.9)
         ..style = PaintingStyle.fill;
         
       if (isVertical) {

@@ -15,7 +15,7 @@ class Puzzle19 extends PuzzleDefinition {
     
     c.fillStyle = '#a4b4c0'; c.fillRect(0,0,800,450); 
     final floorGrad = c.createLinearGradient(0,450,0,600);
-    floorGrad..addColorStop(0, '#8a2b3b'); floorGrad..addColorStop(1, '#4a1525'); 
+    floorGrad.addColorStop(0, '#8a2b3b'); floorGrad.addColorStop(1, '#4a1525'); 
     c.fillStyle = floorGrad; c.fillRect(0, 450, 800, 150);
     c.fillStyle = '#e2e2e2'; 
     for(double x=50; x<800; x+=200) {

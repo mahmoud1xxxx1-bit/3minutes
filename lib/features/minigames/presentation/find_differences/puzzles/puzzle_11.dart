@@ -14,7 +14,7 @@ class Puzzle11 extends PuzzleDefinition {
   void drawBaseScene(HtmlCanvas c) {
     
     final ceilG = c.createLinearGradient(0,0,0,100);
-    ceilG..addColorStop(0, '#f0f0f0'); ceilG..addColorStop(1, '#d0d0d0');
+    ceilG.addColorStop(0, '#f0f0f0'); ceilG.addColorStop(1, '#d0d0d0');
     c.fillStyle = ceilG; c.fillRect(0,0,800,100);
     c.fillStyle = '#fff'; c.shadowColor = '#fff'; c.shadowBlur = 20;
     c.fillRect(100, 30, 200, 20); c.fillRect(500, 30, 200, 20);
@@ -28,7 +28,7 @@ class Puzzle11 extends PuzzleDefinition {
         }
     }
     final floorG = c.createLinearGradient(0,500,0,600);
-    floorG..addColorStop(0, '#a4b4c0'); floorG..addColorStop(1, '#5b7898');
+    floorG.addColorStop(0, '#a4b4c0'); floorG.addColorStop(1, '#5b7898');
     c.fillStyle = floorG; c.fillRect(0,500,800,100);
     c.strokeStyle = '#fff'; c.lineWidth = 1;
     for(double i=-200; i<=1000; i+=80) {

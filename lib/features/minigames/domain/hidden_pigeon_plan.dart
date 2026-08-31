@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import '../../../core/random/deterministic_rng.dart';
 
 class HiddenPigeonRound {
@@ -25,7 +25,7 @@ class HiddenPigeonPlan {
     
     for (int i = 0; i < 3; i++) {
       // In the future, these will map to x1_1.jpg, x1_2.jpg, etc based on the seed
-      final imageAsset = 'assets/hidden_pigeon/round_\.jpg';
+      final imageAsset = 'assets/hidden_pigeon/round_.jpg';
       
       final pigeons = <Point<double>>[];
       while (pigeons.length < 10) {

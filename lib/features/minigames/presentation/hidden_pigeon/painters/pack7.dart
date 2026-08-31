@@ -55,12 +55,12 @@ class PigeonPainterPack7 extends CustomPainter {
       final color = colors[rand.nextInt(colors.length)];
 
       final paint = Paint()
-        ..color = color.withOpacity(rand.nextDouble() * 0.4 + 0.1)
+        ..color = color.withValues(alpha: rand.nextDouble() * 0.4 + 0.1)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(Offset(x, y), radius, paint);
 
       final borderPaint = Paint()
-        ..color = color.withOpacity(rand.nextDouble() * 0.6 + 0.4)
+        ..color = color.withValues(alpha: rand.nextDouble() * 0.6 + 0.4)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 3 + 1;
       canvas.drawCircle(Offset(x, y), radius, borderPaint);
@@ -87,7 +87,7 @@ class PigeonPainterPack7 extends CustomPainter {
           final angle = k * (2 * pi / 12);
           final innerR = radius * 0.8;
           final outerR = radius * 0.95;
-          final tickPaint = Paint()..color = color.withOpacity(0.5)..strokeWidth = 1.5;
+          final tickPaint = Paint()..color = color.withValues(alpha: 0.5)..strokeWidth = 1.5;
           canvas.drawLine(
             center + Offset(cos(angle) * innerR, sin(angle) * innerR),
             center + Offset(cos(angle) * outerR, sin(angle) * outerR),
@@ -125,7 +125,7 @@ class PigeonPainterPack7 extends CustomPainter {
       final endY = y + sin(angle) * length;
 
       final paint = Paint()
-        ..color = color.withOpacity(rand.nextDouble() * 0.6 + 0.4)
+        ..color = color.withValues(alpha: rand.nextDouble() * 0.6 + 0.4)
         ..strokeWidth = thickness
         ..strokeCap = StrokeCap.square;
 
@@ -134,7 +134,7 @@ class PigeonPainterPack7 extends CustomPainter {
       // Draw nodes (horizontal lines across bamboo)
       final numNodes = rand.nextInt(5) + 2;
       final nodePaint = Paint()
-        ..color = const Color(0xFF1B4D2E).withOpacity(0.8)
+        ..color = const Color(0xFF1B4D2E).withValues(alpha: 0.8)
         ..strokeWidth = thickness * 0.3;
       for (int j = 1; j < numNodes; j++) {
         final f = j / numNodes;
@@ -151,7 +151,7 @@ class PigeonPainterPack7 extends CustomPainter {
       if (rand.nextBool()) {
         final leafX = x + (endX - x) * 0.5;
         final leafY = y + (endY - y) * 0.5;
-        final leafPaint = Paint()..color = colors[rand.nextInt(colors.length)].withOpacity(0.8);
+        final leafPaint = Paint()..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.8);
         final path = Path();
         path.moveTo(leafX, leafY);
         path.quadraticBezierTo(leafX + 20, leafY - 10, leafX + 30, leafY);
@@ -198,13 +198,13 @@ class PigeonPainterPack7 extends CustomPainter {
       );
 
       final paint = Paint()
-        ..color = color.withOpacity(rand.nextDouble() * 0.3 + 0.1)
+        ..color = color.withValues(alpha: rand.nextDouble() * 0.3 + 0.1)
         ..style = PaintingStyle.fill;
       canvas.drawPath(path, paint);
 
       if (rand.nextDouble() < 0.2) {
         final strokePaint = Paint()
-          ..color = color.withOpacity(0.4)
+          ..color = color.withValues(alpha: 0.4)
           ..style = PaintingStyle.stroke
           ..strokeWidth = rand.nextDouble() * 2 + 0.5;
         canvas.drawPath(path, strokePaint);
@@ -244,12 +244,12 @@ class PigeonPainterPack7 extends CustomPainter {
       path.close();
 
       final paint = Paint()
-        ..color = color.withOpacity(rand.nextDouble() * 0.4 + 0.2)
+        ..color = color.withValues(alpha: rand.nextDouble() * 0.4 + 0.2)
         ..style = PaintingStyle.fill;
       canvas.drawPath(path, paint);
 
       final strokePaint = Paint()
-        ..color = const Color(0xFFFFFFFF).withOpacity(rand.nextDouble() * 0.5 + 0.1)
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: rand.nextDouble() * 0.5 + 0.1)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
       canvas.drawPath(path, strokePaint);
@@ -292,12 +292,12 @@ class PigeonPainterPack7 extends CustomPainter {
       path.close();
 
       final paint = Paint()
-        ..color = color.withOpacity(rand.nextDouble() * 0.5 + 0.3)
+        ..color = color.withValues(alpha: rand.nextDouble() * 0.5 + 0.3)
         ..style = PaintingStyle.fill;
       canvas.drawPath(path, paint);
 
       final strokePaint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.8)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeJoin = StrokeJoin.round
         ..strokeWidth = rand.nextDouble() * 3 + 1;
@@ -319,7 +319,7 @@ class PigeonPainterPack7 extends CustomPainter {
         }
         innerPath.close();
         final innerPaint = Paint()
-          ..color = const Color(0xFFFFFFFF).withOpacity(0.2)
+          ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.2)
           ..style = PaintingStyle.fill;
         canvas.drawPath(innerPath, innerPaint);
       }
@@ -356,7 +356,7 @@ class PigeonPainterPack7 extends CustomPainter {
       path.quadraticBezierTo(controlX, controlY, endX, endY);
 
       final paint = Paint()
-        ..color = color.withOpacity(rand.nextDouble() * 0.6 + 0.4)
+        ..color = color.withValues(alpha: rand.nextDouble() * 0.6 + 0.4)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 6 + 1;
       canvas.drawPath(path, paint);
@@ -388,7 +388,7 @@ class PigeonPainterPack7 extends CustomPainter {
         thornPath.close();
 
         final thornPaint = Paint()
-          ..color = (rand.nextBool() ? color : const Color(0xFF111111)).withOpacity(0.9)
+          ..color = (rand.nextBool() ? color : const Color(0xFF111111)).withValues(alpha: 0.9)
           ..style = PaintingStyle.fill;
         canvas.drawPath(thornPath, thornPaint);
       }

@@ -23,7 +23,11 @@ class Puzzle40 extends PuzzleDefinition {
     for(int i=0; i<400; i++) {
       double x = 200.0 + i;
       double y = 200.0 + math.sin(i * 0.05) * 50;
-      if (i==0) c.moveTo(x,y); else c.lineTo(x,y);
+      if (i==0) {
+        c.moveTo(x,y);
+      } else {
+        c.lineTo(x,y);
+      }
     }
     c.stroke();
 
@@ -94,7 +98,11 @@ class Puzzle40 extends PuzzleDefinition {
         for(int i=0; i<400; i++) {
           double x = 200.0 + i;
           double y = 200.0 + math.sin(i * 0.1) * 50;
-          if (i==0) c.moveTo(x,y); else c.lineTo(x,y);
+          if (i==0) {
+            c.moveTo(x,y);
+          } else {
+            c.lineTo(x,y);
+          }
         }
         c.stroke();
       }

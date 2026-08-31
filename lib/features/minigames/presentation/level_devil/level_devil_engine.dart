@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 enum EntityType { player, block, spike, door }
@@ -50,7 +49,7 @@ abstract class TrollTrigger {
 }
 
 class FallingFloorTroll extends TrollTrigger {
-  FallingFloorTroll(RectD area, this.targetIds) : super(area);
+  FallingFloorTroll(super.area, this.targetIds);
   List<String> targetIds;
 
   @override
@@ -70,7 +69,7 @@ class FallingFloorTroll extends TrollTrigger {
 }
 
 class HiddenSpikeTroll extends TrollTrigger {
-  HiddenSpikeTroll(RectD area, this.targetIds) : super(area);
+  HiddenSpikeTroll(super.area, this.targetIds);
   List<String> targetIds;
 
   @override
@@ -202,14 +201,14 @@ class LevelDevilEngine {
           );
         } else if (char == 'X' || char == '1' || char == '2') {
           entities.add(Entity(
-            id: 'b_${row}_${col}',
+            id: 'b_${row}_$col',
             type: EntityType.block,
             rect: RectD(x, y, gs, gs),
             color: const Color(0xFF444444),
           ));
         } else if (char == 'S') {
           entities.add(Entity(
-            id: 's_${row}_${col}',
+            id: 's_${row}_$col',
             type: EntityType.spike,
             rect: RectD(x, y + gs, gs, gs), 
             color: Colors.transparent, 

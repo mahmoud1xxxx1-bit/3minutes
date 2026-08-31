@@ -51,18 +51,18 @@ class PigeonPainterPack8 extends CustomPainter {
       final color = colors[rand.nextInt(colors.length)];
 
       final coinPaint = Paint()
-        ..color = color.withOpacity(0.8 + rand.nextDouble() * 0.2)
+        ..color = color.withValues(alpha: 0.8 + rand.nextDouble() * 0.2)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(Offset(x, y), radius, coinPaint);
 
       final edgePaint = Paint()
-        ..color = Colors.black.withOpacity(0.5)
+        ..color = Colors.black.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
       canvas.drawCircle(Offset(x, y), radius, edgePaint);
 
       final innerPaint = Paint()
-        ..color = Colors.black.withOpacity(0.3)
+        ..color = Colors.black.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5;
       canvas.drawCircle(Offset(x, y), radius * 0.75, innerPaint);
@@ -90,15 +90,15 @@ class PigeonPainterPack8 extends CustomPainter {
       canvas.rotate(angle);
 
       final paint1 = Paint()
-        ..color = colors1[rand.nextInt(colors1.length)].withOpacity(0.7)
+        ..color = colors1[rand.nextInt(colors1.length)].withValues(alpha: 0.7)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3;
       final paint2 = Paint()
-        ..color = colors2[rand.nextInt(colors2.length)].withOpacity(0.7)
+        ..color = colors2[rand.nextInt(colors2.length)].withValues(alpha: 0.7)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3;
       final rungPaint = Paint()
-        ..color = rungColors[rand.nextInt(rungColors.length)].withOpacity(0.6)
+        ..color = rungColors[rand.nextInt(rungColors.length)].withValues(alpha: 0.6)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
 
@@ -165,15 +165,15 @@ class PigeonPainterPack8 extends CustomPainter {
       canvas.scale(scale);
 
       final planePaint = Paint()
-        ..color = Colors.white.withOpacity(0.8 + rand.nextDouble() * 0.2)
+        ..color = Colors.white.withValues(alpha: 0.8 + rand.nextDouble() * 0.2)
         ..style = PaintingStyle.fill;
       
       final shadowPaint = Paint()
-        ..color = Colors.black.withOpacity(0.2)
+        ..color = Colors.black.withValues(alpha: 0.2)
         ..style = PaintingStyle.fill;
 
       final strokePaint = Paint()
-        ..color = Colors.black.withOpacity(0.3)
+        ..color = Colors.black.withValues(alpha: 0.3)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1;
 
@@ -202,7 +202,7 @@ class PigeonPainterPack8 extends CustomPainter {
         ..close();
       
       final planePaint2 = Paint()
-        ..color = const Color(0xFFE0E0E0).withOpacity(0.9)
+        ..color = const Color(0xFFE0E0E0).withValues(alpha: 0.9)
         ..style = PaintingStyle.fill;
       canvas.drawPath(planePath2, planePaint2);
       canvas.drawPath(planePath2, strokePaint);
@@ -216,7 +216,7 @@ class PigeonPainterPack8 extends CustomPainter {
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
     final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.2)
+      ..color = Colors.white.withValues(alpha: 0.2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
@@ -228,12 +228,12 @@ class PigeonPainterPack8 extends CustomPainter {
     }
 
     final blueprintPaint = Paint()
-      ..color = Colors.white.withOpacity(0.7)
+      ..color = Colors.white.withValues(alpha: 0.7)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
     final fillPaint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
+      ..color = Colors.white.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
 
     for (int i = 0; i < 1500; i++) {
@@ -294,11 +294,11 @@ class PigeonPainterPack8 extends CustomPainter {
       final color = colors[rand.nextInt(colors.length)];
 
       final paint = Paint()
-        ..color = color.withOpacity(0.8)
+        ..color = color.withValues(alpha: 0.8)
         ..style = PaintingStyle.fill;
       
       final strokePaint = Paint()
-        ..color = Colors.black.withOpacity(0.5)
+        ..color = Colors.black.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2;
 

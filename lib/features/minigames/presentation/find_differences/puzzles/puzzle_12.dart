@@ -64,10 +64,10 @@ class Puzzle12 extends PuzzleDefinition {
         c.fillStyle = '#c0c8c3'; c.fillRect(80, -25, 6, 40); c.beginPath(); c.ellipse(83, -30, 6, 10, 0, 0, math.pi*2); c.fill(); 
         double gX = 60, gY = -60;
         final wineGrad = c.createRadialGradient(gX, gY, 2, gX, gY, 15);
-        wineGrad..addColorStop(0, '#a8203a'); wineGrad..addColorStop(0.8, '#d14949'); wineGrad..addColorStop(1, 'rgba(255,255,255,0.6)');
+        wineGrad.addColorStop(0, '#a8203a'); wineGrad.addColorStop(0.8, '#d14949'); wineGrad.addColorStop(1, 'rgba(255,255,255,0.6)');
         c.fillStyle = wineGrad; c.beginPath(); c.arc(gX, gY, 15, 0, math.pi*2); c.fill(); 
         final waterGrad = c.createRadialGradient(gX+30, gY+20, 2, gX+30, gY+20, 12);
-        waterGrad..addColorStop(0, '#5baad4'); waterGrad..addColorStop(1, 'rgba(255,255,255,0.6)');
+        waterGrad.addColorStop(0, '#5baad4'); waterGrad.addColorStop(1, 'rgba(255,255,255,0.6)');
         c.fillStyle = waterGrad; c.beginPath(); c.arc(gX+30, gY+20, 12, 0, math.pi*2); c.fill(); 
         if(foodType == 0) {
             c.fillStyle = '#eef6ff'; c.beginPath(); c.moveTo(-20, 20); c.lineTo(0, -20); c.lineTo(20, 20); c.fill();
@@ -106,7 +106,7 @@ class Puzzle12 extends PuzzleDefinition {
         c.save(); c.translate(530, 300); c.rotate(math.pi/2);
         double gX = 60, gY = -60;
         final wineGrad = c.createRadialGradient(gX, gY, 2, gX, gY, 15);
-        wineGrad..addColorStop(0, '#2d5c3a'); wineGrad..addColorStop(0.8, '#4c8f5e'); wineGrad..addColorStop(1, 'rgba(255,255,255,0.6)');
+        wineGrad.addColorStop(0, '#2d5c3a'); wineGrad.addColorStop(0.8, '#4c8f5e'); wineGrad.addColorStop(1, 'rgba(255,255,255,0.6)');
         c.fillStyle = wineGrad; c.beginPath(); c.arc(gX, gY, 15, 0, math.pi*2); c.fill();
         c.restore();
     

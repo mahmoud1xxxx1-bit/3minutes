@@ -29,7 +29,7 @@ class Puzzle13 extends PuzzleDefinition {
     c.fillStyle = '#f4d03f'; c.beginPath(); c.ellipse(620, 230, 8, 20, 0, 0, math.pi*2); c.fill(); 
     c.fillStyle = 'rgba(255,255,255,0.3)';
     c.beginPath(); c.moveTo(250, 180); c.lineTo(250, 230); c.lineTo(150, 330); c.lineTo(350, 330); c.lineTo(250, 230); c.fill();
-    final l1G = c.createLinearGradient(0,250,0,330); l1G..addColorStop(0, 'rgba(209,73,73,0.8)'); l1G..addColorStop(1, 'rgba(168,32,58,0.8)');
+    final l1G = c.createLinearGradient(0,250,0,330); l1G.addColorStop(0, 'rgba(209,73,73,0.8)'); l1G.addColorStop(1, 'rgba(168,32,58,0.8)');
     c.fillStyle = l1G; c.beginPath(); c.moveTo(250, 270); c.lineTo(180, 320); c.lineTo(320, 320); c.lineTo(250, 270); c.fill(); 
     c.strokeStyle = '#fff'; c.lineWidth = 4;
     c.beginPath(); c.moveTo(230, 180); c.lineTo(230, 230); c.lineTo(160, 330); c.lineTo(340, 330); c.lineTo(270, 230); c.lineTo(270, 180); c.stroke();

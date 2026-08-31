@@ -35,7 +35,7 @@ class PigeonPainterPack2 extends CustomPainter {
     
     for (int i = 0; i < 2500; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.6 + rand.nextDouble() * 0.4)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6 + rand.nextDouble() * 0.4)
         ..style = rand.nextBool() ? PaintingStyle.fill : PaintingStyle.stroke
         ..strokeWidth = 1.0 + rand.nextDouble() * 3.0;
 
@@ -78,7 +78,7 @@ class PigeonPainterPack2 extends CustomPainter {
 
     for (int i = 0; i < 2000; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.7 + rand.nextDouble() * 0.3)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.7 + rand.nextDouble() * 0.3)
         ..style = PaintingStyle.fill;
         
       final x = rand.nextDouble() * size.width;
@@ -99,15 +99,18 @@ class PigeonPainterPack2 extends CustomPainter {
           final r = rad * (0.8 + rand.nextDouble() * 0.4);
           final px = cos(angle) * r;
           final py = sin(angle) * r;
-          if (j == 0) path.moveTo(px, py);
-          else path.lineTo(px, py);
+          if (j == 0) {
+            path.moveTo(px, py);
+          } else {
+            path.lineTo(px, py);
+          }
         }
         path.close();
         canvas.drawPath(path, paint);
       } else {
         final cw = 5.0 + rand.nextDouble() * 15.0;
         final ch = 20.0 + rand.nextDouble() * 60.0;
-        paint.color = const Color(0xFF4CAF50).withOpacity(0.5);
+        paint.color = const Color(0xFF4CAF50).withValues(alpha: 0.5);
         canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: cw, height: ch), Radius.circular(cw/2)), paint);
       }
       canvas.restore();
@@ -127,7 +130,7 @@ class PigeonPainterPack2 extends CustomPainter {
 
     for (int i = 0; i < 3000; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.3 + rand.nextDouble() * 0.7)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.3 + rand.nextDouble() * 0.7)
         ..style = PaintingStyle.fill;
         
       final x = rand.nextDouble() * size.width;
@@ -151,7 +154,7 @@ class PigeonPainterPack2 extends CustomPainter {
     
     for (int i = 0; i < 500; i++) {
       final paint = Paint()
-        ..color = Colors.white.withOpacity(0.4)
+        ..color = Colors.white.withValues(alpha: 0.4)
         ..style = PaintingStyle.fill;
       final x = rand.nextDouble() * size.width;
       final y = rand.nextDouble() * size.height;
@@ -185,7 +188,7 @@ class PigeonPainterPack2 extends CustomPainter {
 
     for (int i = 0; i < 1500; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(4)].withOpacity(0.5 + rand.nextDouble() * 0.5)
+        ..color = colors[rand.nextInt(4)].withValues(alpha: 0.5 + rand.nextDouble() * 0.5)
         ..style = PaintingStyle.fill;
         
       final x = rand.nextDouble() * size.width;
@@ -200,7 +203,7 @@ class PigeonPainterPack2 extends CustomPainter {
     
     for (int i = 0; i < 800; i++) {
       final paint = Paint()
-        ..color = (rand.nextBool() ? const Color(0xFFECEFF1) : const Color(0xFFCFD8DC)).withOpacity(0.8)
+        ..color = (rand.nextBool() ? const Color(0xFFECEFF1) : const Color(0xFFCFD8DC)).withValues(alpha: 0.8)
         ..style = PaintingStyle.fill;
         
       final x = rand.nextDouble() * size.width;
@@ -210,7 +213,7 @@ class PigeonPainterPack2 extends CustomPainter {
       
       canvas.drawRect(Rect.fromCenter(center: Offset(x, y), width: w, height: h), paint);
       
-      final accent = Paint()..color = colors[5].withOpacity(0.6)..style = PaintingStyle.fill;
+      final accent = Paint()..color = colors[5].withValues(alpha: 0.6)..style = PaintingStyle.fill;
       final ww = w * 0.6;
       final wh = 4.0;
       for (double j = y - h/2 + 10; j < y + h/2 - 10; j += 15) {
@@ -243,7 +246,7 @@ class PigeonPainterPack2 extends CustomPainter {
 
     for (int i = 0; i < 2500; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.7 + rand.nextDouble() * 0.3)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.7 + rand.nextDouble() * 0.3)
         ..style = PaintingStyle.fill;
         
       final x = rand.nextDouble() * size.width;
@@ -267,7 +270,7 @@ class PigeonPainterPack2 extends CustomPainter {
         canvas.drawLine(Offset(w/3, -h/2), Offset(w/3, h/2), Paint()..color=Colors.black26..strokeWidth=2);
       } else {
         final paintMoss = Paint()
-          ..color = const Color(0xFF2E7D32).withOpacity(0.8)
+          ..color = const Color(0xFF2E7D32).withValues(alpha: 0.8)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.0 + rand.nextDouble() * 4.0;
         final path = Path();
@@ -299,7 +302,7 @@ class PigeonPainterPack2 extends CustomPainter {
 
     for (int i = 0; i < 2200; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.6 + rand.nextDouble() * 0.4)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6 + rand.nextDouble() * 0.4)
         ..style = rand.nextBool() ? PaintingStyle.fill : PaintingStyle.stroke
         ..strokeWidth = 2.0 + rand.nextDouble() * 4.0;
         
@@ -317,14 +320,17 @@ class PigeonPainterPack2 extends CustomPainter {
           final angle = (j * pi / 3) + (pi / 6);
           final px = cos(angle) * radius;
           final py = sin(angle) * radius;
-          if (j == 0) path.moveTo(px, py);
-          else path.lineTo(px, py);
+          if (j == 0) {
+            path.moveTo(px, py);
+          } else {
+            path.lineTo(px, py);
+          }
         }
         path.close();
         canvas.drawPath(path, paint);
         
         if (rand.nextDouble() > 0.7 && paint.style == PaintingStyle.fill) {
-          final drip = Paint()..color = const Color(0xFFE65100).withOpacity(0.8)..style = PaintingStyle.fill;
+          final drip = Paint()..color = const Color(0xFFE65100).withValues(alpha: 0.8)..style = PaintingStyle.fill;
           canvas.drawCircle(Offset(0, radius*0.3), radius*0.3, drip);
         }
       } else {
@@ -337,7 +343,7 @@ class PigeonPainterPack2 extends CustomPainter {
         canvas.drawLine(Offset(-w/2, -h/4), Offset(w/2, -h/4), stripe);
         canvas.drawLine(Offset(-w/2, h/4), Offset(w/2, h/4), stripe);
         
-        final wing = Paint()..color = Colors.white.withOpacity(0.5)..style=PaintingStyle.fill;
+        final wing = Paint()..color = Colors.white.withValues(alpha: 0.5)..style=PaintingStyle.fill;
         canvas.drawOval(Rect.fromCenter(center: Offset(-w, 0), width: w*1.5, height: h*0.8), wing);
         canvas.drawOval(Rect.fromCenter(center: Offset(w, 0), width: w*1.5, height: h*0.8), wing);
       }

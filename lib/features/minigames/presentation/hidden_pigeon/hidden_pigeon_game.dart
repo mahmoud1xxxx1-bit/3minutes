@@ -24,7 +24,7 @@ class _HiddenPigeonGameState extends State<HiddenPigeonGame> with SingleTickerPr
   int _hintsLeft = 3;
   int _hearts = 3;
   
-  Set<int> _foundPigeons = {};
+  final Set<int> _foundPigeons = {};
   int? _hintedPigeon;
   
   int _totalMistakes = 0;
@@ -149,7 +149,7 @@ class _HiddenPigeonGameState extends State<HiddenPigeonGame> with SingleTickerPr
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
+                        color: Colors.black.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -174,7 +174,7 @@ class _HiddenPigeonGameState extends State<HiddenPigeonGame> with SingleTickerPr
                       decoration: BoxDecoration(
                         shape: BoxShape.circle, 
                         color: const Color(0xFF3498DB),
-                        boxShadow: [BoxShadow(color: const Color(0xFF3498DB).withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 4))],
+                        boxShadow: [BoxShadow(color: const Color(0xFF3498DB).withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
                       child: Icon(Icons.search, color: Colors.black, size: 32),
                     ),
@@ -268,7 +268,7 @@ class _PigeonWidget extends StatelessWidget {
   final bool isHinted;
   final int colorIndex;
 
-  const _PigeonWidget({super.key, required this.roundIndex, required this.found, required this.isHinted, required this.colorIndex});
+  const _PigeonWidget({required this.roundIndex, required this.found, required this.isHinted, required this.colorIndex});
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +278,7 @@ class _PigeonWidget extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: Colors.greenAccent, width: 3),
-          color: Colors.green.withOpacity(0.3),
+          color: Colors.green.withValues(alpha: 0.3),
         ),
         child: const Center(child: Icon(Icons.check, color: Colors.greenAccent, size: 24)),
       );
@@ -299,7 +299,7 @@ class _PigeonWidget extends StatelessWidget {
       pigeon = Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: Colors.yellowAccent.withOpacity(0.8), blurRadius: 10, spreadRadius: 10)],
+          boxShadow: [BoxShadow(color: Colors.yellowAccent.withValues(alpha: 0.8), blurRadius: 10, spreadRadius: 10)],
         ),
         child: pigeon,
       );
@@ -316,8 +316,8 @@ class BlendMask extends SingleChildRenderObjectWidget {
   final BlendMode blendMode;
   final double opacity;
 
-  const BlendMask({
-    super.key,
+  const BlendMask({super.key, 
+    
     required this.blendMode,
     this.opacity = 1.0,
     super.child,

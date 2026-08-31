@@ -52,7 +52,7 @@ class PigeonPainterPack3 extends CustomPainter {
       Color c = colors[rand.nextInt(colors.length)];
 
       final paint = Paint()
-        ..color = c.withOpacity(rand.nextDouble() * 0.5 + 0.5)
+        ..color = c.withValues(alpha: rand.nextDouble() * 0.5 + 0.5)
         ..style = rand.nextBool() ? PaintingStyle.fill : PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 4 + 1;
 
@@ -62,8 +62,11 @@ class PigeonPainterPack3 extends CustomPainter {
         double r = (t % 2 == 0) ? radius : radius * 0.8;
         double x = cx + cos(angle) * r;
         double y = cy + sin(angle) * r;
-        if (t == 0) path.moveTo(x, y);
-        else path.lineTo(x, y);
+        if (t == 0) {
+          path.moveTo(x, y);
+        } else {
+          path.lineTo(x, y);
+        }
       }
       path.close();
       canvas.drawPath(path, paint);
@@ -84,7 +87,7 @@ class PigeonPainterPack3 extends CustomPainter {
       Paint()..color = const Color(0xFF111115),
     );
     final paint = Paint()
-      ..color = const Color(0xFFDCDCDC).withOpacity(0.3)
+      ..color = const Color(0xFFDCDCDC).withValues(alpha: 0.3)
       ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
@@ -169,14 +172,14 @@ class PigeonPainterPack3 extends CustomPainter {
     for (int i = 0; i < 2000; i++) {
       double cx = rand.nextDouble() * size.width;
       double cy = rand.nextDouble() * size.height;
-      Color c = colors[rand.nextInt(colors.length)].withOpacity(0.4 + rand.nextDouble() * 0.4);
+      Color c = colors[rand.nextInt(colors.length)].withValues(alpha: 0.4 + rand.nextDouble() * 0.4);
       
       final paint = Paint()
         ..color = c
         ..style = PaintingStyle.fill;
         
       final strokePaint = Paint()
-        ..color = Colors.white.withOpacity(0.5)
+        ..color = Colors.white.withValues(alpha: 0.5)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
 
@@ -190,8 +193,11 @@ class PigeonPainterPack3 extends CustomPainter {
         double angle = p * pi * 2 / points;
         double px = cx + cos(angle + rotation) * radiusX;
         double py = cy + sin(angle + rotation) * radiusY;
-        if (p == 0) path.moveTo(px, py);
-        else path.lineTo(px, py);
+        if (p == 0) {
+          path.moveTo(px, py);
+        } else {
+          path.lineTo(px, py);
+        }
       }
       path.close();
       canvas.drawPath(path, paint);
@@ -215,7 +221,7 @@ class PigeonPainterPack3 extends CustomPainter {
       double cx = rand.nextDouble() * size.width;
       double cy = rand.nextDouble() * size.height;
       double r = rand.nextDouble() * 20 + 5;
-      Color c = colors[rand.nextInt(colors.length)].withOpacity(0.6);
+      Color c = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6);
       
       final paint = Paint()..color = c..style = PaintingStyle.fill;
       
@@ -227,14 +233,17 @@ class PigeonPainterPack3 extends CustomPainter {
           double rad = r + (rand.nextDouble() - 0.5) * r * 0.5;
           double px = cx + cos(angle) * rad;
           double py = cy + sin(angle) * rad;
-          if (p == 0) path.moveTo(px, py);
-          else path.lineTo(px, py);
+          if (p == 0) {
+            path.moveTo(px, py);
+          } else {
+            path.lineTo(px, py);
+          }
         }
         path.close();
         canvas.drawPath(path, paint);
         
         // nucleus
-        canvas.drawCircle(Offset(cx, cy), r * 0.3, Paint()..color = Colors.black.withOpacity(0.5));
+        canvas.drawCircle(Offset(cx, cy), r * 0.3, Paint()..color = Colors.black.withValues(alpha: 0.5));
       } else {
         // draw a squiggle
         Path path = Path();
@@ -265,7 +274,7 @@ class PigeonPainterPack3 extends CustomPainter {
     for (int i = 0; i < 2500; i++) {
       double cx = rand.nextDouble() * size.width;
       double cy = rand.nextDouble() * size.height;
-      Color c = colors[rand.nextInt(colors.length)].withOpacity(0.5 + rand.nextDouble() * 0.5);
+      Color c = colors[rand.nextInt(colors.length)].withValues(alpha: 0.5 + rand.nextDouble() * 0.5);
       
       int type = rand.nextInt(3);
       if (type == 0) {

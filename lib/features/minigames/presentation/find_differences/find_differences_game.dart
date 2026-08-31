@@ -1,9 +1,9 @@
-import 'dart:async';
+// deleted
 import 'dart:math' as math;
 import '../shared/minigame_environment.dart';
 import 'package:flutter/material.dart';
 import '../../domain/mini_game_contract.dart';
-import '../mini_game_copy.dart';
+// deleted
 import 'puzzle_model.dart';
 import 'html_canvas.dart';
 
@@ -121,7 +121,7 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
       }
     }
 
-    if (tappedDifference == null || _found.contains(tappedDifference!.id)) {
+    if (tappedDifference == null || _found.contains(tappedDifference.id)) {
       setState(() => _mistakes++);
       MinigameEnvironment.of(context).playError(localPosition);
       return;
@@ -210,28 +210,28 @@ class _FindDifferencesGameState extends State<FindDifferencesGame> {
   }
 }
 
-class _FindPill extends StatelessWidget {
-  const _FindPill({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF19DCE8).withValues(alpha: .10),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFF52F2F2).withValues(alpha: .25)),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF52F2F2),
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-      );
-}
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
 
 class _DifferenceBoard extends StatelessWidget {
   const _DifferenceBoard({

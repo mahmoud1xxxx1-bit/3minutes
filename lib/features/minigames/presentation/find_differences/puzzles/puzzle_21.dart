@@ -41,7 +41,7 @@ class Puzzle21 extends PuzzleDefinition {
     }
     c.fillStyle = '#111'; c.beginPath(); c.arc(150, 350, 80, math.pi, 0); c.lineTo(230, 450); c.lineTo(70, 450); c.fill();
     final fireGrad = c.createRadialGradient(150, 400, 10, 150, 400, 70);
-    fireGrad..addColorStop(0, '#fff6b0'); fireGrad..addColorStop(0.3, '#ffaa00'); fireGrad..addColorStop(1, '#ff0000');
+    fireGrad.addColorStop(0, '#fff6b0'); fireGrad.addColorStop(0.3, '#ffaa00'); fireGrad.addColorStop(1, '#ff0000');
     c.fillStyle = fireGrad; c.beginPath(); c.arc(150, 420, 60, math.pi, 0); c.fill();
     c.fillStyle = '#111'; 
     for(double i=0.0; i<15; i++) {
@@ -109,7 +109,7 @@ class Puzzle21 extends PuzzleDefinition {
       (HtmlCanvas c) {
         
         final fireGrad = c.createRadialGradient(150, 400, 10, 150, 400, 70);
-        fireGrad..addColorStop(0, '#eef6ff'); fireGrad..addColorStop(0.3, '#55ffae'); fireGrad..addColorStop(1, '#00aa55');
+        fireGrad.addColorStop(0, '#eef6ff'); fireGrad.addColorStop(0.3, '#55ffae'); fireGrad.addColorStop(1, '#00aa55');
         c.fillStyle = fireGrad; c.beginPath(); c.arc(150, 420, 60, math.pi, 0); c.fill();
         c.fillStyle = '#111'; 
         for(double i=0.0; i<15; i++) {

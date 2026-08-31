@@ -29,7 +29,7 @@ class GamePainterA46 extends CustomPainter {
         shard.lineTo(rnd.nextDouble()*GameEngine.fieldSize, rnd.nextDouble()*GameEngine.fieldSize);
         shard.close();
         final c = [const Color(0xFF1E88E5), const Color(0xFFE53935), const Color(0xFFFFB300), const Color(0xFF43A047)][i%4];
-        canvas.drawPath(shard, Paint()..color=c.withOpacity(0.4));
+        canvas.drawPath(shard, Paint()..color=c.withValues(alpha: 0.4));
         canvas.drawPath(shard, Paint()..color=Colors.black..style=PaintingStyle.stroke..strokeWidth=4);
     }
     
@@ -40,7 +40,7 @@ class GamePainterA46 extends CustomPainter {
       double px = ((i * 75) + engine.time * 20) % GameEngine.fieldSize;
       double py = ((i * 110) + engine.time * 20) % GameEngine.fieldSize;
       // Light rays piercing through
-      canvas.drawLine(Offset(px, py), Offset(px+100, py+100), Paint()..shader=ui.Gradient.linear(Offset(px,py), Offset(px+100, py+100), [Colors.white.withOpacity(0.3), Colors.transparent])..strokeWidth=15);
+      canvas.drawLine(Offset(px, py), Offset(px+100, py+100), Paint()..shader=ui.Gradient.linear(Offset(px,py), Offset(px+100, py+100), [Colors.white.withValues(alpha: 0.3), Colors.transparent])..strokeWidth=15);
     }
     
 
@@ -53,7 +53,7 @@ class GamePainterA46 extends CustomPainter {
       canvas.drawRect(obs, Paint()..color=c);
       canvas.drawRect(obs, Paint()..color=Colors.black..style=PaintingStyle.stroke..strokeWidth=8);
       // Glare
-      canvas.drawLine(obs.bottomLeft + const Offset(5, -5), obs.topRight + const Offset(-5, 5), Paint()..color=Colors.white.withOpacity(0.5)..strokeWidth=4);
+      canvas.drawLine(obs.bottomLeft + const Offset(5, -5), obs.topRight + const Offset(-5, 5), Paint()..color=Colors.white.withValues(alpha: 0.5)..strokeWidth=4);
     }
     
 
@@ -70,7 +70,7 @@ class GamePainterA46 extends CustomPainter {
           // Blinding pure light prism
           Path diamond = Path()..moveTo(0, -20)..lineTo(15, 0)..lineTo(0, 20)..lineTo(-15, 0)..close();
           canvas.drawPath(diamond, Paint()..color=Colors.white);
-          canvas.drawCircle(Offset.zero, tr*3, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*3, [Colors.white.withOpacity(0.8), Colors.transparent]));
+          canvas.drawCircle(Offset.zero, tr*3, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*3, [Colors.white.withValues(alpha: 0.8), Colors.transparent]));
           // Rainbow dispersion
           canvas.save(); canvas.rotate(engine.time * 2);
           canvas.drawLine(Offset.zero, const Offset(40, 40), Paint()..color=Colors.cyanAccent..strokeWidth=2);
@@ -111,23 +111,23 @@ class GamePainterA46 extends CustomPainter {
       if (engine.chaserInWall) {
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
-          final eyeGlow = Paint()..color = Colors.red.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
       } else {
-          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withOpacity(0.35));
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
           if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
              double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
-             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withOpacity(0.3));
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
           }
           canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
           if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
           canvas.translate(0, math.sin(engine.time * 6) * 4); 
           
           Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
-              ? (Paint()..color=Colors.grey.withOpacity(0.5)) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
               : Paint();
               
           canvas.drawImageRect(images!['enemy']!, 
@@ -142,13 +142,13 @@ class GamePainterA46 extends CustomPainter {
     // 6. UNIFIED PLAYER IDENTITY
     // ==========================================
     if (images != null && images!['player'] != null) {
-      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withOpacity(0.35));
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
       
       double vLen = engine.playerVelocity.distance;
       if (vLen > 0) {
         canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
         canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
-        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withOpacity(0.5));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
         canvas.restore();
       }
       

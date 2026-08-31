@@ -13,7 +13,7 @@ class Puzzle15 extends PuzzleDefinition {
   @override
   void drawBaseScene(HtmlCanvas c) {
     
-    final sky = c.createLinearGradient(0,0,0,600); sky..addColorStop(0, '#0a1120'); sky..addColorStop(1, '#2b4f60');
+    final sky = c.createLinearGradient(0,0,0,600); sky.addColorStop(0, '#0a1120'); sky.addColorStop(1, '#2b4f60');
     c.fillStyle = sky; c.fillRect(0,0,800,600);
     c.fillStyle = '#fff'; for(double i=0.0; i<50; i++) { c.beginPath(); c.arc((i*31)%800, (i*47)%400, 2, 0, math.pi*2); c.fill(); }
     c.save(); c.translate(250, 250);

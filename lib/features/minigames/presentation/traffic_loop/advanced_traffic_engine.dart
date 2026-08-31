@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -348,8 +349,9 @@ class FlawlessTrafficEngine {
     int obstacleCount = 5; 
     
     List<Color> obsColors;
-    if (round == 1) obsColors = [const Color(0xFFFFFF00), const Color(0xFFFFB300)];
-    else if (round == 2) obsColors = [const Color(0xFF00FFCC), const Color(0xFF00FF66)];
+    if (round == 1) {
+      obsColors = [const Color(0xFFFFFF00), const Color(0xFFFFB300)];
+    } else if (round == 2) obsColors = [const Color(0xFF00FFCC), const Color(0xFF00FF66)];
     else obsColors = [const Color(0xFFFF0055), const Color(0xFFFF0000)];
 
     double spacing = loopMetric.length / obstacleCount;
@@ -370,8 +372,9 @@ class FlawlessTrafficEngine {
 
   void _spawnQueue() {
     List<Color> playerColors;
-    if (round == 1) playerColors = [const Color(0xFF00AAFF), const Color(0xFF00FFFF)];
-    else if (round == 2) playerColors = [const Color(0xFFFF00FF), const Color(0xFFAA00FF)];
+    if (round == 1) {
+      playerColors = [const Color(0xFF00AAFF), const Color(0xFF00FFFF)];
+    } else if (round == 2) playerColors = [const Color(0xFFFF00FF), const Color(0xFFAA00FF)];
     else playerColors = [const Color(0xFFFFFFFF), const Color(0xFFCCCCCC)];
 
     int queueCount = cars.where((c) => c.lane == CarLane.entrance).length;
@@ -440,18 +443,20 @@ class FlawlessTrafficEngine {
 
     double simDt = grayscaleTimer > 0 ? dt * 0.40 : dt;
 
-    for (var w in weather) w.position += w.velocity * simDt;
+    for (var w in weather) {
+      w.position += w.velocity * simDt;
+    }
     weather.removeWhere((w) => w.position.dx < -100 || w.position.dx > 900 || w.position.dy < -100 || w.position.dy > 700);
     
     while (weather.length < 30) {
       if (trackId <= 5) {
-        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, -50), Offset(-50 - _random.nextDouble() * 50, 200 + _random.nextDouble() * 200), Colors.white.withOpacity(0.3), 1.0));
+        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, -50), Offset(-50 - _random.nextDouble() * 50, 200 + _random.nextDouble() * 200), Colors.white.withValues(alpha: 0.3), 1.0));
       } else if (trackId <= 10) {
-        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, _random.nextDouble() * 800 - 100), Offset((_random.nextDouble() - 0.5) * 20, (_random.nextDouble() - 0.5) * 20), Colors.purpleAccent.withOpacity(0.4), 1.0 + _random.nextDouble() * 2.0));
+        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, _random.nextDouble() * 800 - 100), Offset((_random.nextDouble() - 0.5) * 20, (_random.nextDouble() - 0.5) * 20), Colors.purpleAccent.withValues(alpha: 0.4), 1.0 + _random.nextDouble() * 2.0));
       } else if (trackId <= 15) {
-        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, 650), Offset((_random.nextDouble() - 0.5) * 50, -50 - _random.nextDouble() * 50), Colors.orangeAccent.withOpacity(0.6), 2.0 + _random.nextDouble() * 2.0));
+        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, 650), Offset((_random.nextDouble() - 0.5) * 50, -50 - _random.nextDouble() * 50), Colors.orangeAccent.withValues(alpha: 0.6), 2.0 + _random.nextDouble() * 2.0));
       } else {
-        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, _random.nextDouble() * 800 - 100), Offset(0, 10 + _random.nextDouble() * 20), Colors.greenAccent.withOpacity(0.4), 1.0 + _random.nextDouble() * 2.0));
+        weather.add(WeatherParticle(Offset(_random.nextDouble() * 1000 - 100, _random.nextDouble() * 800 - 100), Offset(0, 10 + _random.nextDouble() * 20), Colors.greenAccent.withValues(alpha: 0.4), 1.0 + _random.nextDouble() * 2.0));
       }
     }
 
@@ -501,19 +506,19 @@ class FlawlessTrafficEngine {
 
     for (var car in cars) {
       Car? lead = _getLeadCar(car);
-      double s_gap = double.infinity;
-      double v_lead = idm_v0;
+      double sGap = double.infinity;
+      double vLead = idm_v0;
       
       if (lead != null) {
-        s_gap = lead.s - car.s;
-        v_lead = lead.velocity;
+        sGap = lead.s - car.s;
+        vLead = lead.velocity;
       }
 
       if (car.lane == CarLane.entrance && !car.isMerging) {
         double distToStop = (stopLineS + idm_s0) - car.s;
-        if (distToStop < s_gap) {
-          s_gap = max(0.1, distToStop);
-          v_lead = 0.0;
+        if (distToStop < sGap) {
+          sGap = max(0.1, distToStop);
+          vLead = 0.0;
         }
       }
 
@@ -526,10 +531,10 @@ class FlawlessTrafficEngine {
           _addSkidMark(car.position, car.heading, 0.15); 
         }
       } else {
-        if (s_gap < 800.0) {
-          double delta_v = v - v_lead;
-          double s_star = idm_s0 + v * idm_T + (v * delta_v) / (2 * sqrt(idm_a * idm_b));
-          accel = idm_a * (1 - pow(v / idm_v0, 4) - pow(s_star / max(s_gap, 0.1), 2));
+        if (sGap < 800.0) {
+          double deltaV = v - vLead;
+          double sStar = idm_s0 + v * idm_T + (v * deltaV) / (2 * sqrt(idm_a * idm_b));
+          accel = idm_a * (1 - pow(v / idm_v0, 4) - pow(sStar / max(sGap, 0.1), 2));
         } else {
           accel = idm_a * (1 - pow(v / idm_v0, 4));
         }
@@ -542,8 +547,8 @@ class FlawlessTrafficEngine {
       }
       car.brakeAlpha = car.brakeAlpha.clamp(0.0, 1.0);
 
-      if (car.lane == CarLane.loop && !car.hasTriggeredNearMiss && s_gap > 32.0) {
-        double clearGap = s_gap - 32.0;
+      if (car.lane == CarLane.loop && !car.hasTriggeredNearMiss && sGap > 32.0) {
+        double clearGap = sGap - 32.0;
         if (clearGap < 15.0 && car.velocity > 20.0) {
           double distFromMerge = car.s - mergeLoopS;
           if (distFromMerge < 0) distFromMerge += loopMetric.length;
@@ -594,8 +599,9 @@ class FlawlessTrafficEngine {
         car.position = tangent.position;
         
         double nextS = evalS + 2.0;
-        if (car.lane == CarLane.loop) nextS = nextS % loopMetric.length;
-        else if (nextS > entranceMetric.length) nextS = entranceMetric.length;
+        if (car.lane == CarLane.loop) {
+          nextS = nextS % loopMetric.length;
+        } else if (nextS > entranceMetric.length) nextS = entranceMetric.length;
         
         final nextTangent = currentMetric.getTangentForOffset(nextS);
         if (nextTangent != null && (nextTangent.position - car.position).distance > 0.1) {

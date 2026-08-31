@@ -23,21 +23,21 @@ class GamePainterA4Biology extends CustomPainter {
     canvas.drawRect(const Rect.fromLTWH(0, 0, GameEngine.fieldSize, GameEngine.fieldSize), bgPaint);
     
     // RADAR / GRID
-    final radarLinePaint = Paint()..color = const Color(0xFFFF00FF).withOpacity(0.04)..style=PaintingStyle.stroke..strokeWidth=2;
+    final radarLinePaint = Paint()..color = const Color(0xFFFF00FF).withValues(alpha: 0.04)..style=PaintingStyle.stroke..strokeWidth=2;
     canvas.save();
     canvas.translate(GameEngine.fieldSize/2, GameEngine.fieldSize/2);
     canvas.rotate(engine.time * 0.1); 
     for(int i=1; i<=6; i++) {
       canvas.drawCircle(Offset.zero, 150.0 * i, radarLinePaint);
     }
-    final sweepPaint = Paint()..shader = ui.Gradient.sweep(Offset.zero, [const Color(0xFFFF00FF).withOpacity(0.15), const Color(0xFFFF00FF).withOpacity(0.0)], [0.0, 0.2]);
+    final sweepPaint = Paint()..shader = ui.Gradient.sweep(Offset.zero, [const Color(0xFFFF00FF).withValues(alpha: 0.15), const Color(0xFFFF00FF).withValues(alpha: 0.0)], [0.0, 0.2]);
     canvas.drawArc(Rect.fromCircle(center: Offset.zero, radius: 1000), 0, math.pi/2, true, sweepPaint);
     canvas.restore();
 
     
     // Floating Cells / Spores
-    final sporeBg = Paint()..color = const Color(0xFFFF00FF).withOpacity(0.5);
-    final sporeFg = Paint()..color = Colors.white.withOpacity(0.8);
+    final sporeBg = Paint()..color = const Color(0xFFFF00FF).withValues(alpha: 0.5);
+    final sporeFg = Paint()..color = Colors.white.withValues(alpha: 0.8);
     for (int i = 0; i < 30; i++) {
       double px = (i * 97.53 + math.sin(engine.time*0.5 + i)*40) % GameEngine.fieldSize;
       double py = (i * 143.3 + math.cos(engine.time*0.5 + i)*40) % GameEngine.fieldSize;
@@ -48,11 +48,11 @@ class GamePainterA4Biology extends CustomPainter {
 
 
     // OBSTACLE PAINTS (Cached for Performance)
-    final shadowPaint = Paint()..color = Colors.black.withOpacity(0.9)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    final shadowPaint = Paint()..color = Colors.black.withValues(alpha: 0.9)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
     final blockSidePaint = Paint()..color = const Color(0xFF110011);
-    final blockLaserPaint = Paint()..color = Colors.purpleAccent.withOpacity(0.6)..strokeWidth = 2..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-    final blockGlassPaint = Paint()..color = Colors.white.withOpacity(0.2);
-    final neonBorderPaint = Paint()..color = const Color(0xFFFF00FF).withOpacity(0.8)..style = PaintingStyle.stroke..strokeWidth = 2..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3);
+    final blockLaserPaint = Paint()..color = Colors.purpleAccent.withValues(alpha: 0.6)..strokeWidth = 2..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    final blockGlassPaint = Paint()..color = Colors.white.withValues(alpha: 0.2);
+    final neonBorderPaint = Paint()..color = const Color(0xFFFF00FF).withValues(alpha: 0.8)..style = PaintingStyle.stroke..strokeWidth = 2..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3);
     
     final bracketPaint = Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 2.5;
     double bL = 12.0;
@@ -99,8 +99,8 @@ class GamePainterA4Biology extends CustomPainter {
     }
 
     // TARGET PAINTS
-    final targetPulsePaint = Paint()..color = const Color(0xFFFF00FF).withOpacity(0.4)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-    final targetShadowPaint = Paint()..color = Colors.black.withOpacity(0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    final targetPulsePaint = Paint()..color = const Color(0xFFFF00FF).withValues(alpha: 0.4)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+    final targetShadowPaint = Paint()..color = Colors.black.withValues(alpha: 0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
 
     // TARGETS
     for (int i = 0; i < engine.targets.length; i++) {
@@ -127,13 +127,13 @@ class GamePainterA4Biology extends CustomPainter {
     // EXIT GATE (Magic Portal)
     if (engine.exitGate != null) {
       final center = engine.exitGate!;
-      canvas.drawCircle(center + const Offset(0, 15), 35, Paint()..color = Colors.black.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+      canvas.drawCircle(center + const Offset(0, 15), 35, Paint()..color = Colors.black.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
       
       canvas.save();
       canvas.translate(center.dx, center.dy);
       
       double pulse = 1.0 + math.sin(engine.time * 8) * 0.1;
-      canvas.drawCircle(Offset.zero, 40 * pulse, Paint()..color = const Color(0xFFFF00FF).withOpacity(0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+      canvas.drawCircle(Offset.zero, 40 * pulse, Paint()..color = const Color(0xFFFF00FF).withValues(alpha: 0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
       
       canvas.rotate(engine.time * 3);
       final pSweep = Paint()..shader = ui.Gradient.sweep(Offset.zero, [const Color(0xFFFF00FF), Colors.white, const Color(0xFFFF00FF)], [0.0, 0.5, 1.0]);
@@ -160,23 +160,23 @@ class GamePainterA4Biology extends CustomPainter {
       if (engine.chaserInWall) {
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
-          final eyeGlow = Paint()..color = Colors.red.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
       } else {
-          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withOpacity(0.35));
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
           if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
              double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
-             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withOpacity(0.3));
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
           }
           canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
           if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
           canvas.translate(0, math.sin(engine.time * 6) * 4); 
           
           Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
-              ? (Paint()..color=Colors.grey.withOpacity(0.5)) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
               : Paint();
               
           canvas.drawImageRect(images!['enemy']!, 
@@ -191,13 +191,13 @@ class GamePainterA4Biology extends CustomPainter {
     // 6. UNIFIED PLAYER IDENTITY
     // ==========================================
     if (images != null && images!['player'] != null) {
-      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withOpacity(0.35));
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
       
       double vLen = engine.playerVelocity.distance;
       if (vLen > 0) {
         canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
         canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
-        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withOpacity(0.5));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
         canvas.restore();
       }
       

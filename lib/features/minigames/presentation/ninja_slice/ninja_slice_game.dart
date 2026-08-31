@@ -1,4 +1,5 @@
-﻿import 'dart:math';
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../../domain/mini_game_contract.dart';
@@ -70,10 +71,10 @@ class NinjaSliceGame extends StatefulWidget {
   final void Function(MiniGameResult) onComplete;
 
   const NinjaSliceGame({
-    Key? key,
+    super.key,
     required this.config,
     required this.onComplete,
-  }) : super(key: key);
+  });
 
   @override
   _NinjaSliceGameState createState() => _NinjaSliceGameState();
@@ -409,7 +410,7 @@ class _NinjaSliceGameState extends State<NinjaSliceGame> with SingleTickerProvid
         item.x, item.y,
         item.vx * 0.2 + (_rnd.nextDouble() - 0.5) * 800,
         item.vy * 0.2 + (_rnd.nextDouble() - 0.5) * 800,
-        Colors.cyanAccent.withOpacity(0.9),
+        Colors.cyanAccent.withValues(alpha: 0.9),
         15.0 + _rnd.nextDouble() * 25.0,
         isGlass: true
       ));
@@ -547,7 +548,7 @@ class _NinjaSliceGameState extends State<NinjaSliceGame> with SingleTickerProvid
               Positioned.fill(child: CustomPaint(painter: SwipePainter(swipePoints))),
 
               if (screenShakeTimer > 0)
-                Positioned.fill(child: Container(color: Colors.redAccent.withOpacity(0.4))),
+                Positioned.fill(child: Container(color: Colors.redAccent.withValues(alpha: 0.4))),
                 
               for (var ft in floatingTexts)
                 Positioned(
@@ -631,12 +632,12 @@ class HalfClipper extends CustomClipper<Rect> {
 class GlassPlatePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()..color = Colors.cyanAccent.withOpacity(0.3)..style = PaintingStyle.fill;
-    Paint borderPaint = Paint()..color = Colors.cyanAccent.withOpacity(0.8)..style = PaintingStyle.stroke..strokeWidth = 3;
+    Paint paint = Paint()..color = Colors.cyanAccent.withValues(alpha: 0.3)..style = PaintingStyle.fill;
+    Paint borderPaint = Paint()..color = Colors.cyanAccent.withValues(alpha: 0.8)..style = PaintingStyle.stroke..strokeWidth = 3;
     Rect ovalRect = Rect.fromCenter(center: Offset(size.width/2, size.height/2), width: size.width * 0.9, height: size.height * 0.6);
     canvas.drawOval(ovalRect, paint);
     canvas.drawOval(ovalRect, borderPaint);
-    Paint shinePaint = Paint()..color = Colors.white.withOpacity(0.6)..style = PaintingStyle.stroke..strokeWidth = 4..strokeCap = StrokeCap.round;
+    Paint shinePaint = Paint()..color = Colors.white.withValues(alpha: 0.6)..style = PaintingStyle.stroke..strokeWidth = 4..strokeCap = StrokeCap.round;
     canvas.drawArc(ovalRect, -pi/4, -pi/3, false, shinePaint);
   }
   @override
@@ -653,8 +654,8 @@ class SwipePainter extends CustomPainter {
     for (int i = 0; i < points.length - 1; i++) {
       double life = 1.0 - (points[i].age / 0.15);
       if (life < 0) life = 0;
-      Paint glowPaint = Paint()..color = Colors.cyanAccent.withOpacity(life * 0.6)..strokeWidth = 20.0 * life..strokeCap = StrokeCap.round;
-      Paint corePaint = Paint()..color = Colors.white.withOpacity(life)..strokeWidth = 6.0 * life..strokeCap = StrokeCap.round;
+      Paint glowPaint = Paint()..color = Colors.cyanAccent.withValues(alpha: life * 0.6)..strokeWidth = 20.0 * life..strokeCap = StrokeCap.round;
+      Paint corePaint = Paint()..color = Colors.white.withValues(alpha: life)..strokeWidth = 6.0 * life..strokeCap = StrokeCap.round;
       canvas.drawLine(points[i].position, points[i+1].position, glowPaint);
       canvas.drawLine(points[i].position, points[i+1].position, corePaint);
     }

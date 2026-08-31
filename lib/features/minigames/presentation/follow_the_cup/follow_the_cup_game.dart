@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
 import '../shared/minigame_environment.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -76,7 +77,7 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
   bool _won = false;
   
   int _correctGuesses = 0;
-  int _mistakes = 0;
+  
 
   @override
   void initState() {
@@ -239,7 +240,7 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
         MinigameEnvironment.of(context).updateScore(_correctGuesses);
         if (_won) { MinigameEnvironment.of(context).playSuccess(details.globalPosition); } else { MinigameEnvironment.of(context).playError(details.globalPosition); }
         if (_won) _correctGuesses++;
-        else _mistakes++;
+        else 
         
         _spawnParticles(size, clickedSlot!);
       });

@@ -22,14 +22,17 @@ class GamePainterA36 extends CustomPainter {
 
     canvas.drawRect(const Rect.fromLTWH(0, 0, GameEngine.fieldSize, GameEngine.fieldSize), Paint()..color = const Color(0xFFFFF9C4)); // White sand
     // Water Caustics (Animated overlapping light blue paths)
-    canvas.drawRect(const Rect.fromLTWH(0, 0, GameEngine.fieldSize, GameEngine.fieldSize), Paint()..color = const Color(0xFF81D4FA).withOpacity(0.6));
-    final caustic = Paint()..color=Colors.white.withOpacity(0.3)..style=PaintingStyle.stroke..strokeWidth=3;
+    canvas.drawRect(const Rect.fromLTWH(0, 0, GameEngine.fieldSize, GameEngine.fieldSize), Paint()..color = const Color(0xFF81D4FA).withValues(alpha: 0.6));
+    final caustic = Paint()..color=Colors.white.withValues(alpha: 0.3)..style=PaintingStyle.stroke..strokeWidth=3;
     for(double i=0; i<GameEngine.fieldSize; i+=80) {
         Path wave = Path();
         for(double j=0; j<=GameEngine.fieldSize; j+=40) {
             double jitter = math.sin(engine.time * 2 + i + j) * 15;
-            if(j==0) wave.moveTo(i + jitter, j);
-            else wave.quadraticBezierTo(i - jitter, j - 20, i + jitter, j);
+            if(j==0) {
+              wave.moveTo(i + jitter, j);
+            } else {
+              wave.quadraticBezierTo(i - jitter, j - 20, i + jitter, j);
+            }
         }
         canvas.drawPath(wave, caustic);
     }
@@ -52,7 +55,7 @@ class GamePainterA36 extends CustomPainter {
 
     for (int i = 0; i < engine.obstacles.length; i++) {
       final obs = engine.obstacles[i];
-      canvas.drawRect(obs.shift(const Offset(5, 10)), Paint()..color=const Color(0xFF0277BD).withOpacity(0.4)); // underwater shadow
+      canvas.drawRect(obs.shift(const Offset(5, 10)), Paint()..color=const Color(0xFF0277BD).withValues(alpha: 0.4)); // underwater shadow
       // Coral Reef Block
       canvas.drawRRect(RRect.fromRectAndRadius(obs, const Radius.circular(15)), Paint()..color=const Color(0xFFFF8A65));
       // Coral pores
@@ -78,7 +81,7 @@ class GamePainterA36 extends CustomPainter {
           // Open clam with glowing pearl
           canvas.drawArc(const Rect.fromLTWH(-15, -10, 30, 20), 0, math.pi, true, Paint()..color=const Color(0xFFE1BEE7)); // bottom shell
           canvas.drawCircle(const Offset(0, -5), 10, Paint()..color=Colors.white); // Pearl
-          canvas.drawCircle(Offset.zero, tr*2, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*2, [const Color(0xFFFFFFFF).withOpacity(0.8), Colors.transparent]));
+          canvas.drawCircle(Offset.zero, tr*2, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*2, [const Color(0xFFFFFFFF).withValues(alpha: 0.8), Colors.transparent]));
           canvas.drawArc(const Rect.fromLTWH(-15, -20, 30, 20), math.pi, math.pi, true, Paint()..color=const Color(0xFFCE93D8)); // top shell open
       } else {
           // Closed clam
@@ -113,23 +116,23 @@ class GamePainterA36 extends CustomPainter {
       if (engine.chaserInWall) {
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
-          final eyeGlow = Paint()..color = Colors.red.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
       } else {
-          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withOpacity(0.35));
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
           if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
              double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
-             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withOpacity(0.3));
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
           }
           canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
           if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
           canvas.translate(0, math.sin(engine.time * 6) * 4); 
           
           Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
-              ? (Paint()..color=Colors.grey.withOpacity(0.5)) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
               : Paint();
               
           canvas.drawImageRect(images!['enemy']!, 
@@ -144,13 +147,13 @@ class GamePainterA36 extends CustomPainter {
     // 6. UNIFIED PLAYER IDENTITY
     // ==========================================
     if (images != null && images!['player'] != null) {
-      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withOpacity(0.35));
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
       
       double vLen = engine.playerVelocity.distance;
       if (vLen > 0) {
         canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
         canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
-        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withOpacity(0.5));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
         canvas.restore();
       }
       

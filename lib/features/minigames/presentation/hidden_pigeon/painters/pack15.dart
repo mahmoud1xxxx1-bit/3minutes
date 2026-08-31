@@ -84,8 +84,8 @@ class PigeonPainterPack15 extends CustomPainter {
       double x = rand.nextDouble() * size.width - tileSize;
       double y = rand.nextDouble() * size.height - tileSize;
       
-      final color1 = colors[rand.nextInt(colors.length)].withOpacity(0.7);
-      final color2 = colors[rand.nextInt(colors.length)].withOpacity(0.7);
+      final color1 = colors[rand.nextInt(colors.length)].withValues(alpha: 0.7);
+      final color2 = colors[rand.nextInt(colors.length)].withValues(alpha: 0.7);
       
       canvas.save();
       canvas.translate(x, y);
@@ -116,7 +116,7 @@ class PigeonPainterPack15 extends CustomPainter {
     
     for (int i = 0; i < 2000; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.6)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.6)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2 + rand.nextDouble() * 8
         ..strokeJoin = StrokeJoin.miter;
@@ -161,7 +161,7 @@ class PigeonPainterPack15 extends CustomPainter {
     
     for (int i = 0; i < 1500; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.8)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3 + rand.nextDouble() * 6
         ..strokeCap = StrokeCap.round;
@@ -215,7 +215,7 @@ class PigeonPainterPack15 extends CustomPainter {
       
       for (int r = rings; r > 0; r--) {
         final paint = Paint()
-          ..color = baseColor.withOpacity(0.3 + rand.nextDouble() * 0.5)
+          ..color = baseColor.withValues(alpha: 0.3 + rand.nextDouble() * 0.5)
           ..style = (rand.nextBool() ? PaintingStyle.fill : PaintingStyle.stroke)
           ..strokeWidth = 1 + rand.nextDouble() * 5;
           
@@ -247,7 +247,7 @@ class PigeonPainterPack15 extends CustomPainter {
       double angle = rand.nextDouble() * pi;
       
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.7)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.7)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1 + rand.nextDouble() * 3
         ..strokeCap = StrokeCap.round;

@@ -51,7 +51,7 @@ class Puzzle17 extends PuzzleDefinition {
     c.fillStyle = '#e2e2e2'; c.beginPath(); c.arc(400, 300, 120, 0, math.pi*2); c.fill(); 
     c.fillStyle = '#a4b4c0'; c.beginPath(); c.arc(400, 300, 110, 0, math.pi*2); c.fill(); 
     final waterGrad = c.createRadialGradient(400, 300, 0, 400, 300, 100);
-    waterGrad..addColorStop(0, '#5baad4'); waterGrad..addColorStop(1, '#2b4f60');
+    waterGrad.addColorStop(0, '#5baad4'); waterGrad.addColorStop(1, '#2b4f60');
     c.fillStyle = waterGrad; c.beginPath(); c.arc(400, 300, 100, 0, math.pi*2); c.fill(); 
     c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 2;
     for(double r=20; r<=90; r+=20) { c.beginPath(); c.arc(400, 300, r, 0, math.pi*2); c.stroke(); }

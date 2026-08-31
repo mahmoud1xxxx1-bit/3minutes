@@ -12,7 +12,7 @@ class Puzzle10 extends PuzzleDefinition {
   void drawBaseScene(HtmlCanvas c) {
     
     final grad = c.createLinearGradient(0,0,0,450);
-    grad..addColorStop(0, '#0a1120'); grad..addColorStop(1, '#2b4f60');
+    grad.addColorStop(0, '#0a1120'); grad.addColorStop(1, '#2b4f60');
     c.fillStyle = grad; c.fillRect(0,0,800,450);
     c.fillStyle = '#fff';
     for(double i=0.0; i<80; i++) { c.beginPath(); c.arc((i*41)%800, (i*71)%450, (i%3)+1, 0, math.pi*2); c.fill(); }

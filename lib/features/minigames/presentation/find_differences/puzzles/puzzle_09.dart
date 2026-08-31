@@ -12,7 +12,7 @@ class Puzzle09 extends PuzzleDefinition {
   void drawBaseScene(HtmlCanvas c) {
     
     final skyG = c.createLinearGradient(0,0,0,400);
-    skyG..addColorStop(0, '#2b4f60'); skyG..addColorStop(0.5, '#c15886'); skyG..addColorStop(1, '#d4af37');
+    skyG.addColorStop(0, '#2b4f60'); skyG.addColorStop(0.5, '#c15886'); skyG.addColorStop(1, '#d4af37');
     c.fillStyle = skyG; c.fillRect(0,0,800,400);
     c.fillStyle = 'rgba(255,255,255,0.4)'; c.beginPath(); c.arc(400, 250, 100, 0, math.pi*2); c.fill();
     c.fillStyle = '#fff'; c.beginPath(); c.arc(400, 250, 80, 0, math.pi*2); c.fill();
@@ -58,7 +58,7 @@ class Puzzle09 extends PuzzleDefinition {
       (HtmlCanvas c) {
         
         final skyG = c.createLinearGradient(0,0,0,400);
-        skyG..addColorStop(0, '#2b4f60'); skyG..addColorStop(0.5, '#c15886'); skyG..addColorStop(1, '#d4af37');
+        skyG.addColorStop(0, '#2b4f60'); skyG.addColorStop(0.5, '#c15886'); skyG.addColorStop(1, '#d4af37');
         c.fillStyle = skyG; c.beginPath(); c.arc(200, 80, 5, 0, math.pi*2); c.fill();
     
       }

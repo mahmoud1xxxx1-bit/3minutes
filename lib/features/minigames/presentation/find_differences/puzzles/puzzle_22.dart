@@ -16,8 +16,11 @@ class Puzzle22 extends PuzzleDefinition {
     for(double i=0.0; i<teeth*2; i++) {
         double a = i*math.pi/teeth;
         double rad = (i%2==0) ? r : r+10;
-        if(i==0) c.moveTo(cx+math.cos(a)*rad, cy+math.sin(a)*rad);
-        else c.lineTo(cx+math.cos(a)*rad, cy+math.sin(a)*rad);
+        if(i==0) {
+          c.moveTo(cx+math.cos(a)*rad, cy+math.sin(a)*rad);
+        } else {
+          c.lineTo(cx+math.cos(a)*rad, cy+math.sin(a)*rad);
+        }
     }
     c.closePath(); c.fill(); c.stroke();
     c.fillStyle = '#1e1108'; c.beginPath(); c.arc(cx, cy, r-15, 0, math.pi*2); c.fill(); c.stroke();

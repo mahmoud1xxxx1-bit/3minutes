@@ -30,9 +30,9 @@ class GamePainterA40 extends CustomPainter {
     }
     // Giant Magic Circle over floor
     canvas.save(); canvas.translate(GameEngine.fieldSize/2, GameEngine.fieldSize/2); canvas.rotate(-engine.time * 0.2);
-    canvas.drawCircle(Offset.zero, 400, Paint()..color=const Color(0xFF1976D2).withOpacity(0.2)..style=PaintingStyle.stroke..strokeWidth=10);
-    canvas.drawCircle(Offset.zero, 380, Paint()..color=const Color(0xFF1976D2).withOpacity(0.2)..style=PaintingStyle.stroke..strokeWidth=2);
-    canvas.drawRect(const Rect.fromLTWH(-270, -270, 540, 540), Paint()..color=const Color(0xFF1976D2).withOpacity(0.2)..style=PaintingStyle.stroke..strokeWidth=5);
+    canvas.drawCircle(Offset.zero, 400, Paint()..color=const Color(0xFF1976D2).withValues(alpha: 0.2)..style=PaintingStyle.stroke..strokeWidth=10);
+    canvas.drawCircle(Offset.zero, 380, Paint()..color=const Color(0xFF1976D2).withValues(alpha: 0.2)..style=PaintingStyle.stroke..strokeWidth=2);
+    canvas.drawRect(const Rect.fromLTWH(-270, -270, 540, 540), Paint()..color=const Color(0xFF1976D2).withValues(alpha: 0.2)..style=PaintingStyle.stroke..strokeWidth=5);
     canvas.restore();
     
 
@@ -43,7 +43,7 @@ class GamePainterA40 extends CustomPainter {
       double px = ((i * 65) + engine.time * 30) % GameEngine.fieldSize;
       double py = ((i * 110) - engine.time * 50) % GameEngine.fieldSize;
       if (py < 0) py += GameEngine.fieldSize;
-      canvas.drawRect(Rect.fromLTWH(px, py, 6, 8), Paint()..color=const Color(0xFF1976D2).withOpacity(0.6));
+      canvas.drawRect(Rect.fromLTWH(px, py, 6, 8), Paint()..color=const Color(0xFF1976D2).withValues(alpha: 0.6));
     }
     
 
@@ -79,7 +79,7 @@ class GamePainterA40 extends CustomPainter {
           // Flame
           Path flame = Path()..moveTo(0, -25)..quadraticBezierTo(5, -15, 0, -15)..quadraticBezierTo(-5, -15, 0, -25)..close();
           canvas.drawPath(flame, Paint()..color=const Color(0xFFFF9800));
-          canvas.drawCircle(Offset.zero, tr*2, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*2, [const Color(0xFFFF9800).withOpacity(0.4), Colors.transparent]));
+          canvas.drawCircle(Offset.zero, tr*2, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*2, [const Color(0xFFFF9800).withValues(alpha: 0.4), Colors.transparent]));
       } else {
           // Melted unlit candle
           canvas.drawRect(const Rect.fromLTWH(-5, 0, 10, 10), Paint()..color=const Color(0xFFE0E0E0));
@@ -100,8 +100,11 @@ class GamePainterA40 extends CustomPainter {
       Path spiral = Path();
       for(double a=0; a<math.pi*4; a+=10.2) {
           double r = a * 3;
-          if(a==0) spiral.moveTo(r*math.cos(a), r*math.sin(a));
-          else spiral.lineTo(r*math.cos(a), r*math.sin(a));
+          if(a==0) {
+            spiral.moveTo(r*math.cos(a), r*math.sin(a));
+          } else {
+            spiral.lineTo(r*math.cos(a), r*math.sin(a));
+          }
       }
       canvas.drawPath(spiral, Paint()..color=const Color(0xFF64B5F6)..style=PaintingStyle.stroke..strokeWidth=3);
       canvas.restore();
@@ -115,23 +118,23 @@ class GamePainterA40 extends CustomPainter {
       if (engine.chaserInWall) {
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
-          final eyeGlow = Paint()..color = Colors.red.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
       } else {
-          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withOpacity(0.35));
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
           if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
              double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
-             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withOpacity(0.3));
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
           }
           canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
           if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
           canvas.translate(0, math.sin(engine.time * 6) * 4); 
           
           Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
-              ? (Paint()..color=Colors.grey.withOpacity(0.5)) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
               : Paint();
               
           canvas.drawImageRect(images!['enemy']!, 
@@ -146,13 +149,13 @@ class GamePainterA40 extends CustomPainter {
     // 6. UNIFIED PLAYER IDENTITY
     // ==========================================
     if (images != null && images!['player'] != null) {
-      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withOpacity(0.35));
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
       
       double vLen = engine.playerVelocity.distance;
       if (vLen > 0) {
         canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
         canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
-        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withOpacity(0.5));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
         canvas.restore();
       }
       

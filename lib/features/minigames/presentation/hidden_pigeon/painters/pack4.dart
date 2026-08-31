@@ -57,11 +57,11 @@ class PigeonPainterPack4 extends CustomPainter {
   void _drawGeometryGrid(Canvas canvas, Size size, Random rand) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF1E1E24));
     final colors = [
-      const Color(0xFFE54B4B).withOpacity(0.6),
-      const Color(0xFFF7EBE8).withOpacity(0.6),
-      const Color(0xFF444140).withOpacity(0.6),
-      const Color(0xFF1E1E24).withOpacity(0.6),
-      const Color(0xFFF2D0A9).withOpacity(0.6),
+      const Color(0xFFE54B4B).withValues(alpha: 0.6),
+      const Color(0xFFF7EBE8).withValues(alpha: 0.6),
+      const Color(0xFF444140).withValues(alpha: 0.6),
+      const Color(0xFF1E1E24).withValues(alpha: 0.6),
+      const Color(0xFFF2D0A9).withValues(alpha: 0.6),
     ];
     
     for (int i = 0; i < 3000; i++) {
@@ -81,8 +81,11 @@ class PigeonPainterPack4 extends CustomPainter {
         double angle = startAngle + (j * 2 * pi / edges);
         double px = cx + cos(angle) * radius;
         double py = cy + sin(angle) * radius;
-        if (j == 0) path.moveTo(px, py);
-        else path.lineTo(px, py);
+        if (j == 0) {
+          path.moveTo(px, py);
+        } else {
+          path.lineTo(px, py);
+        }
       }
       path.close();
       canvas.drawPath(path, paint);
@@ -95,7 +98,7 @@ class PigeonPainterPack4 extends CustomPainter {
     
     for (int i = 0; i < 1800; i++) {
       final paint = Paint()
-        ..color = colors[rand.nextInt(colors.length)].withOpacity(0.8)
+        ..color = colors[rand.nextInt(colors.length)].withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2 + rand.nextDouble() * 6
         ..strokeCap = StrokeCap.round;
@@ -129,10 +132,10 @@ class PigeonPainterPack4 extends CustomPainter {
   void _drawFeathers(Canvas canvas, Size size, Random rand) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFD8E2DC));
     final colors = [
-      const Color(0xFFFFCAD4).withOpacity(0.8),
-      const Color(0xFFF4ACB7).withOpacity(0.8),
-      const Color(0xFF9D8189).withOpacity(0.8),
-      const Color(0xFFFFE5D9).withOpacity(0.8),
+      const Color(0xFFFFCAD4).withValues(alpha: 0.8),
+      const Color(0xFFF4ACB7).withValues(alpha: 0.8),
+      const Color(0xFF9D8189).withValues(alpha: 0.8),
+      const Color(0xFFFFE5D9).withValues(alpha: 0.8),
     ];
     
     for (int i = 0; i < 2500; i++) {
@@ -179,7 +182,7 @@ class PigeonPainterPack4 extends CustomPainter {
       
       // Veins
       if (rand.nextDouble() < 0.4) {
-        final veinPaint = Paint()..color = Colors.red.withOpacity(0.5)..strokeWidth = 1..style = PaintingStyle.stroke;
+        final veinPaint = Paint()..color = Colors.red.withValues(alpha: 0.5)..strokeWidth = 1..style = PaintingStyle.stroke;
         int numVeins = rand.nextInt(5);
         for(int v=0; v<numVeins; v++) {
           Path p = Path()..moveTo(cx + cos(rand.nextDouble()*2*pi)*r, cy + sin(rand.nextDouble()*2*pi)*r);
@@ -201,19 +204,19 @@ class PigeonPainterPack4 extends CustomPainter {
       canvas.drawCircle(irisCenter, pupilR, Paint()..color = Colors.black);
       
       // Highlight
-      canvas.drawCircle(irisCenter + Offset(-irisR * 0.3, -irisR * 0.3), irisR * 0.2, Paint()..color = Colors.white.withOpacity(0.8));
+      canvas.drawCircle(irisCenter + Offset(-irisR * 0.3, -irisR * 0.3), irisR * 0.2, Paint()..color = Colors.white.withValues(alpha: 0.8));
     }
   }
 
   void _drawDragonScales(Canvas canvas, Size size, Random rand) {
     canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF0F1A12));
     final colors = [
-      const Color(0xFF1B4332).withOpacity(0.9),
-      const Color(0xFF2D6A4F).withOpacity(0.9),
-      const Color(0xFF40916C).withOpacity(0.9),
-      const Color(0xFF52B788).withOpacity(0.9),
-      const Color(0xFF74C69D).withOpacity(0.9),
-      const Color(0xFFFFD700).withOpacity(0.5), // rare gold
+      const Color(0xFF1B4332).withValues(alpha: 0.9),
+      const Color(0xFF2D6A4F).withValues(alpha: 0.9),
+      const Color(0xFF40916C).withValues(alpha: 0.9),
+      const Color(0xFF52B788).withValues(alpha: 0.9),
+      const Color(0xFF74C69D).withValues(alpha: 0.9),
+      const Color(0xFFFFD700).withValues(alpha: 0.5), // rare gold
     ];
     
     double scaleWidth = 30.0;

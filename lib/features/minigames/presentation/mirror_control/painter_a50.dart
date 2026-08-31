@@ -31,8 +31,8 @@ class GamePainterA50 extends CustomPainter {
         shard.close();
         // Slow shifting pulse
         double op = 0.1 + math.sin(engine.time + i)*0.1;
-        canvas.drawPath(shard, Paint()..color=colors[i%colors.length].withOpacity(op.abs()));
-        canvas.drawPath(shard, Paint()..color=Colors.white.withOpacity(0.2)..style=PaintingStyle.stroke..strokeWidth=2);
+        canvas.drawPath(shard, Paint()..color=colors[i%colors.length].withValues(alpha: op.abs()));
+        canvas.drawPath(shard, Paint()..color=Colors.white.withValues(alpha: 0.2)..style=PaintingStyle.stroke..strokeWidth=2);
     }
     
 
@@ -44,7 +44,7 @@ class GamePainterA50 extends CustomPainter {
       double py = ((i * 120) - engine.time * 80) % GameEngine.fieldSize;
       if (py < 0) py += GameEngine.fieldSize;
       canvas.save(); canvas.translate(px, py); canvas.rotate(engine.time + i);
-      canvas.drawRect(const Rect.fromLTWH(-5, -10, 10, 20), Paint()..color=Colors.white.withOpacity(0.6));
+      canvas.drawRect(const Rect.fromLTWH(-5, -10, 10, 20), Paint()..color=Colors.white.withValues(alpha: 0.6));
       canvas.restore();
     }
     
@@ -54,7 +54,7 @@ class GamePainterA50 extends CustomPainter {
     for (int i = 0; i < engine.obstacles.length; i++) {
       final obs = engine.obstacles[i];
       // Standing Mirrors
-      canvas.drawRect(obs.shift(const Offset(0, 20)), Paint()..color=Colors.white.withOpacity(0.2)); // reflection
+      canvas.drawRect(obs.shift(const Offset(0, 20)), Paint()..color=Colors.white.withValues(alpha: 0.2)); // reflection
       canvas.drawRect(obs, Paint()..color=const Color(0xFFCFD8DC)); // mirror glass
       canvas.drawRect(obs, Paint()..color=const Color(0xFF455A64)..style=PaintingStyle.stroke..strokeWidth=4); // dark frame
       // Diagonal glare
@@ -70,7 +70,7 @@ class GamePainterA50 extends CustomPainter {
       double floatOffset = math.sin(engine.time * 4 + i) * 5;
 
       final isNext = i == engine.currentTargetIndex;
-      canvas.drawOval(Rect.fromCenter(center: target + const Offset(0, 15), width: tr*1.5, height: tr*0.8), Paint()..color=Colors.white.withOpacity(0.2));
+      canvas.drawOval(Rect.fromCenter(center: target + const Offset(0, 15), width: tr*1.5, height: tr*0.8), Paint()..color=Colors.white.withValues(alpha: 0.2));
       canvas.save(); canvas.translate(target.dx, target.dy - floatOffset);
       if (isNext) {
           // The Ultimate Core (Mandala)
@@ -81,7 +81,7 @@ class GamePainterA50 extends CustomPainter {
           }
           canvas.restore();
           canvas.drawCircle(Offset.zero, 12, Paint()..color=Colors.white);
-          canvas.drawCircle(Offset.zero, tr*3, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*3, [Colors.white.withOpacity(0.7), Colors.transparent]));
+          canvas.drawCircle(Offset.zero, tr*3, Paint()..shader = ui.Gradient.radial(Offset.zero, tr*3, [Colors.white.withValues(alpha: 0.7), Colors.transparent]));
       } else {
           // Shattered dark core
           canvas.drawCircle(Offset.zero, 10, Paint()..color=Colors.black);
@@ -100,7 +100,7 @@ class GamePainterA50 extends CustomPainter {
       // The final portal - pulsating white hole
       double pulse = 20 + math.sin(engine.time * 10) * 10;
       canvas.drawCircle(center, pulse, Paint()..color=Colors.white);
-      canvas.drawCircle(center, 40, Paint()..shader = ui.Gradient.radial(center, 40, [Colors.white.withOpacity(0.8), Colors.transparent]));
+      canvas.drawCircle(center, 40, Paint()..shader = ui.Gradient.radial(center, 40, [Colors.white.withValues(alpha: 0.8), Colors.transparent]));
     
     }
 
@@ -111,23 +111,23 @@ class GamePainterA50 extends CustomPainter {
       if (engine.chaserInWall) {
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
-          final eyeGlow = Paint()..color = Colors.red.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
       } else {
-          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withOpacity(0.35));
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
           if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
              double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
-             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withOpacity(0.3));
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
           }
           canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
           if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
           canvas.translate(0, math.sin(engine.time * 6) * 4); 
           
           Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
-              ? (Paint()..color=Colors.grey.withOpacity(0.5)) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
               : Paint();
               
           canvas.drawImageRect(images!['enemy']!, 
@@ -142,13 +142,13 @@ class GamePainterA50 extends CustomPainter {
     // 6. UNIFIED PLAYER IDENTITY
     // ==========================================
     if (images != null && images!['player'] != null) {
-      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withOpacity(0.35));
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
       
       double vLen = engine.playerVelocity.distance;
       if (vLen > 0) {
         canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
         canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
-        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withOpacity(0.5));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
         canvas.restore();
       }
       

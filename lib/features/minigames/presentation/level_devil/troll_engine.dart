@@ -215,9 +215,7 @@ class RunningDoorTrap extends TrollTrap {
 
   @override
   void update(TrollEngine engine, double dt) {
-    if (_cachedDoor == null) {
-      _cachedDoor = engine.entities.where((e) => e.id == doorId).firstOrNull;
-    }
+    _cachedDoor ??= engine.entities.where((e) => e.id == doorId).firstOrNull;
     var door = _cachedDoor;
     if (door == null) return;
 
@@ -268,7 +266,7 @@ class FakeSolidTrap extends TrollTrap {
       triggered = true;
       for (var block in _cachedEntities!) {
         block.isSolid = false;
-        block.color = block.color.withOpacity(0.3); // Reveal the fake!
+        block.color = block.color.withValues(alpha: 0.3); // Reveal the fake!
       }
     }
   }
@@ -287,9 +285,7 @@ class ErraticPatrolSpikeTrap extends TrollTrap {
 
   @override
   void update(TrollEngine engine, double dt) {
-    if (_cachedSpike == null) {
-      _cachedSpike = engine.entities.where((e) => e.id == spikeId).firstOrNull;
-    }
+    _cachedSpike ??= engine.entities.where((e) => e.id == spikeId).firstOrNull;
     var spike = _cachedSpike;
     if (spike == null) return;
     
@@ -385,9 +381,7 @@ class TrollSpringTrap extends TrollTrap {
 
   @override
   void update(TrollEngine engine, double dt) {
-    if (_spring == null) {
-      _spring = engine.entities.where((e) => e.id == springId).firstOrNull;
-    }
+    _spring ??= engine.entities.where((e) => e.id == springId).firstOrNull;
     var s = _spring;
     if (s == null) return;
 
@@ -413,9 +407,7 @@ class AggressiveDoorTrap extends TrollTrap {
 
   @override
   void update(TrollEngine engine, double dt) {
-    if (_door == null) {
-      _door = engine.entities.where((e) => e.id == doorId).firstOrNull;
-    }
+    _door ??= engine.entities.where((e) => e.id == doorId).firstOrNull;
     var d = _door;
     if (d == null) return;
 
@@ -440,9 +432,7 @@ class SpotlightToggleTrap extends TrollTrap {
 
   @override
   void update(TrollEngine engine, double dt) {
-    if (_trigger == null) {
-      _trigger = engine.entities.where((e) => e.id == triggerId).firstOrNull;
-    }
+    _trigger ??= engine.entities.where((e) => e.id == triggerId).firstOrNull;
     var t = _trigger;
     if (t == null) return;
 
@@ -463,9 +453,7 @@ class TimeFreezeToggleTrap extends TrollTrap {
 
   @override
   void update(TrollEngine engine, double dt) {
-    if (_trigger == null) {
-      _trigger = engine.entities.where((e) => e.id == triggerId).firstOrNull;
-    }
+    _trigger ??= engine.entities.where((e) => e.id == triggerId).firstOrNull;
     var t = _trigger;
     if (t == null) return;
 
@@ -721,11 +709,11 @@ class TrollEngine {
       ));
     }
 
-    void addReverseControls(int col) {
-      traps.add(ReverseControlsTrap(
-        RectD(col * gs, 8 * gs, 2 * gs, 8 * gs) // Trigger is tall so you can't jump over it
-      ));
-    }
+// deleted
+// deleted
+// deleted
+// deleted
+// deleted
 
     void addErraticSpike(int col) {
       grid[12][col] = 's'; 
@@ -794,8 +782,11 @@ class TrollEngine {
       }
       addRunningDoor(10, 0);
     } else if (id >= 10 && id <= 12) {
-      if (id == 11) isSpotlightLevel = true; // dark start
-      else isSpotlightLevel = false;
+      if (id == 11) {
+        isSpotlightLevel = true; // dark start
+      } else {
+        isSpotlightLevel = false;
+      }
       if (id == 12) { isWrapLevel = true; isSpotlightLevel = false; }
       currentCol = 15;
       for (int trapCount = 0; trapCount < 3; trapCount++) {
@@ -930,7 +921,9 @@ class TrollEngine {
          for (int i=0; i<gap; i++) { grid[13][currentCol+i] = '.'; grid[14][currentCol+i] = '.'; }
          currentCol += gap;
          
-         for (int i=0; i<4; i++) grid[13][currentCol+i] = 'X';
+         for (int i=0; i<4; i++) {
+           grid[13][currentCol+i] = 'X';
+         }
          if (id >= 35) addErraticSpike(currentCol);
          if (id == 36) addFallingFloor(currentCol, 4, immediate: true);
          currentCol += 8;
@@ -947,7 +940,9 @@ class TrollEngine {
          if (id == 39) { grid[10][currentCol+10] = 'X'; grid[11][currentCol+10] = 'X'; }
          
          currentCol += gap;
-         for (int i=0; i<4; i++) grid[13][currentCol+i] = 'X';
+         for (int i=0; i<4; i++) {
+           grid[13][currentCol+i] = 'X';
+         }
          currentCol += 6;
       }
       addRunningDoor(10, 0);
@@ -955,7 +950,9 @@ class TrollEngine {
       isTinyLevel = true;
       currentCol = 15;
       for (int trapCount = 0; trapCount < 3; trapCount++) {
-         for (int r = 10; r <= 12; r++) grid[r][currentCol] = 'X';
+         for (int r = 10; r <= 12; r++) {
+           grid[r][currentCol] = 'X';
+         }
          grid[12][currentCol] = '.'; 
          currentCol += 4;
          
@@ -973,7 +970,9 @@ class TrollEngine {
          for (int i=0; i<gap; i++) { grid[13][currentCol+i] = '.'; grid[14][currentCol+i] = '.'; }
          currentCol += gap;
          
-         for (int i=0; i<10; i++) grid[13][currentCol+i] = 'X'; 
+         for (int i=0; i<10; i++) {
+           grid[13][currentCol+i] = 'X';
+         } 
          if (id >= 44) addFallingFloor(currentCol, 10, immediate: true);
          if (id == 45) grid[12][currentCol + 6] = 's'; 
          currentCol += 11;
@@ -987,7 +986,9 @@ class TrollEngine {
          for (int i=0; i<gap; i++) { grid[13][currentCol+i] = '.'; grid[14][currentCol+i] = '.'; }
          currentCol += gap;
          
-         for (int i=0; i<4; i++) grid[13][currentCol+i] = 'X';
+         for (int i=0; i<4; i++) {
+           grid[13][currentCol+i] = 'X';
+         }
          if (id >= 47) addJumpTriggeredDrop(currentCol, 2);
          if (id == 48) addErraticSpike(currentCol);
          currentCol += 6;
@@ -1001,7 +1002,9 @@ class TrollEngine {
          for (int i=0; i<gap; i++) { grid[13][currentCol+i] = '.'; grid[14][currentCol+i] = '.'; }
          currentCol += gap;
          
-         for (int i=0; i<8; i++) grid[13][currentCol+i] = 'X'; 
+         for (int i=0; i<8; i++) {
+           grid[13][currentCol+i] = 'X';
+         } 
          if (id >= 50) grid[12][currentCol + 3] = 's'; 
          if (id == 51) grid[12][currentCol + 6] = 's'; 
          currentCol += 10;
@@ -1015,7 +1018,9 @@ class TrollEngine {
          for (int i=0; i<gap; i++) { grid[13][currentCol+i] = '.'; grid[14][currentCol+i] = '.'; }
          currentCol += gap;
          
-         for (int i=0; i<6; i++) grid[13][currentCol+i] = 'X'; 
+         for (int i=0; i<6; i++) {
+           grid[13][currentCol+i] = 'X';
+         } 
          if (id >= 53) grid[12][currentCol + 2] = 's'; 
          if (id == 54) grid[12][currentCol + 4] = 's'; 
          currentCol += 8;
@@ -1029,7 +1034,9 @@ class TrollEngine {
          for (int i=0; i<gap; i++) { grid[13][currentCol+i] = '.'; grid[14][currentCol+i] = '.'; }
          currentCol += gap;
          
-         for (int i=0; i<5; i++) grid[13][currentCol+i] = 'X';
+         for (int i=0; i<5; i++) {
+           grid[13][currentCol+i] = 'X';
+         }
          if (id >= 56) grid[12][currentCol + 2] = 's'; 
          if (id == 57) grid[12][currentCol + 4] = 's'; 
          currentCol += 7;
@@ -1076,14 +1083,14 @@ class TrollEngine {
         
         if (char == 'S') { // Troll Spring
           entities.add(TrollEntity(
-            id: 'S_${row}_${col}', type: TrollEntityType.block,
+            id: 'S_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x, y + 20, gs, gs - 20),
             color: const Color(0xFF00FF00), // Bright green
             isSolid: true, // Acts as a block at first
           ));
         } else if (char == 'A') { // Aggressive Door
           entities.add(TrollEntity(
-            id: 'A_${row}_${col}', type: TrollEntityType.door,
+            id: 'A_${row}_$col', type: TrollEntityType.door,
             rect: RectD(x, y - 20, gs, gs + 20),
             color: const Color(0xFFFFD700), // Looks like a door!
             isSolid: false,
@@ -1096,38 +1103,38 @@ class TrollEngine {
           );
         } else if (char == 'r') {
           entities.add(TrollEntity(
-            id: 'r_${row}_${col}', type: TrollEntityType.block,
+            id: 'r_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x, y, gs, gs), isSolid: false, isVisible: false
           ));
         } else if (char == 'L') {
           entities.add(TrollEntity(
-            id: 'L_${row}_${col}', type: TrollEntityType.block,
+            id: 'L_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x + 15, y - 3 * gs, 10, 4 * gs),
             color: const Color(0x66FFFFFF),
             isSolid: false, isVisible: true
           ));
         } else if (char == 'T') {
           entities.add(TrollEntity(
-            id: 'T_${row}_${col}', type: TrollEntityType.block,
+            id: 'T_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x + 15, y - 3 * gs, 10, 4 * gs),
             color: const Color(0x6600AAFF),
             isSolid: false, isVisible: true
           ));
         } else if (char == '>') {
           entities.add(TrollEntity(
-            id: 'b_${row}_${col}', type: TrollEntityType.block,
+            id: 'b_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x, y, gs, gs),
             color: const Color(0xFF00FF00),
           ));
         } else if (char == '<') {
           entities.add(TrollEntity(
-            id: 'b_${row}_${col}', type: TrollEntityType.block,
+            id: 'b_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x, y, gs, gs),
             color: const Color(0xFFFF0000),
           ));
         } else if (char == 'b') { // Hidden wall block
           entities.add(TrollEntity(
-            id: 'b_${row}_${col}', type: TrollEntityType.block,
+            id: 'b_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x, y, gs, gs),
             color: const Color(0xFF333333),
             isSolid: false,
@@ -1135,13 +1142,13 @@ class TrollEngine {
           ));
         } else if (char == 'X') {
           entities.add(TrollEntity(
-            id: 'b_${row}_${col}', type: TrollEntityType.block,
+            id: 'b_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x, y, gs, gs),
             color: const Color(0xFF2C2F33),
           ));
         } else if (char == 'W') { // Hidden wall block
           entities.add(TrollEntity(
-            id: 'b_${row}_${col}', type: TrollEntityType.block,
+            id: 'b_${row}_$col', type: TrollEntityType.block,
             rect: RectD(x, y, gs, gs),
             color: const Color(0xFF333333),
             isSolid: false,
@@ -1149,7 +1156,7 @@ class TrollEngine {
           ));
         } else if (char == 'h') { // Hidden spike on ground
           entities.add(TrollEntity(
-            id: 's_${row}_${col}', type: TrollEntityType.spike,
+            id: 's_${row}_$col', type: TrollEntityType.spike,
             rect: RectD(x, y + 20, gs, gs - 20), // Short spike
             color: const Color(0xFFFF3366),
             isSolid: false,
@@ -1157,14 +1164,14 @@ class TrollEngine {
           ));
         } else if (char == 's') { // Normal visible spike on ground
           entities.add(TrollEntity(
-            id: 's_${row}_${col}', type: TrollEntityType.spike,
+            id: 's_${row}_$col', type: TrollEntityType.spike,
             rect: RectD(x, y + 20, gs, gs - 20), // Short spike
             color: const Color(0xFFFF3366),
             isSolid: false,
           ));
         } else if (char == 'v') { // Inverted spike under ceiling
           entities.add(TrollEntity(
-            id: 's_${row}_${col}', type: TrollEntityType.spike,
+            id: 's_${row}_$col', type: TrollEntityType.spike,
             rect: RectD(x, y, gs, gs - 20),
             color: const Color(0xFFFF3366),
             isSolid: false,
@@ -1188,7 +1195,7 @@ class TrollEngine {
     final double maxFallSpeed = 900.0;
     
     // Camera Logic
-    if (player != null && !isDead) {
+    if ( !isDead) {
       double targetCameraX = player.rect.x - logicalWidth / 2 + player.rect.w / 2;
       if (targetCameraX < 0) targetCameraX = 0;
       if (targetCameraX > maxMapWidth - logicalWidth) targetCameraX = maxMapWidth - logicalWidth;

@@ -52,7 +52,7 @@ class _GameLauncherState extends State<GameLauncher> {
             top: 20,
             left: 20,
             child: FloatingActionButton(
-              backgroundColor: Colors.white.withOpacity(0.1),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
               elevation: 0,
               child: const Icon(Icons.close, color: Colors.white),
               onPressed: () => setState(() => _isPlaying = false),
@@ -75,7 +75,7 @@ class _GameLauncherState extends State<GameLauncher> {
             )),
             const SizedBox(height: 10),
             Text('CHOOSE A STAGE', style: TextStyle(
-              color: Colors.white.withOpacity(0.5), 
+              color: Colors.white.withValues(alpha: 0.5), 
               fontSize: 16, 
               letterSpacing: 4,
             )),
@@ -121,11 +121,11 @@ class _GameLauncherState extends State<GameLauncher> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
         decoration: BoxDecoration(
-          color: const Color(0xFF00FFCC).withOpacity(0.1),
+          color: const Color(0xFF00FFCC).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: const Color(0xFF00FFCC), width: 2),
           boxShadow: [
-            BoxShadow(color: const Color(0xFF00FFCC).withOpacity(0.1), blurRadius: 10)
+            BoxShadow(color: const Color(0xFF00FFCC).withValues(alpha: 0.1), blurRadius: 10)
           ]
         ),
         child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),

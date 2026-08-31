@@ -14,7 +14,7 @@ class Puzzle26 extends PuzzleDefinition {
   void drawBaseScene(HtmlCanvas c) {
     
     final sky = c.createLinearGradient(0,0,0,600);
-    sky..addColorStop(0, '#5baad4'); sky..addColorStop(1, '#a4b4c0');
+    sky.addColorStop(0, '#5baad4'); sky.addColorStop(1, '#a4b4c0');
     c.fillStyle = sky; c.fillRect(0,0,800,600);
     c.fillStyle = '#fff';
     for(double i=0.0; i<8; i++) {

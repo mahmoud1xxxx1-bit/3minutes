@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
 import 'dart:ui';
 import '../../../../core/random/deterministic_rng.dart';
 
@@ -293,8 +294,9 @@ class GameEngine {
         bool fromTop = pos.dy <= expanded.top;
         bool fromBottom = pos.dy >= expanded.bottom;
 
-        if (fromLeft) newPos = Offset(expanded.left, newPos.dy);
-        else if (fromRight) newPos = Offset(expanded.right, newPos.dy);
+        if (fromLeft) {
+          newPos = Offset(expanded.left, newPos.dy);
+        } else if (fromRight) newPos = Offset(expanded.right, newPos.dy);
         else if (fromTop) newPos = Offset(newPos.dx, expanded.top);
         else if (fromBottom) newPos = Offset(newPos.dx, expanded.bottom);
       }

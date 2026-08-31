@@ -33,7 +33,7 @@ class GamePainterA102 extends CustomPainter {
         double r = (engine.time * 50 + i * 40) % 1000;
         double angle = r * 0.01 + engine.time;
         final swirlPaint = Paint()
-            ..color = HSVColor.fromAHSV(1.0, (angle * 40) % 360, 1.0, 1.0 - (r/1000)).toColor().withOpacity(0.4)
+            ..color = HSVColor.fromAHSV(1.0, (angle * 40) % 360, 1.0, 1.0 - (r/1000)).toColor().withValues(alpha: 0.4)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2 + (r/100);
         canvas.drawArc(Rect.fromCircle(center: center, radius: r), angle, math.pi/2, false, swirlPaint);
@@ -41,7 +41,7 @@ class GamePainterA102 extends CustomPainter {
     }
     
     // Stretched light rays
-    final rayPaint = Paint()..color = Colors.white.withOpacity(0.3)..style = PaintingStyle.stroke;
+    final rayPaint = Paint()..color = Colors.white.withValues(alpha: 0.3)..style = PaintingStyle.stroke;
     for(int i=0; i<20; i++) {
         double a = rnd.nextDouble() * math.pi * 2 + engine.time * 0.5 * (i%2==0?1:-1);
         canvas.drawLine(
@@ -58,7 +58,7 @@ class GamePainterA102 extends CustomPainter {
         final obs = engine.obstacles[i];
         
         // Shadow (glow actually)
-        canvas.drawRect(obs.inflate(5), Paint()..color=const Color(0xFF9400D3).withOpacity(0.5)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3)); 
+        canvas.drawRect(obs.inflate(5), Paint()..color=const Color(0xFF9400D3).withValues(alpha: 0.5)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3)); 
         
         // Crystalline Space debris
         final gradPaint = Paint()..shader = ui.Gradient.linear(
@@ -67,7 +67,7 @@ class GamePainterA102 extends CustomPainter {
         );
         canvas.drawRect(obs, gradPaint);
         
-        canvas.drawRect(obs.deflate(2), Paint()..color=Colors.white.withOpacity(0.2)..style=PaintingStyle.stroke..strokeWidth=1);
+        canvas.drawRect(obs.deflate(2), Paint()..color=Colors.white.withValues(alpha: 0.2)..style=PaintingStyle.stroke..strokeWidth=1);
     }
 
     // ==========================================
@@ -81,15 +81,15 @@ class GamePainterA102 extends CustomPainter {
         if (isActive) {
             double p = 1.0 + math.sin(engine.time*8)*0.2;
             // Active glow - DO NOT MODIFY
-            canvas.drawCircle(target, 35*p, Paint()..color=Colors.amber.withOpacity(0.6)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
-            canvas.drawCircle(target, 20*p, Paint()..color=Colors.white.withOpacity(0.8)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 5));
+            canvas.drawCircle(target, 35*p, Paint()..color=Colors.amber.withValues(alpha: 0.6)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
+            canvas.drawCircle(target, 20*p, Paint()..color=Colors.white.withValues(alpha: 0.8)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 5));
         }
         
-        canvas.saveLayer(Rect.fromCenter(center: target, width: 80, height: 80), Paint()..color=Colors.white.withOpacity(isActive ? 1.0 : 0.3));
+        canvas.saveLayer(Rect.fromCenter(center: target, width: 80, height: 80), Paint()..color=Colors.white.withValues(alpha: isActive ? 1.0 : 0.3));
         
         // Mini wormhole target
         for (int j=0; j<3; j++) {
-            canvas.drawCircle(target, 15 - j*4.0, Paint()..color=HSVColor.fromAHSV(1.0, (engine.time*100 + j*50)%360, 1.0, 1.0).toColor().withOpacity(0.8)..style=PaintingStyle.stroke..strokeWidth=2);
+            canvas.drawCircle(target, 15 - j*4.0, Paint()..color=HSVColor.fromAHSV(1.0, (engine.time*100 + j*50)%360, 1.0, 1.0).toColor().withValues(alpha: 0.8)..style=PaintingStyle.stroke..strokeWidth=2);
         }
         canvas.drawCircle(target, 5, Paint()..color=Colors.white);
         
@@ -101,8 +101,8 @@ class GamePainterA102 extends CustomPainter {
     // ==========================================
     if (engine.exitGate != null) {
         final r = 45.0 + math.sin(engine.time*10)*5;
-        canvas.drawCircle(engine.exitGate!, r, Paint()..color=Colors.cyanAccent.withOpacity(0.8)..style=PaintingStyle.stroke..strokeWidth=8..maskFilter=const MaskFilter.blur(BlurStyle.normal, 5));
-        canvas.drawCircle(engine.exitGate!, r-10, Paint()..color=Colors.purpleAccent.withOpacity(0.8)..style=PaintingStyle.stroke..strokeWidth=4);
+        canvas.drawCircle(engine.exitGate!, r, Paint()..color=Colors.cyanAccent.withValues(alpha: 0.8)..style=PaintingStyle.stroke..strokeWidth=8..maskFilter=const MaskFilter.blur(BlurStyle.normal, 5));
+        canvas.drawCircle(engine.exitGate!, r-10, Paint()..color=Colors.purpleAccent.withValues(alpha: 0.8)..style=PaintingStyle.stroke..strokeWidth=4);
     }
 
     // ==========================================
@@ -112,23 +112,23 @@ class GamePainterA102 extends CustomPainter {
       if (engine.chaserInWall) {
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
           canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
-          final eyeGlow = Paint()..color = Colors.red.withOpacity(0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
           canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
           canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
       } else {
-          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withOpacity(0.35));
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
           if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
              double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
-             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withOpacity(0.3));
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
           }
           canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
           if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
           canvas.translate(0, math.sin(engine.time * 6) * 4); 
           
           Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
-              ? (Paint()..color=Colors.grey.withOpacity(0.5)) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
               : Paint();
               
           canvas.drawImageRect(images!['enemy']!, 
@@ -143,13 +143,13 @@ class GamePainterA102 extends CustomPainter {
     // 6. UNIFIED PLAYER IDENTITY
     // ==========================================
     if (images != null && images!['player'] != null) {
-      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withOpacity(0.35));
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
       
       double vLen = engine.playerVelocity.distance;
       if (vLen > 0) {
         canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
         canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
-        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withOpacity(0.5));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
         canvas.restore();
       }
       

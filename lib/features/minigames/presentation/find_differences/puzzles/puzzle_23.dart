@@ -22,7 +22,7 @@ class Puzzle23 extends PuzzleDefinition {
   void drawBaseScene(HtmlCanvas c) {
     
     final bg = c.createRadialGradient(400, 0, 100, 400, 600, 800);
-    bg..addColorStop(0, '#5baad4'); bg..addColorStop(1, '#081322');
+    bg.addColorStop(0, '#5baad4'); bg.addColorStop(1, '#081322');
     c.fillStyle = bg; c.fillRect(0,0,800,600);
     c.fillStyle = 'rgba(255,255,255,0.05)';
     for(double a=math.pi/4; a<math.pi*3/4; a+=math.pi/12) {
@@ -32,8 +32,12 @@ class Puzzle23 extends PuzzleDefinition {
     c.fillStyle = '#2b4f60';
     c.beginPath(); c.arc(100, 550, 80, 0, math.pi*2); c.fill();
     c.beginPath(); c.arc(700, 520, 120, 0, math.pi*2); c.fill();
-    for(double i=0.0; i<5; i++) drawTubeCoral(c, 50+i*20, 500+i*10, '#c15886', 15, 80+i*20);
-    for(double i=0.0; i<8; i++) drawTubeCoral(c, 600+i*20, 450-i*5, '#ffaa00', 12, 100-i*10);
+    for(double i=0.0; i<5; i++) {
+      drawTubeCoral(c, 50+i*20, 500+i*10, '#c15886', 15, 80+i*20);
+    }
+    for(double i=0.0; i<8; i++) {
+      drawTubeCoral(c, 600+i*20, 450-i*5, '#ffaa00', 12, 100-i*10);
+    }
     c.fillStyle = '#8a2b3b'; c.beginPath(); c.arc(200, 500, 50, 0, math.pi*2); c.fill();
     c.strokeStyle = '#ff55a3'; c.lineWidth = 4;
     for(double i=0.0; i<20; i++) {

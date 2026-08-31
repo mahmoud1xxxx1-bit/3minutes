@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures, non_constant_identifier_names, empty_catches, library_private_types_in_public_api, no_leading_underscores_for_local_identifiers
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
@@ -190,6 +191,4 @@ class GamePainterA29Bee extends CustomPainter {
   bool shouldRepaint(covariant GamePainterA29Bee oldDelegate) => true;
 }
 
-extension on Color {
-  Paint get paint => Paint()..color = this;
-}
+

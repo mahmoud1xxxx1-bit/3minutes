@@ -256,7 +256,7 @@ class PigeonPainterPack11 extends CustomPainter {
 
       // Glow
       final glowPaint = Paint()
-        ..color = glowColor.withOpacity(0.8)
+        ..color = glowColor.withValues(alpha: 0.8)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
       canvas.drawCircle(Offset.zero, w / 3, glowPaint);
 
@@ -334,7 +334,7 @@ class PigeonPainterPack11 extends CustomPainter {
       stripePath.lineTo(-radius * 0.4, 0);
       stripePath.quadraticBezierTo(0, -radius * 0.1, radius * 0.4, 0);
       stripePath.close();
-      canvas.drawPath(stripePath, Paint()..color = color2.withOpacity(0.5)..style = PaintingStyle.fill);
+      canvas.drawPath(stripePath, Paint()..color = color2.withValues(alpha: 0.5)..style = PaintingStyle.fill);
 
       // Top point
       canvas.drawCircle(Offset(0, -radius / 2 - 2), 2, handlePaint..style = PaintingStyle.fill);
@@ -369,7 +369,7 @@ class PigeonPainterPack11 extends CustomPainter {
       canvas.rotate(angle);
 
       final paint = Paint()
-        ..color = color.withOpacity(0.8)
+        ..color = color.withValues(alpha: 0.8)
         ..style = PaintingStyle.stroke
         ..strokeWidth = rand.nextDouble() * 1.5 + 0.5
         ..strokeCap = StrokeCap.round;

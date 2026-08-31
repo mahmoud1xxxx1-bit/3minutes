@@ -12,7 +12,7 @@ class Puzzle08 extends PuzzleDefinition {
   void drawBaseScene(HtmlCanvas c) {
     
     final grad = c.createLinearGradient(0,0,0,450);
-    grad..addColorStop(0, '#c7d6d1'); grad..addColorStop(1, '#e8efe9');
+    grad.addColorStop(0, '#c7d6d1'); grad.addColorStop(1, '#e8efe9');
     c.fillStyle = grad; c.fillRect(0,0,800,450);
     c.fillStyle = '#a5b2bc'; c.fillRect(0,450,800,150);
     c.strokeStyle = '#94a2ac'; c.lineWidth = 2;
@@ -29,7 +29,7 @@ class Puzzle08 extends PuzzleDefinition {
     c.strokeStyle = '#e2e2e2'; c.lineWidth = 15; c.strokeRect(40, 40, 220, 200); 
     c.lineWidth = 8; c.beginPath(); c.moveTo(40, 140); c.lineTo(260, 140); c.moveTo(150, 40); c.lineTo(150, 240); c.stroke();
     final oxG = c.createLinearGradient(700, 0, 750, 0);
-    oxG..addColorStop(0, '#4c8f5e'); oxG..addColorStop(1, '#2b4f60');
+    oxG.addColorStop(0, '#4c8f5e'); oxG.addColorStop(1, '#2b4f60');
     c.fillStyle = oxG; c.beginPath(); c.roundRect(700, 250, 50, 200, 20); c.fill();
     c.fillStyle = '#a4b4c0'; c.fillRect(715, 220, 20, 30); 
     c.fillStyle = '#fff'; c.beginPath(); c.arc(725, 230, 12, 0, math.pi*2); c.fill(); 
@@ -67,7 +67,7 @@ class Puzzle08 extends PuzzleDefinition {
     c.fillStyle = '#fff'; c.beginPath(); c.roundRect(255, 310, 80, 40, 15); c.fill(); 
     c.fillStyle = '#f0f0f0'; c.beginPath(); c.roundRect(265, 320, 70, 30, 15); c.fill(); 
     final blG = c.createLinearGradient(350, 0, 600, 0);
-    blG..addColorStop(0, '#5baad4'); blG..addColorStop(1, '#3b8ab4');
+    blG.addColorStop(0, '#5baad4'); blG.addColorStop(1, '#3b8ab4');
     c.fillStyle = blG; c.beginPath(); c.roundRect(350, 330, 250, 65, 10); c.fill(); 
     c.strokeStyle = '#c0c8c3'; c.lineWidth = 6;
     c.beginPath(); c.moveTo(370, 310); c.lineTo(530, 310); c.stroke();
@@ -134,7 +134,7 @@ class Puzzle08 extends PuzzleDefinition {
       (HtmlCanvas c) {
         
         final blG = c.createLinearGradient(350, 0, 600, 0);
-        blG..addColorStop(0, '#5baad4'); blG..addColorStop(1, '#3b8ab4');
+        blG.addColorStop(0, '#5baad4'); blG.addColorStop(1, '#3b8ab4');
         c.fillStyle = blG; c.fillRect(435, 315, 10, 30);
     
       }
