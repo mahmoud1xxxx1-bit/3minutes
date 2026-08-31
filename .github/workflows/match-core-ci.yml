@@ -11,6 +11,7 @@ on:
       - 'lib/features/match/data/match_backend.dart'
       - 'lib/features/match/data/cloud_functions_match_backend.dart'
       - 'lib/features/match/presentation/game_selection_panel.dart'
+      - 'lib/features/match/presentation/matchmaking_screen.dart'
       - 'lib/features/match/presentation/match_room_screen.dart'
       - 'lib/features/match/presentation/match_play_screen.dart'
       - 'lib/features/match/presentation/match_rules_sheet.dart'
@@ -61,6 +62,7 @@ jobs:
           lib/features/match/data/match_backend.dart
           lib/features/match/data/cloud_functions_match_backend.dart
           lib/features/match/presentation/game_selection_panel.dart
+          lib/features/match/presentation/matchmaking_screen.dart
           lib/features/match/presentation/match_room_screen.dart
           lib/features/match/presentation/match_play_screen.dart
           lib/features/match/presentation/match_rules_sheet.dart
