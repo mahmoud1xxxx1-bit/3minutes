@@ -61,7 +61,7 @@ class MiniGameHost extends StatelessWidget {
           onComplete: _complete,
         );
       case 'mirror_control':
-        return MirrorControlMinigame(
+        return MirrorControlMiniGame(
           key: _runtimeKey,
           config: config,
           onComplete: _complete,
