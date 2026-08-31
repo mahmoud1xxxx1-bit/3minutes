@@ -29,16 +29,16 @@ class MatchOutcomeResolver {
           : MatchOutcome.playerB;
     }
 
-    final accuracyCompare =
-        playerA.averageAccuracy.compareTo(playerB.averageAccuracy);
-    if (accuracyCompare != 0) {
-      return accuracyCompare > 0 ? MatchOutcome.playerA : MatchOutcome.playerB;
-    }
-
     if (playerA.totalScore != playerB.totalScore) {
       return playerA.totalScore > playerB.totalScore
           ? MatchOutcome.playerA
           : MatchOutcome.playerB;
+    }
+
+    final accuracyCompare =
+        playerA.averageAccuracy.compareTo(playerB.averageAccuracy);
+    if (accuracyCompare != 0) {
+      return accuracyCompare > 0 ? MatchOutcome.playerA : MatchOutcome.playerB;
     }
 
     if (playerA.mistakes != playerB.mistakes) {

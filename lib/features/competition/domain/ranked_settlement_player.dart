@@ -10,6 +10,7 @@ class RankedSettlementPlayer {
     required this.nextTier,
     required this.xpAwarded,
     required this.coinsAwarded,
+    this.wagerPayoutCoins = 0,
   });
 
   final String uid;
@@ -20,7 +21,9 @@ class RankedSettlementPlayer {
   final RankTier nextTier;
   final int xpAwarded;
   final int coinsAwarded;
+  final int wagerPayoutCoins;
 
+  int get totalCoinsReceived => coinsAwarded + wagerPayoutCoins;
   bool get promoted => nextTier.index > previousTier.index;
   bool get demoted => nextTier.index < previousTier.index;
 
@@ -41,6 +44,7 @@ class RankedSettlementPlayer {
     final rpDelta = (data['rpDelta'] as num?)?.toInt();
     final xpAwarded = (data['xpAwarded'] as num?)?.toInt();
     final coinsAwarded = (data['coinsAwarded'] as num?)?.toInt();
+    final wagerPayoutCoins = (data['wagerPayoutCoins'] as num?)?.toInt() ?? 0;
     if (previousRp == null ||
         nextRp == null ||
         rpDelta == null ||
@@ -50,6 +54,7 @@ class RankedSettlementPlayer {
         nextRp < 0 ||
         xpAwarded < 0 ||
         coinsAwarded < 0 ||
+        wagerPayoutCoins < 0 ||
         nextRp - previousRp != rpDelta) {
       return null;
     }
@@ -63,6 +68,7 @@ class RankedSettlementPlayer {
       nextTier: nextTier,
       xpAwarded: xpAwarded,
       coinsAwarded: coinsAwarded,
+      wagerPayoutCoins: wagerPayoutCoins,
     );
   }
 

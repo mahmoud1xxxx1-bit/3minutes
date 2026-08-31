@@ -55,6 +55,34 @@ abstract class MatchBackend {
   });
 }
 
+/// Capability implemented only by server-authoritative Ranked matchmaking.
+/// Local/Spark fallbacks intentionally do not accept Coin wagers because a
+/// wager must never be settled by a writable client datastore.
+abstract interface class RankedWagerMatchBackend {
+  Future<void> joinQueueWithWager(
+    PlayerProfile profile, {
+    required int wagerCoins,
+  });
+}
+
+/// Lets callers that hold the common MatchBackend type invoke the Ranked wager
+/// capability after checking `backend is RankedWagerMatchBackend`, without
+/// forcing Quick/Spark implementations to expose a wager API.
+extension RankedWagerMatchBackendBridge on MatchBackend {
+  Future<void> joinQueueWithWager(
+    PlayerProfile profile, {
+    required int wagerCoins,
+  }) {
+    if (this is! RankedWagerMatchBackend) {
+      throw UnsupportedError('This match backend does not support Ranked wagers.');
+    }
+    return (this as RankedWagerMatchBackend).joinQueueWithWager(
+      profile,
+      wagerCoins: wagerCoins,
+    );
+  }
+}
+
 /// Optional capability implemented only by ranked backends that can return the
 /// server-authoritative settlement receipt. Spark fallbacks intentionally do
 /// not implement this interface because they do not award Ranked RP.
