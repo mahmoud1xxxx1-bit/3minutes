@@ -35,6 +35,9 @@ class MatchSession {
     required this.rematchA,
     required this.rematchB,
     this.mode = 'ranked',
+    this.wagerCoins = 0,
+    this.wagerPotCoins = 0,
+    this.wagerStatus,
     this.rematchMatchId,
     this.cancelledBy,
     this.countdownStartedAt,
@@ -59,6 +62,18 @@ class MatchSession {
   final bool rematchA;
   final bool rematchB;
   final String mode;
+
+  /// Server-authoritative stake contributed by each Ranked player.
+  /// Legacy and non-Ranked sessions default to zero.
+  final int wagerCoins;
+
+  /// Server-authoritative total pot for the Ranked match.
+  /// This is normally wagerCoins * 2 and defaults to zero for legacy/Quick.
+  final int wagerPotCoins;
+
+  /// Server lifecycle marker such as held, refunded, or settled.
+  final String? wagerStatus;
+
   final String? rematchMatchId;
   final String? cancelledBy;
   final DateTime? countdownStartedAt;
@@ -66,6 +81,7 @@ class MatchSession {
 
   bool get isQuick => mode == 'quick';
   bool get isRanked => !isQuick;
+  bool get hasWager => isRanked && wagerCoins > 0 && wagerPotCoins > 0;
 
   bool containsPlayer(String uid) => playerAId == uid || playerBId == uid;
 
