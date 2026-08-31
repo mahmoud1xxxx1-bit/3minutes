@@ -75,7 +75,9 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
 
   Future<void> _completeGame(MatchSession match, MiniGameResult result) async {
     final runtime = _runtime;
-    if (runtime == null || _submitting || runtime.isExpired(DateTime.now())) return;
+    if (runtime == null || _submitting || runtime.isExpired(DateTime.now())) {
+      return;
+    }
 
     setState(() {
       _submitting = true;
@@ -83,9 +85,14 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
     });
 
     try {
-      final detailedBackend = widget.matchBackend;
-      if (match.isRanked && detailedBackend is DetailedGameResultBackend) {
-        await detailedBackend.submitMiniGameResult(
+      if (match.isRanked) {
+        final backend = widget.matchBackend;
+        if (backend is! DetailedGameResultBackend) {
+          throw StateError(
+            'Ranked matches require the detailed mini-game result backend.',
+          );
+        }
+        await (backend as DetailedGameResultBackend).submitMiniGameResult(
           matchId: match.id,
           uid: widget.uid,
           result: result,
@@ -119,7 +126,8 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
   @override
   Widget build(BuildContext context) {
     final runtime = _runtime;
-    final canExit = runtime != null && (runtime.allGamesCompleted || runtime.isExpired(DateTime.now()));
+    final canExit = runtime != null &&
+        (runtime.allGamesCompleted || runtime.isExpired(DateTime.now()));
     final l10n = AppLocalizations.of(context);
 
     return PopScope(
@@ -133,14 +141,22 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
               stream: widget.matchBackend.watchMatch(widget.matchId),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return _CenteredMessage(text: l10n.connectionLostRoom, color: GameColors.muted);
+                  return _CenteredMessage(
+                    text: l10n.connectionLostRoom,
+                    color: GameColors.muted,
+                  );
                 }
 
                 final match = snapshot.data;
-                if (match == null) return const Center(child: CircularProgressIndicator());
+                if (match == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
                 if (match.registryVersion != GameRegistry.version) {
-                  return _CenteredMessage(text: l10n.legacyMatchTitle, color: GameColors.warning);
+                  return _CenteredMessage(
+                    text: l10n.legacyMatchTitle,
+                    color: GameColors.warning,
+                  );
                 }
                 if (match.isRanked && !match.gameSelectionLocked) {
                   return const _CenteredMessage(
@@ -150,7 +166,9 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                 }
 
                 final activeRuntime = _ensureRuntime(match);
-                if (activeRuntime == null) return const Center(child: CircularProgressIndicator());
+                if (activeRuntime == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
                 final now = DateTime.now();
                 final remaining = activeRuntime.remaining(now);
@@ -168,8 +186,10 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
 
                 final game = activeRuntime.currentGame!;
                 final gameIndex = activeRuntime.progress.completedGames;
-                final gameSeed = activeRuntime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
-                final opponentProgress = match.opponentProgress(widget.uid).completedGames;
+                final gameSeed =
+                    activeRuntime.seed ^ ((gameIndex + 1) * 0x45d9f3b);
+                final opponentProgress =
+                    match.opponentProgress(widget.uid).completedGames;
 
                 return Padding(
                   padding: const EdgeInsets.all(GameSpacing.sm),
@@ -179,7 +199,9 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                       _RankedHud(
                         gameIndex: gameIndex,
                         gameCount: match.gameCount,
-                        gameTitle: game.title.isEmpty ? game.id.replaceAll('_', ' ') : game.title,
+                        gameTitle: game.title.isEmpty
+                            ? game.id.replaceAll('_', ' ')
+                            : game.title,
                         remaining: remaining,
                         clock: _clock(remaining),
                       ),
@@ -193,7 +215,11 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                       ),
                       if (_error != null) ...[
                         const SizedBox(height: GameSpacing.xs),
-                        Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
+                        Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: GameColors.danger),
+                        ),
                       ],
                       const SizedBox(height: GameSpacing.xs),
                       Expanded(
@@ -201,7 +227,10 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                           decoration: BoxDecoration(
                             color: GameColors.surface,
                             borderRadius: BorderRadius.circular(GameRadii.panel),
-                            border: Border.all(color: GameColors.surfaceStrong, width: .8),
+                            border: Border.all(
+                              color: GameColors.surfaceStrong,
+                              width: .8,
+                            ),
                           ),
                           clipBehavior: Clip.antiAlias,
                           child: AbsorbPointer(
@@ -214,8 +243,12 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                                     child: MiniGameHost(
                                       key: ValueKey('$gameIndex-${game.id}'),
                                       game: game,
-                                      config: MiniGameConfig(seed: gameSeed, difficulty: 1),
-                                      onComplete: (result) => _completeGame(match, result),
+                                      config: MiniGameConfig(
+                                        seed: gameSeed,
+                                        difficulty: 1,
+                                      ),
+                                      onComplete: (result) =>
+                                          _completeGame(match, result),
                                     ),
                                   ),
                                 ),
@@ -223,7 +256,9 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                                   const Positioned.fill(
                                     child: ColoredBox(
                                       color: Color(0x77080D14),
-                                      child: Center(child: CircularProgressIndicator()),
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
                                     ),
                                   ),
                               ],
@@ -232,7 +267,11 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                         ),
                       ),
                       const SizedBox(height: GameSpacing.xs),
-                      _OpponentStrip(label: l10n.opponent, progress: opponentProgress, gameCount: match.gameCount),
+                      _OpponentStrip(
+                        label: l10n.opponent,
+                        progress: opponentProgress,
+                        gameCount: match.gameCount,
+                      ),
                     ],
                   ),
                 );
@@ -264,28 +303,48 @@ class _RankedHud extends StatelessWidget {
   Widget build(BuildContext context) {
     final danger = remaining.inSeconds <= 20;
     return CosmicPanel(
-      padding: const EdgeInsets.symmetric(horizontal: GameSpacing.sm, vertical: GameSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameSpacing.sm,
+        vertical: GameSpacing.xs,
+      ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-            decoration: BoxDecoration(color: GameColors.accentSoft, borderRadius: BorderRadius.circular(GameRadii.pill)),
+            decoration: BoxDecoration(
+              color: GameColors.accentSoft,
+              borderRadius: BorderRadius.circular(GameRadii.pill),
+            ),
             child: Text(
               '${gameIndex + 1}/$gameCount',
-              style: const TextStyle(color: GameColors.accentBright, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                color: GameColors.accentBright,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
           const SizedBox(width: GameSpacing.sm),
           Expanded(
-            child: Text(gameTitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w900)),
+            child: Text(
+              gameTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
           ),
           const SizedBox(width: GameSpacing.sm),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: danger ? GameColors.danger.withValues(alpha: .10) : GameColors.surfaceRaised,
+              color: danger
+                  ? GameColors.danger.withValues(alpha: .10)
+                  : GameColors.surfaceRaised,
               borderRadius: BorderRadius.circular(GameRadii.pill),
-              border: danger ? Border.all(color: GameColors.danger.withValues(alpha: .25)) : null,
+              border: danger
+                  ? Border.all(
+                      color: GameColors.danger.withValues(alpha: .25),
+                    )
+                  : null,
             ),
             child: Text(
               clock,
@@ -303,7 +362,12 @@ class _RankedHud extends StatelessWidget {
 }
 
 class _OpponentStrip extends StatelessWidget {
-  const _OpponentStrip({required this.label, required this.progress, required this.gameCount});
+  const _OpponentStrip({
+    required this.label,
+    required this.progress,
+    required this.gameCount,
+  });
+
   final String label;
   final int progress;
   final int gameCount;
@@ -311,13 +375,26 @@ class _OpponentStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CosmicPanel(
-      padding: const EdgeInsets.symmetric(horizontal: GameSpacing.md, vertical: GameSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: GameSpacing.md,
+        vertical: GameSpacing.xs,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.sports_esports_rounded, size: 17, color: GameColors.warning),
+          const Icon(
+            Icons.sports_esports_rounded,
+            size: 17,
+            color: GameColors.warning,
+          ),
           const SizedBox(width: GameSpacing.xs),
-          Text('$label: $progress/$gameCount', style: const TextStyle(color: GameColors.muted, fontWeight: FontWeight.w800)),
+          Text(
+            '$label: $progress/$gameCount',
+            style: const TextStyle(
+              color: GameColors.muted,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );
@@ -326,6 +403,7 @@ class _OpponentStrip extends StatelessWidget {
 
 class _CenteredMessage extends StatelessWidget {
   const _CenteredMessage({required this.text, required this.color});
+
   final String text;
   final Color color;
 
@@ -335,7 +413,11 @@ class _CenteredMessage extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(GameSpacing.lg),
         child: CosmicPanel(
-          child: Text(text, textAlign: TextAlign.center, style: TextStyle(color: color, height: 1.5)),
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: color, height: 1.5),
+          ),
         ),
       ),
     );
