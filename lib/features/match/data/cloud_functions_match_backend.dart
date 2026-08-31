@@ -10,6 +10,7 @@ import '../../profile/domain/player_profile.dart';
 import '../domain/match_progress.dart';
 import '../domain/match_session.dart';
 import '../domain/match_ticket.dart';
+import '../domain/ranked_wager.dart';
 import 'firestore_match_backend.dart';
 import 'match_backend.dart';
 
@@ -20,6 +21,7 @@ typedef RankedSettlementListener = void Function(
 
 class CloudFunctionsMatchBackend implements
     MatchBackend,
+    RankedWagerQueueBackend,
     MatchGameSelectionBackend,
     DetailedGameResultBackend,
     RankedSettlementResultBackend {
@@ -42,9 +44,17 @@ class CloudFunctionsMatchBackend implements
   }
 
   @override
-  Future<void> joinQueue(PlayerProfile profile) => _call('joinRankedQueue', {
+  Future<void> joinQueue(PlayerProfile profile) =>
+      joinRankedQueueWithWager(profile, wager: RankedWager.gold100);
+
+  @override
+  Future<void> joinRankedQueueWithWager(
+    PlayerProfile profile, {
+    required RankedWager wager,
+  }) => _call('joinRankedQueue', {
         'gameName': profile.gameName,
         'avatarId': profile.avatarId,
+        'wagerGold': wager.gold,
       });
 
   @override
