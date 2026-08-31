@@ -12,20 +12,17 @@ class MiniGameCopy {
   final bool isArabic;
 
   String title(String gameId) => switch (gameId) {
-        'tap_target' => isArabic ? 'اضغط الهدف' : 'Tap Target',
-        'mole_strike' => isArabic ? 'اضرب السنجاب' : 'Mole Strike',
-        'follow_the_cup' => isArabic ? 'تابع الكأس' : 'Follow the Cup',
-        'path_rush' => isArabic ? 'تتبّع المسار' : 'Path Rush',
-        'find_differences' => isArabic ? 'اكتشف الفروقات' : 'Find the Differences',
-        'quick_math' => isArabic ? 'حساب سريع' : 'Quick Math',
-        'color_match' => isArabic ? 'مطابقة اللون' : 'Color Match',
-        'odd_one_out' => isArabic ? 'المختلف' : 'Odd One Out',
-        'memory_flash' => isArabic ? 'ذاكرة سريعة' : 'Memory Flash',
-        'direction_swipe' => isArabic ? 'اسحب بالاتجاه' : 'Direction Swipe',
-        'number_order' => isArabic ? 'ترتيب الأرقام' : 'Number Order',
-        'shape_count' => isArabic ? 'عدّ الأشكال' : 'Shape Count',
-        'reaction_stop' => isArabic ? 'سرعة الاستجابة' : 'Reaction Stop',
-        'symbol_pair' => isArabic ? 'طابق الرمز' : 'Symbol Pair',
+        'find_differences' => isArabic ? 'البحث عن الفروق' : 'Find Differences',
+        'follow_the_cup' => isArabic ? 'تتبع الكوب' : 'Follow the Cup',
+        'key_escape' => isArabic ? 'مفتاح الهروب' : 'Key Escape',
+        'level_devil' => isArabic ? 'مستوى الشيطان' : 'Level Devil',
+        'mirror_control' => isArabic ? 'تحكم المرايا' : 'Mirror Control',
+        'mole_strike' => isArabic ? 'ضرب السنجاب' : 'Mole Strike',
+        'ninja_slice' => isArabic ? 'نينجا الفواكه' : 'Ninja Slice',
+        'onet_connect' => isArabic ? 'توصيل الاشكال' : 'Onet Connect',
+        'path_rush' => isArabic ? 'اختيار المسار' : 'Path Rush',
+        'traffic_loop' => isArabic ? 'المرور المعقد' : 'Traffic Loop',
+        'hidden_pigeon' => isArabic ? 'حمامة متخفية' : 'Hidden Pigeon',
         _ => isArabic ? 'لعبة مصغرة' : 'Mini-Game',
       };
 
@@ -51,6 +48,10 @@ class MiniGameCopy {
   String get findDifferencesTime => isArabic ? 'الوقت' : 'Time';
   String get findOdd => isArabic ? 'اختر الشكل المختلف' : 'Find the odd one';
   String get howMany => isArabic ? 'كم عددها؟' : 'How many?';
+
+  String get hiddenPigeonInstruction =>
+      isArabic ? 'ابحث عن الحمامة المخفية' : 'Find the hidden pigeon';
+
   String matchSymbol(String symbol) =>
       isArabic ? 'طابق $symbol' : 'Match $symbol';
   String tapColor(String color) =>

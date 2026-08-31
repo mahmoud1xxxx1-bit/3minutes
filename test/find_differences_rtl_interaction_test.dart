@@ -1,17 +1,21 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:game/features/minigames/domain/find_differences_plan.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
-import 'package:game/features/minigames/presentation/find_differences_game.dart';
+import 'package:game/features/minigames/presentation/find_differences/find_differences_game.dart';
+import 'package:game/features/minigames/presentation/shared/minigame_environment.dart';
 
 void main() {
   const config = MiniGameConfig(seed: 20260820, difficulty: 0);
 
-  Future<void> pumpGame(WidgetTester tester, Locale locale) async {
+  testWidgets('Arabic tap geometry finds all 5 differences', (tester) async {
+    int completions = 0;
+    MiniGameResult? finalResult;
+    final controller = MinigameEnvironmentController();
+
     await tester.pumpWidget(
       MaterialApp(
-        locale: locale,
+        locale: const Locale('ar'),
         supportedLocales: const [Locale('en'), Locale('ar')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -19,50 +23,52 @@ void main() {
           GlobalCupertinoLocalizations.delegate,
         ],
         home: Scaffold(
-          body: SizedBox(
-            width: 430,
-            height: 760,
-            child: FindDifferencesGame(config: config, onComplete: (_) {}),
+          body: MinigameEnvironment(
+            controller: controller,
+            child: SizedBox(
+              width: 800,
+              height: 1200,
+              child: FindDifferencesGame(
+                config: config, 
+                onComplete: (res) {
+                  completions++;
+                  finalResult = res;
+                }
+              ),
+            ),
           ),
         ),
       ),
     );
     await tester.pump();
-  }
 
-  Future<void> tapFirstDifference(WidgetTester tester) async {
-    final plan = FindDifferencesPlan.fromSeed(seed: config.seed, difficulty: config.difficulty);
-    final difference = plan.differences.first;
     final finder = find.byKey(const ValueKey('find-differences-board-b'));
+    expect(finder, findsOneWidget);
+    
     final size = tester.getSize(finder);
     final topLeft = tester.getTopLeft(finder);
-    final local = Offset(
-      difference.centerX / FindDifferencesPlan.logicalWidth * size.width,
-      difference.centerY / FindDifferencesPlan.logicalHeight * size.height,
-    );
-    await tester.tapAt(topLeft + local);
-    await tester.pump();
-  }
+    
+    final centers = [
+      const Offset(645, 75),
+      const Offset(150, 400),
+      const Offset(650, 460),
+      const Offset(310, 415),
+      const Offset(300, 320),
+    ];
 
-  testWidgets('Arabic tap geometry finds the same logical difference', (tester) async {
-    await pumpGame(tester, const Locale('ar'));
-    await tapFirstDifference(tester);
-    expect(find.text('وجدت: 1/3'), findsOneWidget);
-    expect(find.text('الأخطاء: 0'), findsOneWidget);
-  });
+    for (final center in centers) {
+      final local = Offset(
+        center.dx / 800.0 * size.width,
+        center.dy / 600.0 * size.height,
+      );
+      await tester.tapAt(topLeft + local);
+      await tester.pump();
+    }
 
-  testWidgets('English tap geometry finds the same logical difference', (tester) async {
-    await pumpGame(tester, const Locale('en'));
-    await tapFirstDifference(tester);
-    expect(find.text('Found: 1/3'), findsOneWidget);
-    expect(find.text('Mistakes: 0'), findsOneWidget);
-  });
-
-  test('logical coordinate conversion is direction agnostic', () {
-    const board = Size(400, 300);
-    const local = Offset(55, 51.5);
-    final logical = findDifferencesLogicalPoint(local, board);
-    expect(logical.dx, closeTo(110, .001));
-    expect(logical.dy, closeTo(103, .001));
+    expect(completions, 1);
+    expect(finalResult, isNotNull);
+    expect(finalResult!.completed, true);
+    expect(finalResult!.mistakes, 0);
+    expect(finalResult!.accuracy, 1.0);
   });
 }

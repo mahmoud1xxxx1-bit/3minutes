@@ -1,20 +1,32 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
-import 'package:game/features/minigames/presentation/path_rush_game.dart';
+import 'package:game/features/minigames/presentation/path_rush/path_rush_game.dart';
+import 'package:game/features/minigames/presentation/shared/minigame_environment.dart';
 
 void main() {
   Future<void> pumpGame(WidgetTester tester) async {
+    final controller = MinigameEnvironmentController();
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('ar'),
+        supportedLocales: const [Locale('en'), Locale('ar')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: Scaffold(
-          body: SizedBox(
-            width: 430,
-            height: 760,
-            child: PathRushGame(
-              config: const MiniGameConfig(seed: 20260820, difficulty: 0),
-              onComplete: (_) {},
+          body: MinigameEnvironment(
+            controller: controller,
+            child: SizedBox(
+              width: 430,
+              height: 760,
+              child: PathRushGame(
+                config: const MiniGameConfig(seed: 20260820, difficulty: 0),
+                onComplete: (_) {},
+              ),
             ),
           ),
         ),

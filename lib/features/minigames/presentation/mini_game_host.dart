@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../domain/mini_game_contract.dart';
-import 'find_differences_policy_game.dart';
-import 'follow_the_cup_game.dart';
-import 'legacy_mini_game_host.dart' as legacy;
-import 'mole_strike_game.dart';
-import 'path_rush_game.dart';
+import 'find_differences/find_differences_game.dart';
+import 'follow_the_cup/follow_the_cup_game.dart';
+import 'key_escape/key_escape_game.dart';
+import 'level_devil/level_devil_game.dart';
+import 'mirror_control/mirror_control_minigame.dart';
+import 'mole_strike/mole_strike_game.dart';
+import 'ninja_slice/ninja_slice_game.dart';
+import 'onet_connect/onet_connect_game.dart';
+import 'path_rush/path_rush_game.dart';
+import 'traffic_loop/traffic_loop_game.dart';
+import 'hidden_pigeon/hidden_pigeon_game.dart';
 
 class MiniGameHost extends StatelessWidget {
   const MiniGameHost({
@@ -22,36 +28,72 @@ class MiniGameHost extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (game.id) {
-      case 'mole_strike':
-        return MoleStrikeGame(
-          key: ValueKey('${game.id}-${config.seed}'),
+      case 'find_differences':
+        return FindDifferencesGame(
+          key: ValueKey('-'),
           config: config,
           onComplete: onComplete,
         );
       case 'follow_the_cup':
         return FollowTheCupGame(
-          key: ValueKey('${game.id}-${config.seed}'),
+          key: ValueKey('-'),
+          config: config,
+          onComplete: onComplete,
+        );
+      case 'key_escape':
+        return KeyEscapeGame(
+          key: ValueKey('-'),
+          config: config,
+          onComplete: onComplete,
+        );
+      case 'level_devil':
+        return LevelDevilGame(
+          levelId: config.seed % 100,
+        );
+      case 'mirror_control':
+        return MirrorControlMiniGame(
+          key: ValueKey('-'),
+          config: config,
+          onComplete: onComplete,
+        );
+      case 'mole_strike':
+        return MoleStrikeGame(
+          key: ValueKey('-'),
+          config: config,
+          onComplete: onComplete,
+        );
+      case 'ninja_slice':
+        return NinjaSliceGame(
+          key: ValueKey('-'),
+          config: config,
+          onComplete: onComplete,
+        );
+      case 'onet_connect':
+        return OnetConnectGame(
+          key: ValueKey('-'),
           config: config,
           onComplete: onComplete,
         );
       case 'path_rush':
         return PathRushGame(
-          key: ValueKey('${game.id}-${config.seed}'),
+          key: ValueKey('-'),
           config: config,
           onComplete: onComplete,
         );
-      case 'find_differences':
-        return FindDifferencesPolicyGame(
-          key: ValueKey('${game.id}-${config.seed}'),
+      case 'traffic_loop':
+        return TrafficLoopGame(
+          key: ValueKey('-'),
           config: config,
           onComplete: onComplete,
         );
+      case 'hidden_pigeon':
+        return HiddenPigeonGame(
+          key: ValueKey('-'),
+          config: config,
+          onComplete: onComplete,
+        );
+      default:
+        return const Center(child: Text('Game not found'));
     }
-
-    return legacy.MiniGameHost(
-      game: game,
-      config: config,
-      onComplete: onComplete,
-    );
   }
 }

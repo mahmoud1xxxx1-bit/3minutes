@@ -33,5 +33,7 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
+    - assets/mirror_control/
+    - assets/hidden_pigeon/
     - assets/ranks/
     - assets/avatars/
