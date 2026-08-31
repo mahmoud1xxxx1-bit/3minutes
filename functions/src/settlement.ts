@@ -70,6 +70,7 @@ function settlementPlayer(options: {
   nextTier: RankTier;
   xpAwarded: number;
   coinsAwarded: number;
+  wagerPayoutCoins: number;
 }): Record<string, unknown> {
   return { ...options };
 }
@@ -115,6 +116,17 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     }
     if (match.status === "cancelled") {
       throw new HttpsError("failed-precondition", "Cancelled matches cannot settle.");
+    }
+
+    const wagerCoins = Math.max(0, intValue(match.wagerCoins));
+    const wagerPotCoins = wagerCoins * 2;
+    if (wagerCoins > 0) {
+      if (match.wagerStatus !== "held") {
+        throw new HttpsError("failed-precondition", "Ranked wager is not held for settlement.");
+      }
+      if (intValue(match.wagerPotCoins) !== wagerPotCoins) {
+        throw new HttpsError("data-loss", "Ranked wager pot is inconsistent.");
+      }
     }
 
     const seasonId = stringValue(match.seasonId);
@@ -221,6 +233,20 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const resultB = resultForPlayer(outcome, "playerB");
     const rewardA = rewardFor(resultA);
     const rewardB = rewardFor(resultB);
+    const wagerPayoutA = wagerCoins <= 0
+      ? 0
+      : resultA === "win"
+        ? wagerPotCoins
+        : resultA === "tie"
+          ? wagerCoins
+          : 0;
+    const wagerPayoutB = wagerCoins <= 0
+      ? 0
+      : resultB === "win"
+        ? wagerPotCoins
+        : resultB === "tie"
+          ? wagerCoins
+          : 0;
 
     const previousRpA = intValue(profileA.rankPoints);
     const previousRpB = intValue(profileB.rankPoints);
@@ -249,8 +275,12 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
 
     const inventoryA = inventoryASnap.data() ?? {};
     const inventoryB = inventoryBSnap.data() ?? {};
-    const nextCoinsA = Math.max(0, intValue(inventoryA.coins)) + rewardA.coins;
-    const nextCoinsB = Math.max(0, intValue(inventoryB.coins)) + rewardB.coins;
+    const baseCoinsA = Math.max(0, intValue(inventoryA.coins));
+    const baseCoinsB = Math.max(0, intValue(inventoryB.coins));
+    const rewardBalanceA = baseCoinsA + rewardA.coins;
+    const rewardBalanceB = baseCoinsB + rewardB.coins;
+    const nextCoinsA = rewardBalanceA + wagerPayoutA;
+    const nextCoinsB = rewardBalanceB + wagerPayoutB;
 
     const boardA = boardASnap.data() ?? {};
     const boardB = boardBSnap.data() ?? {};
@@ -288,6 +318,8 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     const payload = {
       matchId,
       seasonId,
+      wagerCoins,
+      wagerPotCoins,
       playerA: settlementPlayer({
         uid: playerAId,
         previousRp: previousRpA,
@@ -297,6 +329,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
         nextTier: nextTierA,
         xpAwarded: rewardA.xp,
         coinsAwarded: rewardA.coins,
+        wagerPayoutCoins: wagerPayoutA,
       }),
       playerB: settlementPlayer({
         uid: playerBId,
@@ -307,6 +340,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
         nextTier: nextTierB,
         xpAwarded: rewardB.xp,
         coinsAwarded: rewardB.coins,
+        wagerPayoutCoins: wagerPayoutB,
       }),
       settledAt: settledAt.toISOString(),
     };
@@ -395,7 +429,7 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
         seasonId,
         reason: "matchReward",
         amount: rewardA.coins,
-        balanceAfter: nextCoinsA,
+        balanceAfter: rewardBalanceA,
         createdAt: Timestamp.fromDate(settledAt),
       },
     );
@@ -407,14 +441,47 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
         seasonId,
         reason: "matchReward",
         amount: rewardB.coins,
-        balanceAfter: nextCoinsB,
+        balanceAfter: rewardBalanceB,
         createdAt: Timestamp.fromDate(settledAt),
       },
     );
+    if (wagerPayoutA > 0) {
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerAId}_wager_payout`),
+        {
+          transactionId: `${matchId}_${playerAId}_wager_payout`,
+          uid: playerAId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerPayout",
+          result: resultA,
+          amount: wagerPayoutA,
+          balanceAfter: nextCoinsA,
+          createdAt: Timestamp.fromDate(settledAt),
+        },
+      );
+    }
+    if (wagerPayoutB > 0) {
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerBId}_wager_payout`),
+        {
+          transactionId: `${matchId}_${playerBId}_wager_payout`,
+          uid: playerBId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerPayout",
+          result: resultB,
+          amount: wagerPayoutB,
+          balanceAfter: nextCoinsB,
+          createdAt: Timestamp.fromDate(settledAt),
+        },
+      );
+    }
 
     transaction.update(matchRef, {
       status: "finished",
       settledSeasonId: seasonId,
+      wagerStatus: wagerCoins > 0 ? "settled" : match.wagerStatus ?? "none",
       updatedAt: FieldValue.serverTimestamp(),
     });
     transaction.create(settlementRef, {
