@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/economy/domain/cosmetic_loadout.dart';
@@ -37,10 +39,7 @@ void main() {
 
   testWidgets('winner falls back to the match avatar immediately',
       (tester) async {
-    final pending = Future<CosmeticLoadout>.delayed(
-      const Duration(days: 1),
-      () => const CosmeticLoadout(),
-    );
+    final pending = Completer<CosmeticLoadout>().future;
 
     await tester.pumpWidget(
       _host(
