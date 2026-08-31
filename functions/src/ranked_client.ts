@@ -25,6 +25,7 @@ import {
   RANKED_SUBMISSION_TRANSPORT_GRACE_MS,
   seasonAcceptsNewRankedMatch,
 } from "./season_boundary.js";
+import { parseGoldWager, type GoldWager } from "./wager.js";
 
 const OPTIONS = {
   region: "me-central2",
@@ -78,6 +79,7 @@ function freshMatch(options: {
   playerBId: string;
   playerBName: string;
   playerBAvatarId: string;
+  wagerGold: GoldWager;
 }): Record<string, unknown> {
   return {
     ...options,
@@ -85,6 +87,8 @@ function freshMatch(options: {
     seed: randomInt(0, 0x7fffffff),
     gameCount: MATCH_GAME_COUNT,
     registryVersion: REGISTRY_VERSION,
+    goldEscrowStatus: "locked",
+    goldEscrowPool: options.wagerGold * 2,
     status: "waitingReady",
     readyA: false,
     readyB: false,
@@ -217,8 +221,18 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
     const a = stringValue(data.playerAId);
     const b = stringValue(data.playerBId);
     if (uid !== a && uid !== b) throw new HttpsError("permission-denied", "Not a participant.");
+    if (data.status !== "finished" || data.goldEscrowStatus !== "settled") {
+      throw new HttpsError("failed-precondition", "The current ranked match must settle before a rematch.");
+    }
     if (typeof data.rematchMatchId === "string") {
       return { matchId: data.rematchMatchId };
+    }
+
+    let wagerGold: GoldWager;
+    try {
+      wagerGold = parseGoldWager(data.wagerGold);
+    } catch {
+      throw new HttpsError("data-loss", "Original ranked wager is invalid.");
     }
 
     const nextA = uid === a ? true : boolValue(data.rematchA);
@@ -235,7 +249,14 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
         throw new HttpsError("failed-precondition", "Original ranked match has no season binding.");
       }
       const seasonRef = db.collection(COLLECTIONS.seasons).doc(seasonId);
-      const season = (await transaction.get(seasonRef)).data();
+      const inventoryARef = db.collection(COLLECTIONS.inventories).doc(a);
+      const inventoryBRef = db.collection(COLLECTIONS.inventories).doc(b);
+      const [seasonSnap, inventoryASnap, inventoryBSnap] = await Promise.all([
+        transaction.get(seasonRef),
+        transaction.get(inventoryARef),
+        transaction.get(inventoryBRef),
+      ]);
+      const season = seasonSnap.data();
       if (!season || !seasonAcceptsRanked(season, Date.now())) {
         throw new HttpsError(
           "failed-precondition",
@@ -243,8 +264,53 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
         );
       }
 
+      const goldA = Math.max(0, intValue(inventoryASnap.data()?.gold));
+      const goldB = Math.max(0, intValue(inventoryBSnap.data()?.gold));
+      if (goldA < wagerGold || goldB < wagerGold) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Both players need enough Gold for the same rematch wager.",
+        );
+      }
+
       const newRef = db.collection(COLLECTIONS.matches).doc();
       newMatchId = newRef.id;
+      const goldAfterA = goldA - wagerGold;
+      const goldAfterB = goldB - wagerGold;
+      transaction.set(
+        inventoryARef,
+        { gold: goldAfterA, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.set(
+        inventoryBRef,
+        { gold: goldAfterB, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.goldTransactions).doc(`${newMatchId}_${a}_escrow`),
+        {
+          uid: a,
+          matchId: newMatchId,
+          seasonId,
+          reason: "rankedEscrowLock",
+          amount: -wagerGold,
+          balanceAfter: goldAfterA,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.goldTransactions).doc(`${newMatchId}_${b}_escrow`),
+        {
+          uid: b,
+          matchId: newMatchId,
+          seasonId,
+          reason: "rankedEscrowLock",
+          amount: -wagerGold,
+          balanceAfter: goldAfterB,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
       transaction.create(
         newRef,
         freshMatch({
@@ -255,6 +321,7 @@ export const requestRankedRematch = onCall(OPTIONS, async (request) => {
           playerBId: b,
           playerBName: stringValue(data.playerBName, "Player"),
           playerBAvatarId: stringValue(data.playerBAvatarId, "default_01"),
+          wagerGold,
         }),
       );
       updates.rematchMatchId = newMatchId;
@@ -301,6 +368,7 @@ export const syncRankedTicket = onCall(OPTIONS, async (request) => {
       {
         uid,
         seasonId: stringValue(match.seasonId),
+        wagerGold: intValue(match.wagerGold),
         status: "matched",
         matchId,
         authorityVersion: AUTHORITY_VERSION,
