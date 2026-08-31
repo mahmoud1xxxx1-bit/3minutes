@@ -141,12 +141,18 @@ export function validateEvidence(options: {
   if (gameCount !== MATCH_GAME_COUNT) return false;
   if (completedGames < 0 || completedGames > gameCount) return false;
   if (evidence.length !== completedGames) return false;
-  const expected = lockedGameIds == null
-    ? gameSequence(matchSeed, gameCount)
-    : validateLockedGameIds(lockedGameIds)
-      ? lockedGameIds.map((id) => descriptorFor(id)!)
-      : [];
-  if (expected.length !== gameCount) return false;
+
+  let expected: GameDescriptor[];
+  if (lockedGameIds != null) {
+    if (!validateLockedGameIds(lockedGameIds)) return false;
+    expected = lockedGameIds.map((id) => descriptorFor(id)!);
+  } else {
+    const ids = evidence.map((item) => item.gameId);
+    if (new Set(ids).size !== ids.length) return false;
+    expected = ids.map((id) => descriptorFor(id)).filter((game): game is GameDescriptor => game != null);
+    if (expected.length !== evidence.length) return false;
+  }
+
   let totalDuration = 0;
   for (let index = 0; index < evidence.length; index += 1) {
     const item = evidence[index]!;
