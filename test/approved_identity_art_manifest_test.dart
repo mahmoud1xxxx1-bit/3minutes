@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:game/core/art/approved_identity_art_manifest.dart';
 import 'package:game/features/competition/domain/rank_tier.dart';
+import 'package:game/features/economy/data/cosmetic_catalog.dart';
 
 void main() {
   test('approved avatar manifest contains exactly 45 unique identities', () {
@@ -14,6 +15,14 @@ void main() {
         'assets/avatars/approved_1024/$id.webp',
       );
     }
+  });
+
+  test('approved avatar artwork stays exactly aligned with the economy catalog', () {
+    final catalogIds = CosmeticCatalog.avatars.map((item) => item.id).toSet();
+    final approvedIds = ApprovedIdentityArtManifest.avatarIds.toSet();
+
+    expect(CosmeticCatalog.avatars, hasLength(45));
+    expect(catalogIds, approvedIds);
   });
 
   test('approved rank manifest maps every one of the 8 competitive tiers', () {
