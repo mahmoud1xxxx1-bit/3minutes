@@ -6,11 +6,11 @@ enum RankedWager {
   const RankedWager(this.gold);
   final int gold;
 
-  static RankedWager fromGold(int value) => switch (value) {
+  static RankedWager? fromGold(int value) => switch (value) {
         100 => RankedWager.gold100,
         250 => RankedWager.gold250,
         500 => RankedWager.gold500,
-        _ => throw ArgumentError.value(value, 'value', 'Unsupported ranked Gold wager'),
+        _ => null,
       };
 }
 
@@ -28,6 +28,18 @@ class GoldWagerSettlementPreview {
   final int playerAPayout;
   final int playerBPayout;
   final int burnedGold;
+
+  int get poolGold =>
+      playerARefund + playerBRefund + playerAPayout + playerBPayout + burnedGold;
+
+  int get creditGold => playerARefund + playerAPayout;
+
+  int get netGold => creditGold - (poolGold ~/ 2);
+
+  static GoldWagerSettlementPreview win(RankedWager wager) => winner(
+        wager: wager,
+        playerAWon: true,
+      );
 
   static GoldWagerSettlementPreview winner({
     required RankedWager wager,
