@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/audio/game_audio_controller.dart';
 import '../../../core/platform/room_invite_service.dart';
 import '../../../core/theme/cosmic_background.dart';
+import '../../../core/theme/game_glyphs.dart';
 import '../../../core/theme/game_nav_dock.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/data/auth_service.dart';
@@ -187,24 +188,26 @@ class _GameShellScreenState extends State<GameShellScreen> {
           ),
         ];
 
+        final navItems = <GameNavItemData>[
+          GameNavItemData(label: l10n.home, glyph: GameGlyphType.arena),
+          GameNavItemData(label: l10n.season, glyph: GameGlyphType.season),
+          GameNavItemData(label: social.friends, glyph: GameGlyphType.squad),
+          GameNavItemData(label: l10n.shop, glyph: GameGlyphType.vault),
+          GameNavItemData(label: l10n.profile, glyph: GameGlyphType.identity),
+        ];
+
         return Scaffold(
           extendBody: true,
           body: CosmicBackground(
             child: IndexedStack(index: _index, children: pages),
           ),
-          bottomNavigationBar: GameDock(
-            selectedIndex: _index,
-            onSelected: (value) {
+          bottomNavigationBar: GameNavDock(
+            index: _index,
+            items: navItems,
+            onChanged: (value) {
               unawaited(GameAudioController.instance.playSfx(GameSfx.tap));
               setState(() => _index = value);
             },
-            labels: [
-              l10n.home,
-              l10n.season,
-              social.friends,
-              l10n.shop,
-              l10n.profile,
-            ],
           ),
         );
       },
