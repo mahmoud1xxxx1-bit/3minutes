@@ -228,6 +228,8 @@ export const settleRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
       throw new HttpsError("failed-precondition", "Both player profiles must exist.");
     }
 
+    progressA.forfeited = match.forfeitedA === true;
+    progressB.forfeited = match.forfeitedB === true;
     const outcome = compareMatch(progressA, progressB, gameCount);
     const resultA = resultForPlayer(outcome, "playerA");
     const resultB = resultForPlayer(outcome, "playerB");

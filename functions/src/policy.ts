@@ -17,6 +17,7 @@ export interface MatchProgress {
   mistakes: number;
   elapsedMs: number;
   completedAtMs: number | null;
+  forfeited?: boolean;
 }
 
 export interface RankedReward {
@@ -133,6 +134,10 @@ export function compareMatch(
   playerB: MatchProgress,
   gameCount: number,
 ): "playerA" | "playerB" | "tie" {
+  if (playerA.forfeited && playerB.forfeited) return "tie";
+  if (playerA.forfeited) return "playerB";
+  if (playerB.forfeited) return "playerA";
+
   const aFinished = playerA.completedGames >= gameCount;
   const bFinished = playerB.completedGames >= gameCount;
 

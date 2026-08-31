@@ -4,7 +4,6 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
 import {
-  AUTHORITY_VERSION,
   COLLECTIONS,
   boolValue,
   emptyProgress,
@@ -12,7 +11,9 @@ import {
   parseProgress,
   stringValue,
   timestampMillis,
+  AUTHORITY_VERSION,
 } from "./firestore.js";
+import { validateEvidenceSequence, computeServerAuthoritativeElapsed, isSystemFailure } from "./match_hardening.js";
 import {
   MATCH_DURATION_MS,
   MATCH_GAME_COUNT,
@@ -459,7 +460,11 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
 
     const previous = previousEvidenceSnap.data()?.evidence;
     const previousLength = Array.isArray(previous) ? previous.length : 0;
-    if (evidence.length < previousLength || evidence.length > previousLength + 1) {
+    const seqResult = validateEvidenceSequence(previousLength, evidence.length);
+    if (seqResult === "idempotent") {
+      return { ok: true, completedGames: evidence.length, idempotent: true };
+    }
+    if (seqResult === "invalid") {
       throw new HttpsError("failed-precondition", "Progress must move forward one game at a time.");
     }
 
@@ -467,6 +472,8 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
     const accuracyTotal = evidence.reduce((sum, item) => sum + item.accuracy, 0);
     const mistakes = evidence.reduce((sum, item) => sum + item.mistakes, 0);
     const elapsedMs = evidence.reduce((sum, item) => sum + item.durationMs, 0);
+    const startMs = timestampMillis(match.countdownStartedAt);
+    const authoritativeElapsedMs = computeServerAuthoritativeElapsed(startMs, Date.now(), evidence.length);
     const progressField = uid === playerAId ? "progressA" : "progressB";
     const saved = parseProgress(match[progressField]);
 
@@ -479,9 +486,8 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
       totalScore,
       accuracyTotal,
       mistakes,
-      elapsedMs,
-      completedAt:
-        evidence.length >= gameCount ? FieldValue.serverTimestamp() : null,
+      elapsedMs: authoritativeElapsedMs,
+      completedAt: evidence.length >= gameCount ? FieldValue.serverTimestamp() : null,
     };
 
     transaction.set(
@@ -503,6 +509,126 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
   });
 
   return { ok: true, completedGames: evidence.length };
+});
+
+export const forfeitRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
+  const uid = requireUid(request.auth?.uid);
+  const matchId = requireString(request.data?.matchId, "matchId");
+  const db = getFirestore();
+  const ref = db.collection(COLLECTIONS.matches).doc(matchId);
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.data();
+    if (!data) throw new HttpsError("not-found", "Match not found.");
+    const playerAId = stringValue(data.playerAId);
+    const playerBId = stringValue(data.playerBId);
+    if (uid !== playerAId && uid !== playerBId) {
+      throw new HttpsError("permission-denied", "Not a participant.");
+    }
+    if (data.status === "cancelled" || data.status === "finished") {
+      throw new HttpsError("failed-precondition", "Match already settled.");
+    }
+
+    const field = uid === playerAId ? "forfeitedA" : "forfeitedB";
+    transaction.update(ref, {
+      [field]: true,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  return { ok: true };
+});
+
+export const technicalCancelRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
+  const uid = requireUid(request.auth?.uid);
+  const matchId = requireString(request.data?.matchId, "matchId");
+  const db = getFirestore();
+  const ref = db.collection(COLLECTIONS.matches).doc(matchId);
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const data = snapshot.data();
+    if (!data) throw new HttpsError("not-found", "Match not found.");
+    const playerAId = stringValue(data.playerAId);
+    const playerBId = stringValue(data.playerBId);
+    if (uid !== playerAId && uid !== playerBId) {
+      throw new HttpsError("permission-denied", "Not a participant.");
+    }
+    if (data.status === "cancelled" || data.status === "finished") {
+      throw new HttpsError("failed-precondition", "Match already settled or cancelled.");
+    }
+
+    const matchRegistryVersion = data.registryVersion !== undefined ? intValue(data.registryVersion) : null;
+    
+    // Strict separation: Only actual System Failures get a refund.
+    if (!isSystemFailure(matchRegistryVersion, REGISTRY_VERSION)) {
+      throw new HttpsError("failed-precondition", "Match is healthy. Technical cancel is only for proven system failures. Use forfeit to leave intentionally.");
+    }
+
+    // System Failure proven. Execute atomic, idempotent refund for both.
+    const wagerCoins = Math.max(0, intValue(data.wagerCoins));
+    if (wagerCoins > 0 && data.wagerStatus === "held") {
+      const playerAInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerAId);
+      const playerBInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerBId);
+      const [playerAInventorySnap, playerBInventorySnap] = await Promise.all([
+        transaction.get(playerAInventoryRef),
+        transaction.get(playerBInventoryRef),
+      ]);
+      const playerABalance = Math.max(0, intValue(playerAInventorySnap.data()?.coins));
+      const playerBBalance = Math.max(0, intValue(playerBInventorySnap.data()?.coins));
+      const playerAAfter = playerABalance + wagerCoins;
+      const playerBAfter = playerBBalance + wagerCoins;
+      const seasonId = stringValue(data.seasonId);
+
+      transaction.set(
+        playerAInventoryRef,
+        { coins: playerAAfter, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.set(
+        playerBInventoryRef,
+        { coins: playerBAfter, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerAId}_wager_refund_tech`),
+        {
+          transactionId: `${matchId}_${playerAId}_wager_refund_tech`,
+          uid: playerAId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerRefund",
+          amount: wagerCoins,
+          balanceAfter: playerAAfter,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerBId}_wager_refund_tech`),
+        {
+          transactionId: `${matchId}_${playerBId}_wager_refund_tech`,
+          uid: playerBId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerRefund",
+          amount: wagerCoins,
+          balanceAfter: playerBAfter,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+    }
+
+    transaction.update(ref, {
+      status: "cancelled",
+      cancelledBy: uid,
+      cancelReason: "technical",
+      wagerStatus: wagerCoins > 0 ? "refunded" : data.wagerStatus ?? "none",
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  return { ok: true };
 });
 
 export function matchDeadlineMs(countdownStartedAtMs: number): number {
