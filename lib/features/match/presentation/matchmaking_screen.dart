@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
@@ -29,11 +30,104 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   bool _joining = true;
   bool _leaving = false;
   bool _navigating = false;
+  int _effectiveWagerCoins = 0;
 
   @override
   void initState() {
     super.initState();
-    _join();
+    _effectiveWagerCoins = widget.wagerCoins;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prepareJoin());
+  }
+
+  Future<void> _prepareJoin() async {
+    if (!mounted) return;
+    if (widget.matchBackend is RankedWagerMatchBackend && _effectiveWagerCoins <= 0) {
+      final wager = await _askForWager();
+      if (!mounted) return;
+      if (wager == null) {
+        Navigator.of(context).pop();
+        return;
+      }
+      setState(() => _effectiveWagerCoins = wager);
+    }
+    await _join();
+  }
+
+  Future<int?> _askForWager() async {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    final controller = TextEditingController();
+    String? validation;
+    final result = await showDialog<int>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          icon: const Icon(Icons.toll_rounded),
+          title: Text(ar ? 'حدد الرهان' : 'Choose your wager'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                ar
+                    ? 'سيتم خصم الرهان فقط عند العثور على لاعب يختار نفس القيمة. الفائز يحصل على مجموع الرهانين.'
+                    : 'Your wager is held only when a player with the same wager is matched. The winner receives the full pot.',
+              ),
+              const SizedBox(height: GameSpacing.md),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: ar ? 'Coins للرهان' : 'Wager Coins',
+                  errorText: validation,
+                  prefixIcon: const Icon(Icons.monetization_on_outlined),
+                ),
+                onSubmitted: (_) {
+                  final value = int.tryParse(controller.text);
+                  if (value == null || value <= 0) {
+                    setDialogState(() {
+                      validation = ar ? 'أدخل قيمة أكبر من صفر' : 'Enter a value greater than zero';
+                    });
+                    return;
+                  }
+                  Navigator.of(dialogContext).pop(value);
+                },
+              ),
+              const SizedBox(height: GameSpacing.sm),
+              Text(
+                ar
+                    ? 'إذا لم يكن رصيدك كافيًا سيرفض السيرفر الرهان ولن يتم خصم أي Coins.'
+                    : 'If your balance is insufficient, the server rejects the wager and no Coins are deducted.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(ar ? 'إلغاء' : 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = int.tryParse(controller.text);
+                if (value == null || value <= 0) {
+                  setDialogState(() {
+                    validation = ar ? 'أدخل قيمة أكبر من صفر' : 'Enter a value greater than zero';
+                  });
+                  return;
+                }
+                Navigator.of(dialogContext).pop(value);
+              },
+              child: Text(ar ? 'ابدأ البحث' : 'Find opponent'),
+            ),
+          ],
+        ),
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _join() async {
@@ -44,17 +138,17 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       });
     }
     try {
-      if (widget.wagerCoins > 0) {
-        final backend = widget.matchBackend;
-        if (backend is! RankedWagerMatchBackend) {
-          throw StateError('Coin wagers require the ranked server authority.');
+      final backend = widget.matchBackend;
+      if (backend is RankedWagerMatchBackend) {
+        if (_effectiveWagerCoins <= 0) {
+          throw StateError('Ranked wager is required.');
         }
         await backend.joinQueueWithWager(
           widget.profile,
-          wagerCoins: widget.wagerCoins,
+          wagerCoins: _effectiveWagerCoins,
         );
       } else {
-        await widget.matchBackend.joinQueue(widget.profile);
+        await backend.joinQueue(widget.profile);
       }
     } catch (_) {
       if (!mounted) return;
@@ -193,15 +287,15 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
-                      if (widget.wagerCoins > 0) ...[
+                      if (_effectiveWagerCoins > 0) ...[
                         const SizedBox(height: GameSpacing.sm),
                         Center(
                           child: Chip(
                             avatar: const Icon(Icons.toll_rounded, size: 18),
                             label: Text(
                               ar
-                                  ? 'الرهان ${widget.wagerCoins} • الجائزة ${widget.wagerCoins * 2}'
-                                  : 'Wager ${widget.wagerCoins} • Pot ${widget.wagerCoins * 2}',
+                                  ? 'الرهان $_effectiveWagerCoins • الجائزة ${_effectiveWagerCoins * 2}'
+                                  : 'Wager $_effectiveWagerCoins • Pot ${_effectiveWagerCoins * 2}',
                             ),
                           ),
                         ),
