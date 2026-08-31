@@ -1,27 +1,17 @@
-﻿export function validateEvidenceSequence(previousLength: number, currentLength: number): "ok" | "idempotent" | "invalid" {
+﻿export function validateEvidenceSequence(previousLength: number, currentLength: number, maxGames: number = 10): "ok" | "idempotent" | "invalid" {
   if (currentLength === previousLength) return "idempotent";
-  if (currentLength === previousLength + 1) return "ok";
+  if (currentLength > previousLength && currentLength <= maxGames) return "ok"; // Allow batch submissions for reconnect
   return "invalid";
 }
 
-export function computeAuthoritativeTime(clientElapsedMs: number, startMs: number | null, nowMs: number, latencyBufferMs: number = 3000): number {
-  if (startMs === null) return clientElapsedMs; // Cannot verify if countdown hasn't started
-  const serverElapsed = nowMs - startMs;
-  
-  // Prevent under-reporting (Fake fast times)
-  const minimumAllowedMs = Math.max(0, serverElapsed - latencyBufferMs);
-  
-  // Prevent over-reporting (Fake slow times, or extreme network delay)
-  const maximumAllowedMs = serverElapsed + latencyBufferMs;
-
-  if (clientElapsedMs < minimumAllowedMs) return minimumAllowedMs;
-  if (clientElapsedMs > maximumAllowedMs) return maximumAllowedMs;
-  
-  return clientElapsedMs;
+export function computeServerAuthoritativeElapsed(startMs: number | null, nowMs: number, completedGames: number, transitionAllowanceMs: number = 2500): number {
+  if (startMs === null) return 0;
+  const serverTotalElapsed = nowMs - startMs;
+  const totalTransitionTime = completedGames * transitionAllowanceMs;
+  return Math.max(0, serverTotalElapsed - totalTransitionTime);
 }
 
-export function validateTechnicalCancelTime(startMs: number | null, nowMs: number, limitMs: number = 15000): boolean {
-  if (startMs === null) return true; // Can cancel anytime before it officially starts
-  const realElapsed = nowMs - startMs;
-  return realElapsed <= limitMs;
+export function isSystemFailure(matchRegistryVersion: number | null, serverRegistryVersion: number): boolean {
+  if (matchRegistryVersion === null) return false;
+  return matchRegistryVersion !== serverRegistryVersion;
 }

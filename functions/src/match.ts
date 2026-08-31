@@ -13,7 +13,7 @@ import {
   timestampMillis,
   AUTHORITY_VERSION,
 } from "./firestore.js";
-import { validateEvidenceSequence, computeAuthoritativeTime, validateTechnicalCancelTime } from "./match_hardening.js";
+import { validateEvidenceSequence, computeServerAuthoritativeElapsed, isSystemFailure } from "./match_hardening.js";
 import {
   MATCH_DURATION_MS,
   MATCH_GAME_COUNT,
@@ -473,7 +473,7 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
     const mistakes = evidence.reduce((sum, item) => sum + item.mistakes, 0);
     const elapsedMs = evidence.reduce((sum, item) => sum + item.durationMs, 0);
     const startMs = timestampMillis(match.countdownStartedAt);
-    const authoritativeElapsedMs = computeAuthoritativeTime(elapsedMs, startMs, Date.now());
+    const authoritativeElapsedMs = computeServerAuthoritativeElapsed(startMs, Date.now(), evidence.length);
     const progressField = uid === playerAId ? "progressA" : "progressB";
     const saved = parseProgress(match[progressField]);
 
@@ -486,9 +486,8 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
       totalScore,
       accuracyTotal,
       mistakes,
-      elapsedMs,
-      completedAt:
-        evidence.length >= gameCount ? FieldValue.serverTimestamp() : null,
+      elapsedMs: authoritativeElapsedMs,
+      completedAt: FieldValue.serverTimestamp(),
     };
 
     transaction.set(
@@ -560,26 +559,14 @@ export const technicalCancelRankedMatch = onCall(CALLABLE_OPTIONS, async (reques
       throw new HttpsError("failed-precondition", "Match already settled or cancelled.");
     }
 
-    const startMs = timestampMillis(data.countdownStartedAt);
-    if (!validateTechnicalCancelTime(startMs, Date.now())) {
-      throw new HttpsError("failed-precondition", "Technical cancellation is only allowed early in the match.");
+    const matchRegistryVersion = data.registryVersion !== undefined ? intValue(data.registryVersion) : null;
+    
+    // Strict separation: Only actual System Failures get a refund.
+    if (!isSystemFailure(matchRegistryVersion, REGISTRY_VERSION)) {
+      throw new HttpsError("failed-precondition", "Match is healthy. Technical cancel is only for proven system failures. Use forfeit to leave intentionally.");
     }
 
-    const isPlayerA = uid === playerAId;
-    const isPlayerB = uid === playerBId;
-    const otherVote = isPlayerA ? data.cancelVoteB === true : data.cancelVoteA === true;
-
-    // Register this user's vote
-    transaction.update(ref, {
-      [isPlayerA ? "cancelVoteA" : "cancelVoteB"]: true
-    });
-
-    // If the other player hasn't voted yet, wait for them.
-    if (!otherVote) {
-      return { ok: true, pendingMutual: true };
-    }
-
-    // Both players voted for technical cancel. Refund and cancel.
+    // System Failure proven. Execute atomic, idempotent refund for both.
     const wagerCoins = Math.max(0, intValue(data.wagerCoins));
     if (wagerCoins > 0 && data.wagerStatus === "held") {
       const playerAInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerAId);
