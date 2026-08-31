@@ -41,6 +41,13 @@ function requireString(value: unknown, name: string): string {
   return value.trim();
 }
 
+function requireWagerCoins(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
+    throw new HttpsError("invalid-argument", "wagerCoins must be a positive whole number.");
+  }
+  return value;
+}
+
 function seasonAcceptsRanked(data: Record<string, unknown>, nowMs: number): boolean {
   return seasonAcceptsNewRankedMatch({
     active: data.active === true,
@@ -58,9 +65,12 @@ function newMatchData(options: {
   playerBId: string;
   playerBName: string;
   playerBAvatarId: string;
+  wagerCoins: number;
 }): Record<string, unknown> {
   return {
     ...options,
+    wagerPotCoins: options.wagerCoins * 2,
+    wagerStatus: "held",
     authorityVersion: AUTHORITY_VERSION,
     seed: randomInt(0, 0x7fffffff),
     gameCount: MATCH_GAME_COUNT,
@@ -84,10 +94,17 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const gameName = requireString(request.data?.gameName, "gameName");
   const avatarId = requireString(request.data?.avatarId, "avatarId");
+  const wagerCoins = requireWagerCoins(request.data?.wagerCoins);
   const db = getFirestore();
   const queue = db.collection(COLLECTIONS.matchmaking);
   const matches = db.collection(COLLECTIONS.matches);
   const ownRef = queue.doc(uid);
+  const ownInventoryRef = db.collection(COLLECTIONS.inventories).doc(uid);
+
+  const ownInventory = (await ownInventoryRef.get()).data() ?? {};
+  if (Math.max(0, intValue(ownInventory.coins)) < wagerCoins) {
+    throw new HttpsError("failed-precondition", "Not enough Coins for this wager.");
+  }
 
   const activeSeasons = await db
     .collection(COLLECTIONS.seasons)
@@ -109,6 +126,7 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
     gameName,
     avatarId,
     seasonId,
+    wagerCoins,
     status: "waiting",
     matchId: null,
     authorityVersion: AUTHORITY_VERSION,
@@ -121,15 +139,20 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
   for (const candidate of candidates.docs) {
     if (candidate.id === uid) continue;
     if (stringValue(candidate.data().seasonId) !== seasonId) continue;
+    if (intValue(candidate.data().wagerCoins) !== wagerCoins) continue;
     const matchRef = matches.doc();
+    const candidateInventoryRef = db.collection(COLLECTIONS.inventories).doc(candidate.id);
 
     try {
       const matchId = await db.runTransaction(async (transaction) => {
-        const [seasonSnap, ownSnap, candidateSnap] = await Promise.all([
-          transaction.get(seasonDoc.ref),
-          transaction.get(ownRef),
-          transaction.get(candidate.ref),
-        ]);
+        const [seasonSnap, ownSnap, candidateSnap, ownInventorySnap, candidateInventorySnap] =
+          await Promise.all([
+            transaction.get(seasonDoc.ref),
+            transaction.get(ownRef),
+            transaction.get(candidate.reference),
+            transaction.get(ownInventoryRef),
+            transaction.get(candidateInventoryRef),
+          ]);
         const liveSeason = seasonSnap.data();
         const own = ownSnap.data();
         const other = candidateSnap.data();
@@ -146,9 +169,23 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
         if (stringValue(own.seasonId) !== seasonId || stringValue(other.seasonId) !== seasonId) {
           throw new Error("season_mismatch");
         }
+        if (intValue(own.wagerCoins) !== wagerCoins || intValue(other.wagerCoins) !== wagerCoins) {
+          throw new Error("wager_mismatch");
+        }
 
         const otherUid = stringValue(other.uid, candidate.id);
-        if (otherUid === uid) throw new Error("self_match");
+        if (otherUid === uid || otherUid !== candidate.id) throw new Error("self_match");
+
+        const ownInventoryData = ownInventorySnap.data() ?? {};
+        const candidateInventoryData = candidateInventorySnap.data() ?? {};
+        const ownBalance = Math.max(0, intValue(ownInventoryData.coins));
+        const candidateBalance = Math.max(0, intValue(candidateInventoryData.coins));
+        if (ownBalance < wagerCoins) {
+          throw new HttpsError("failed-precondition", "Not enough Coins for this wager.");
+        }
+        if (candidateBalance < wagerCoins) throw new Error("candidate_insufficient_wager");
+        const ownAfter = ownBalance - wagerCoins;
+        const candidateAfter = candidateBalance - wagerCoins;
 
         transaction.create(
           matchRef,
@@ -160,14 +197,51 @@ export const joinRankedQueue = onCall(CALLABLE_OPTIONS, async (request) => {
             playerBId: uid,
             playerBName: gameName,
             playerBAvatarId: avatarId,
+            wagerCoins,
           }),
+        );
+        transaction.set(
+          ownInventoryRef,
+          { coins: ownAfter, updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+        transaction.set(
+          candidateInventoryRef,
+          { coins: candidateAfter, updatedAt: FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+        transaction.create(
+          db.collection(COLLECTIONS.coinTransactions).doc(`${matchRef.id}_${uid}_wager_hold`),
+          {
+            transactionId: `${matchRef.id}_${uid}_wager_hold`,
+            uid,
+            matchId: matchRef.id,
+            seasonId,
+            reason: "rankedWagerHold",
+            amount: -wagerCoins,
+            balanceAfter: ownAfter,
+            createdAt: FieldValue.serverTimestamp(),
+          },
+        );
+        transaction.create(
+          db.collection(COLLECTIONS.coinTransactions).doc(`${matchRef.id}_${otherUid}_wager_hold`),
+          {
+            transactionId: `${matchRef.id}_${otherUid}_wager_hold`,
+            uid: otherUid,
+            matchId: matchRef.id,
+            seasonId,
+            reason: "rankedWagerHold",
+            amount: -wagerCoins,
+            balanceAfter: candidateAfter,
+            createdAt: FieldValue.serverTimestamp(),
+          },
         );
         transaction.update(ownRef, {
           status: "matched",
           matchId: matchRef.id,
           updatedAt: FieldValue.serverTimestamp(),
         });
-        transaction.update(candidate.ref, {
+        transaction.update(candidate.reference, {
           status: "matched",
           matchId: matchRef.id,
           updatedAt: FieldValue.serverTimestamp(),
@@ -264,9 +338,63 @@ export const cancelRankedMatch = onCall(CALLABLE_OPTIONS, async (request) => {
     if (data.status !== "waitingReady" || data.countdownStartedAt != null) {
       throw new HttpsError("failed-precondition", "Match already started.");
     }
+
+    const wagerCoins = Math.max(0, intValue(data.wagerCoins));
+    if (wagerCoins > 0 && data.wagerStatus === "held") {
+      const playerAInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerAId);
+      const playerBInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerBId);
+      const [playerAInventorySnap, playerBInventorySnap] = await Promise.all([
+        transaction.get(playerAInventoryRef),
+        transaction.get(playerBInventoryRef),
+      ]);
+      const playerABalance = Math.max(0, intValue(playerAInventorySnap.data()?.coins));
+      const playerBBalance = Math.max(0, intValue(playerBInventorySnap.data()?.coins));
+      const playerAAfter = playerABalance + wagerCoins;
+      const playerBAfter = playerBBalance + wagerCoins;
+      const seasonId = stringValue(data.seasonId);
+
+      transaction.set(
+        playerAInventoryRef,
+        { coins: playerAAfter, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.set(
+        playerBInventoryRef,
+        { coins: playerBAfter, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerAId}_wager_refund`),
+        {
+          transactionId: `${matchId}_${playerAId}_wager_refund`,
+          uid: playerAId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerRefund",
+          amount: wagerCoins,
+          balanceAfter: playerAAfter,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+      transaction.create(
+        db.collection(COLLECTIONS.coinTransactions).doc(`${matchId}_${playerBId}_wager_refund`),
+        {
+          transactionId: `${matchId}_${playerBId}_wager_refund`,
+          uid: playerBId,
+          matchId,
+          seasonId,
+          reason: "rankedWagerRefund",
+          amount: wagerCoins,
+          balanceAfter: playerBAfter,
+          createdAt: FieldValue.serverTimestamp(),
+        },
+      );
+    }
+
     transaction.update(ref, {
       status: "cancelled",
       cancelledBy: uid,
+      wagerStatus: wagerCoins > 0 ? "refunded" : data.wagerStatus ?? "none",
       updatedAt: FieldValue.serverTimestamp(),
     });
   });
