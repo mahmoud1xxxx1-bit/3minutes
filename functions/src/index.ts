@@ -32,7 +32,7 @@ export {
 } from "./quick.js";
 export { getQuickTicket } from "./quick_ticket.js";
 
-export { settleRankedMatch } from "./settlement.js";
+export { settleRankedMatchV2 as settleRankedMatch } from "./settlement_v2.js";
 export { submitSocialGameResult, sendSocialEmote } from "./social_submit.js";
 export { settleSocialMatch } from "./social.js";
 export { purchaseCosmetic, equipCosmetic } from "./economy.js";
