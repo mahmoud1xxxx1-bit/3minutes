@@ -3,12 +3,15 @@ import test from 'node:test';
 
 import { parseGoldWager, settleGoldEscrow } from './wager.js';
 
-test('only 100 250 and 500 gold wagers are accepted', () => {
+test('only exact integer 100 250 and 500 gold wagers are accepted', () => {
   assert.equal(parseGoldWager(100), 100);
   assert.equal(parseGoldWager(250), 250);
   assert.equal(parseGoldWager(500), 500);
   assert.throws(() => parseGoldWager(50));
   assert.throws(() => parseGoldWager(1000));
+  assert.throws(() => parseGoldWager(100.5));
+  assert.throws(() => parseGoldWager('100'));
+  assert.throws(() => parseGoldWager(Number.NaN));
 });
 
 test('winner receives the entire two-player wager pool', () => {
