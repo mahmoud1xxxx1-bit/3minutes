@@ -4,10 +4,13 @@ import 'package:flutter/services.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../economy/data/cosmetic_loadout_repository.dart';
+import '../../economy/domain/cosmetic_loadout.dart';
 import '../../profile/domain/player_profile.dart';
 import '../data/match_backend.dart';
 import '../domain/match_ticket.dart';
 import 'match_room_screen.dart';
+import 'matchmaking_player_identity.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({
@@ -31,11 +34,13 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   bool _leaving = false;
   bool _navigating = false;
   int _effectiveWagerCoins = 0;
+  late final Future<CosmeticLoadout> _loadoutFuture;
 
   @override
   void initState() {
     super.initState();
     _effectiveWagerCoins = widget.wagerCoins;
+    _loadoutFuture = CosmeticLoadoutRepository().load(widget.profile.uid);
     WidgetsBinding.instance.addPostFrameCallback((_) => _prepareJoin());
   }
 
@@ -249,6 +254,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                               Container(
                                 width: 150,
                                 height: 150,
+                                alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: GameColors.surfaceGlass,
@@ -257,31 +263,31 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                   ),
                                   boxShadow: GameShadows.primaryGlow,
                                 ),
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      _joining
-                                          ? Icons.sync_rounded
-                                          : Icons.rocket_launch_rounded,
-                                      color: GameColors.accentBright,
-                                      size: 36,
-                                    ),
-                                    const SizedBox(height: GameSpacing.sm),
-                                    Text(
-                                      '3:00',
-                                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                    ),
-                                  ],
+                                child: FutureBuilder<CosmeticLoadout>(
+                                  future: _loadoutFuture,
+                                  builder: (context, loadoutSnapshot) =>
+                                      MatchmakingPlayerIdentity(
+                                    avatarId: widget.profile.avatarId,
+                                    displayName: widget.profile.gameName,
+                                    loadout: loadoutSnapshot.data ??
+                                        const CosmeticLoadout(),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: GameSpacing.xl),
+                      const SizedBox(height: GameSpacing.sm),
+                      Text(
+                        '3:00',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: GameColors.accentBright,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                      const SizedBox(height: GameSpacing.lg),
                       Text(
                         _joining ? l10n.joiningQueue : l10n.searchingForPlayer,
                         textAlign: TextAlign.center,
