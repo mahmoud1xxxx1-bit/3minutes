@@ -43,22 +43,29 @@ Season stars are permanent prestige identity and must remain visible without aff
 
 ## Avatar system
 
+- The approved identity library contains exactly 45 avatar IDs.
 - Circular or near-circular crop for compact screens.
 - Consistent silhouette scale across every avatar.
 - Transparent asset background where practical.
 - Cosmetic avatar frames sit outside the avatar crop and must never cover the face/primary subject.
 - Default avatars must remain visually valid even when no paid/earned frame is equipped.
+- Final production masters use the canonical 1024x1024 local WebP paths declared by `ApprovedIdentityArtManifest`.
+- Temporary generated/vector artwork is a runtime fallback only and must not be treated as the final approved source.
 
 ## Rank visual language
 
-Ranks remain mechanically defined in `RankPolicy`.
+Ranks remain mechanically defined in `RankPolicy`. The visual contract covers all eight competitive tiers and follows the same order everywhere in the app and server authority.
 
-- Bronze: simple entry shield.
-- Silver: cleaner brighter metal treatment.
+- Bronze: simple entry shield with clear low-tier identity.
+- Silver: cleaner, brighter metal treatment.
 - Gold: warm premium treatment aligned with the main accent.
-- Platinum: cool high-rank treatment.
-- Diamond: sharp premium geometry.
-- Master: strongest prestige treatment, but still readable at small sizes.
+- Platinum: cool high-rank treatment with increased precision and depth.
+- Diamond: sharp premium geometry and unmistakable elite silhouette.
+- Master: strong prestige treatment while remaining readable at small sizes.
+- Grandmaster: more commanding geometry and prestige than Master, without borrowing Legendary crown language.
+- Legendary: highest competitive identity, unique silhouette and crown/elite language reserved for the top tier.
+
+Final production rank masters use the canonical 1024x1024 local WebP paths declared by `ApprovedIdentityArtManifest`. The existing rank atlas is a compatibility fallback only until the full approved source bundle is restored.
 
 Rank art is identity only. It must never change mini-game difficulty, timing, target visibility, or touch behavior.
 
@@ -115,18 +122,19 @@ Priority order:
 5. Mini-game-specific lightweight icons/assets only when shapes/text are insufficient.
 6. Store promotional art last.
 
-Do not create hundreds of unique raster assets for gameplay that can be expressed with Flutter primitives. This keeps APK size, loading time, and content production manageable as the library grows toward 100 mini-games.
+Do not create hundreds of unique raster assets for gameplay that can be expressed with Flutter primitives. This keeps APK size, loading time, and content production manageable as the library grows.
 
 ## Asset naming
 
-Use predictable lowercase IDs that match data models where possible:
+Production identity masters use IDs and paths from `ApprovedIdentityArtManifest`, for example:
 
-- `avatar_default_01`
-- `rank_bronze`
-- `rank_master`
-- `frame_classic`
-- `badge_timer`
-- `background_grid`
+- `avatar_free_vanguard.webp`
+- `avatar_coin_01.webp`
+- `rank_bronze.webp`
+- `rank_grandmaster.webp`
+- `rank_legendary.webp`
+
+Cosmetic assets continue to use predictable lowercase IDs such as `frame_classic`, `badge_timer`, and `background_grid`.
 
 Avoid filenames that encode temporary screen locations or arbitrary revision numbers.
 
