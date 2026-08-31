@@ -8,7 +8,7 @@ void main() {
     expect(RankedWager.fromGold(100), RankedWager.gold100);
     expect(RankedWager.fromGold(250), RankedWager.gold250);
     expect(RankedWager.fromGold(500), RankedWager.gold500);
-    expect(() => RankedWager.fromGold(50), throwsArgumentError);
+    expect(RankedWager.fromGold(50), isNull);
   });
 
   test('winner preview receives the entire two-player pool', () {
