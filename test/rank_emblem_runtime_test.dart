@@ -8,7 +8,7 @@ void main() {
   testWidgets('all 8 competitive rank emblems render through safe runtime path',
       (tester) async {
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: Scaffold(
           body: Wrap(
             children: [
