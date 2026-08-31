@@ -22,6 +22,7 @@ import '../../profile/presentation/profile_showcase_screen.dart';
 import '../../progression/data/progression_backend.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
+import '../../social/presentation/arena_friends_hub.dart';
 import '../../social/presentation/friends_screen.dart';
 import '../../social/presentation/room_hub_screen.dart';
 import '../../social/presentation/social_copy.dart';
@@ -123,6 +124,17 @@ class _GameShellScreenState extends State<GameShellScreen> {
     );
   }
 
+  void _openFriends(PlayerProfile profile) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FriendsScreen(
+          profile: profile,
+          socialBackend: widget.socialBackend,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -163,7 +175,11 @@ class _GameShellScreenState extends State<GameShellScreen> {
             competitionBackend: widget.competitionBackend,
             progressionBackend: widget.progressionBackend,
           ),
-          FriendsScreen(profile: profile, socialBackend: widget.socialBackend),
+          ArenaFriendsHub(
+            profile: profile,
+            socialBackend: widget.socialBackend,
+            onOpenFriends: () => _openFriends(profile),
+          ),
           ShopScreen(uid: profile.uid, economyBackend: widget.economyBackend),
           ArenaProfileHub(
             profile: profile,
