@@ -12,6 +12,7 @@ import '../domain/rank_tier.dart';
 import '../domain/season.dart';
 import '../domain/season_clock.dart';
 import '../domain/season_reward_policy.dart';
+import 'leaderboard_player_avatar.dart';
 import 'rank_badge.dart';
 
 class LeaderboardScreen extends StatelessWidget {
@@ -392,6 +393,11 @@ class _LeaderboardRow extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
+          ),
+          const SizedBox(width: GameSpacing.sm),
+          LeaderboardPlayerAvatar(
+            avatarId: entry.avatarId,
+            podium: podium,
           ),
           const SizedBox(width: GameSpacing.sm),
           Expanded(
