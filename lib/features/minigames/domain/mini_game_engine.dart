@@ -9,20 +9,18 @@ enum MiniGameEngine {
 class MiniGameEngineRegistry {
   const MiniGameEngineRegistry._();
 
-  static const Map<String, MiniGameEngine> byGameId = {
-    'quick_math': MiniGameEngine.choice,
-    'color_match': MiniGameEngine.choice,
-    'odd_one_out': MiniGameEngine.choice,
-    'shape_count': MiniGameEngine.choice,
-    'symbol_pair': MiniGameEngine.choice,
+    static const Map<String, MiniGameEngine> byGameId = {
     'path_rush': MiniGameEngine.choice,
-    'tap_target': MiniGameEngine.target,
     'mole_strike': MiniGameEngine.target,
-    'number_order': MiniGameEngine.sequence,
-    'memory_flash': MiniGameEngine.sequence,
+    'find_differences': MiniGameEngine.target,
     'follow_the_cup': MiniGameEngine.sequence,
-    'direction_swipe': MiniGameEngine.swipe,
-    'reaction_stop': MiniGameEngine.reaction,
+    'key_escape': MiniGameEngine.choice,
+    'level_devil': MiniGameEngine.target,
+    'mirror_control': MiniGameEngine.target,
+    'ninja_slice': MiniGameEngine.target,
+    'onet_connect': MiniGameEngine.choice,
+    'traffic_loop': MiniGameEngine.choice,
+    'hidden_pigeon': MiniGameEngine.target,
   };
 
   static MiniGameEngine engineFor(String gameId) {

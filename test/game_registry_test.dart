@@ -1,4 +1,4 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:game/features/minigames/data/game_registry.dart';
 import 'package:game/features/minigames/domain/mini_game_contract.dart';
 import 'package:game/features/minigames/domain/mini_game_engine.dart';
@@ -24,17 +24,17 @@ void main() {
     expect(categories, containsAll(MiniGameCategory.values));
   });
 
-  test('registry v7 sequence matches the cross-platform vector', () {
+  test('registry sequence matches the cross-platform vector', () {
     final sequence = GameRegistry.sequence(seed: 20260818, count: 8);
     expect(sequence.map((game) => game.id).toList(), const [
-      'odd_one_out',
-      'direction_swipe',
+      'level_devil',
+      'find_differences',
+      'key_escape',
+      'path_rush',
+      'ninja_slice',
       'follow_the_cup',
-      'memory_flash',
-      'tap_target',
-      'color_match',
-      'reaction_stop',
-      'quick_math',
+      'mirror_control',
+      'mole_strike'
     ]);
   });
 }

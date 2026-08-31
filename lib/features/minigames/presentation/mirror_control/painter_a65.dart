@@ -1,0 +1,162 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
+import 'game_engine.dart';
+
+class GamePainterA65 extends CustomPainter {
+  GamePainterA65({required this.engine, this.images});
+  final GameEngine engine;
+  final Map<String, ui.Image>? images;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scaleX = size.width / GameEngine.fieldSize;
+    final scaleY = size.height / GameEngine.fieldSize;
+    final scale = scaleX < scaleY ? scaleX : scaleY;
+    
+    canvas.translate((size.width - (GameEngine.fieldSize * scale)) / 2, (size.height - (GameEngine.fieldSize * scale)) / 2);
+    canvas.scale(scale, scale);
+    canvas.clipRect(const Rect.fromLTWH(0, 0, GameEngine.fieldSize, GameEngine.fieldSize));
+
+    final rnd = math.Random(65);
+
+    // 1. FLOOR & BACKGROUND (Steampunk Airship)
+    canvas.drawRect(const Rect.fromLTWH(0, 0, GameEngine.fieldSize, GameEngine.fieldSize), Paint()..color = const Color(0xFF3b2f2f));
+    
+    // Wooden planks
+    for (double x = 0; x < GameEngine.fieldSize; x+=40) {
+        canvas.drawLine(Offset(x, 0), Offset(x, GameEngine.fieldSize), Paint()..color=Colors.black54..strokeWidth=3);
+        for (int i = 0; i < 5; i++) {
+            double py = rnd.nextDouble() * GameEngine.fieldSize;
+            canvas.drawLine(Offset(x, py), Offset(x+40, py), Paint()..color=Colors.black38..strokeWidth=2);
+        }
+    }
+    
+    // Gears in background
+    for (int i = 0; i < 8; i++) {
+        double gx = rnd.nextDouble() * GameEngine.fieldSize;
+        double gy = rnd.nextDouble() * GameEngine.fieldSize;
+        double r = rnd.nextDouble() * 60 + 40;
+        
+        canvas.save();
+        canvas.translate(gx, gy);
+        canvas.rotate(engine.time * (i%2==0 ? 1 : -1));
+        
+        canvas.drawCircle(Offset.zero, r, Paint()..color=Colors.brown[700]!.withValues(alpha: 0.4)..style=PaintingStyle.stroke..strokeWidth=15);
+        for (int j = 0; j < 8; j++) {
+            canvas.rotate(math.pi / 4);
+            canvas.drawLine(Offset.zero, Offset(r, 0), Paint()..color=Colors.brown[700]!.withValues(alpha: 0.4)..strokeWidth=10);
+            canvas.drawRect(Rect.fromCenter(center: Offset(r+5, 0), width: 10, height: 15), Paint()..color=Colors.brown[700]!.withValues(alpha: 0.4));
+        }
+        canvas.drawCircle(Offset.zero, 15, Paint()..color=Colors.black38);
+        canvas.restore();
+    }
+
+    // 3. OBSTACLES
+    for (int i = 0; i < engine.obstacles.length; i++) {
+        final obs = engine.obstacles[i];
+        canvas.drawRect(obs.shift(const Offset(5, 15)), Paint()..color=Colors.black54);
+        
+        canvas.drawRect(obs, Paint()..color=const Color(0xFFB08D57));
+        canvas.drawRect(obs.deflate(5), Paint()..color=const Color(0xFFCD7F32)..style=PaintingStyle.stroke..strokeWidth=4);
+        
+        canvas.drawCircle(Offset(obs.left+10, obs.top+10), 3, Paint()..color=Colors.black54);
+        canvas.drawCircle(Offset(obs.right-10, obs.top+10), 3, Paint()..color=Colors.black54);
+        canvas.drawCircle(Offset(obs.left+10, obs.bottom-10), 3, Paint()..color=Colors.black54);
+        canvas.drawCircle(Offset(obs.right-10, obs.bottom-10), 3, Paint()..color=Colors.black54);
+    }
+
+    // 4. TARGETS
+    for (int i = 0; i < engine.targets.length; i++) {
+        if (i < engine.currentTargetIndex) continue; 
+        bool isActive = (i == engine.currentTargetIndex);
+        final target = engine.targets[i];
+
+        if (isActive) {
+            double p = 1.0 + math.sin(engine.time*8)*0.2;
+            canvas.drawCircle(target, 35*p, Paint()..color=Colors.orangeAccent.withValues(alpha: 0.6)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 3));
+            canvas.drawCircle(target, 20*p, Paint()..color=Colors.white.withValues(alpha: 0.8)..maskFilter=const MaskFilter.blur(BlurStyle.normal, 5));
+        }
+        canvas.saveLayer(Rect.fromCenter(center: target, width: 80, height: 80), Paint()..color=Colors.white.withValues(alpha: isActive ? 1.0 : 0.3));
+        
+        canvas.drawCircle(target, 15, Paint()..color=Colors.orange);
+        canvas.drawCircle(target, 10, Paint()..color=Colors.yellow..style=PaintingStyle.stroke..strokeWidth=2);
+        canvas.drawLine(Offset(target.dx-15, target.dy), Offset(target.dx+15, target.dy), Paint()..color=Colors.black..strokeWidth=2);
+        canvas.drawLine(Offset(target.dx, target.dy-15), Offset(target.dx, target.dy+15), Paint()..color=Colors.black..strokeWidth=2);
+        
+        canvas.restore();
+    }
+
+    // 5. EXIT GATE
+    if (engine.exitGate != null) {
+        canvas.drawCircle(engine.exitGate!, 50, Paint()..color=Colors.black87);
+        canvas.drawCircle(engine.exitGate!, 45, Paint()..color=Colors.orange..style=PaintingStyle.stroke..strokeWidth=8);
+        for(int k=0; k<12; k++){
+            double angle = k * math.pi/6 + engine.time;
+            canvas.drawLine(engine.exitGate!, engine.exitGate! + Offset(math.cos(angle)*45, math.sin(angle)*45), Paint()..color=Colors.orange..strokeWidth=3);
+        }
+    }
+
+    // ==========================================
+    // 5. UNIFIED CHASER IDENTITY
+    // ==========================================
+    if (images != null && images!['enemy'] != null) {
+      if (engine.chaserInWall) {
+          canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 1.5, Paint()..color = Colors.black87);
+          canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 0.8, Paint()..color = Colors.black);
+          final eyeGlow = Paint()..color = Colors.red.withValues(alpha: 0.6)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
+          canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 8, eyeGlow);
+          canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 8, eyeGlow);
+          canvas.drawCircle(engine.chaserPos + const Offset(-6, -4), 3, Paint()..color = Colors.white);
+          canvas.drawCircle(engine.chaserPos + const Offset(6, -4), 3, Paint()..color = Colors.white);
+      } else {
+          canvas.drawCircle(engine.chaserPos + const Offset(0, 15), GameEngine.chaserRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
+          if(engine.chaserStunTimer <= GameEngine.recoveryDuration) {
+             double pulse = 1.0 + math.sin(engine.time * 20) * 0.1;
+             canvas.drawCircle(engine.chaserPos, GameEngine.chaserRadius * 2.5 * pulse, Paint()..color = Colors.redAccent.withValues(alpha: 0.3));
+          }
+          canvas.save(); canvas.translate(engine.chaserPos.dx, engine.chaserPos.dy);
+          if (engine.chaserVelocity.dx > 0) canvas.scale(-1, 1);
+          canvas.translate(0, math.sin(engine.time * 6) * 4); 
+          
+          Paint chaserPaint = (engine.chaserStunTimer > GameEngine.recoveryDuration) 
+              ? (Paint()..color=Colors.grey.withValues(alpha: 0.5)) 
+              : Paint();
+              
+          canvas.drawImageRect(images!['enemy']!, 
+              Rect.fromLTWH(0,0, images!['enemy']!.width.toDouble(), images!['enemy']!.height.toDouble()), 
+              Rect.fromCenter(center: Offset.zero, width: GameEngine.chaserRadius*2.5, height: GameEngine.chaserRadius*2.5), 
+              chaserPaint);
+          canvas.restore();
+      }
+    }
+
+    // ==========================================
+    // 6. UNIFIED PLAYER IDENTITY
+    // ==========================================
+    if (images != null && images!['player'] != null) {
+      canvas.drawCircle(engine.playerPos + const Offset(0, 15), GameEngine.playerRadius, Paint()..color=Colors.black.withValues(alpha: 0.35));
+      
+      double vLen = engine.playerVelocity.distance;
+      if (vLen > 0) {
+        canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
+        canvas.rotate(math.atan2(engine.playerVelocity.dy, engine.playerVelocity.dx));
+        canvas.drawOval(Rect.fromCenter(center: const Offset(-20, 0), width: 40, height: 10), Paint()..color=Colors.white.withValues(alpha: 0.5));
+        canvas.restore();
+      }
+      
+      canvas.save(); canvas.translate(engine.playerPos.dx, engine.playerPos.dy);
+      if (engine.playerVelocity.dx > 0) canvas.scale(-1, 1);
+      if (vLen > 0) canvas.translate(0, math.sin(engine.time * 20) * 3);
+      
+      canvas.drawImageRect(images!['player']!, 
+          Rect.fromLTWH(0, 0, images!['player']!.width.toDouble(), images!['player']!.height.toDouble()), 
+          Rect.fromCenter(center: Offset.zero, width: GameEngine.playerRadius*2.8, height: GameEngine.playerRadius*2.8), 
+          Paint());
+      canvas.restore();
+    }
+
+  }
+
+  @override bool shouldRepaint(covariant GamePainterA65 old) => true;
+}

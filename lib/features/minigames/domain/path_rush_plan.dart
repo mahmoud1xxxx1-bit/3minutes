@@ -42,12 +42,30 @@ class PathRushPlan {
   final int travelMs;
 
   static const _animals = <PathAnimal>[
-    PathAnimal(id: 'rabbit', arName: 'الأرنب', foodName: 'جزر', foodEmoji: '🥕', wrong: [('موز','🍌'),('سمك','🐟'),('لحم','🥩'),('جبن','🧀')]),
-    PathAnimal(id: 'monkey', arName: 'القرد', foodName: 'موز', foodEmoji: '🍌', wrong: [('جزر','🥕'),('سمك','🐟'),('لحم','🥩'),('خيزران','🎋')]),
-    PathAnimal(id: 'lion', arName: 'الأسد', foodName: 'لحم', foodEmoji: '🥩', wrong: [('موز','🍌'),('جزر','🥕'),('تفاح','🍎'),('خيزران','🎋')]),
-    PathAnimal(id: 'panda', arName: 'الباندا', foodName: 'خيزران', foodEmoji: '🎋', wrong: [('سمك','🐟'),('لحم','🥩'),('جبن','🧀'),('موز','🍌')]),
-    PathAnimal(id: 'cat', arName: 'القط', foodName: 'سمك', foodEmoji: '🐟', wrong: [('جزر','🥕'),('خيزران','🎋'),('تفاح','🍎'),('موز','🍌')]),
-    PathAnimal(id: 'dog', arName: 'الكلب', foodName: 'عظمة', foodEmoji: '🦴', wrong: [('جزر','🥕'),('موز','🍌'),('تفاح','🍎'),('خيزران','🎋')]),
+    PathAnimal(id: 'rabbit', arName: 'الأرنب', foodName: 'جزر', foodEmoji: '🥕', wrong: [('موز','🍌'),('خس','🥬'),('تفاح','🍏'),('ذرة','🌽')]),
+    PathAnimal(id: 'monkey', arName: 'القرد', foodName: 'موز', foodEmoji: '🍌', wrong: [('فول سوداني','🥜'),('تفاح','🍏'),('جزر','🥕'),('جوز','🌰')]),
+    PathAnimal(id: 'lion', arName: 'الأسد', foodName: 'لحم', foodEmoji: '🥩', wrong: [('سمك','🐟'),('عظمة','🦴'),('عشب','🌿'),('دودة','🪱')]),
+    PathAnimal(id: 'panda', arName: 'الباندا', foodName: 'خيزران', foodEmoji: '🎋', wrong: [('أوراق شجر','🍃'),('عشب','🌿'),('خس','🥬'),('موز','🍌')]),
+    PathAnimal(id: 'cat', arName: 'القط', foodName: 'سمك', foodEmoji: '🐟', wrong: [('جبن','🧀'),('لحم','🥩'),('عظمة','🦴'),('جمبري','🦐')]),
+    PathAnimal(id: 'dog', arName: 'الكلب', foodName: 'عظمة', foodEmoji: '🦴', wrong: [('لحم','🥩'),('سمك','🐟'),('جبن','🧀'),('حذاء','👞')]),
+    PathAnimal(id: 'mouse', arName: 'الفأر', foodName: 'جبن', foodEmoji: '🧀', wrong: [('جوز','🌰'),('قمح','🌾'),('ذرة','🌽'),('فطر','🍄')]),
+    PathAnimal(id: 'bear', arName: 'الدب', foodName: 'عسل', foodEmoji: '🍯', wrong: [('سمك','🐟'),('لحم','🥩'),('تفاح','🍏'),('فطر','🍄')]),
+    PathAnimal(id: 'frog', arName: 'الضفدع', foodName: 'ذبابة', foodEmoji: '🪰', wrong: [('دودة','🪱'),('سمك','🐟'),('خس','🥬'),('زهرة','🌸')]),
+    PathAnimal(id: 'turtle', arName: 'السلحفاة', foodName: 'خس', foodEmoji: '🥬', wrong: [('عشب','🌿'),('أوراق شجر','🍃'),('جزر','🥕'),('فطر','🍄')]),
+    PathAnimal(id: 'bird', arName: 'العصفور', foodName: 'دودة', foodEmoji: '🪱', wrong: [('قمح','🌾'),('ذرة','🌽'),('ذبابة','🪰'),('زهرة','🌸')]),
+    PathAnimal(id: 'horse', arName: 'الحصان', foodName: 'تفاح', foodEmoji: '🍏', wrong: [('جزر','🥕'),('قمح','🌾'),('عشب','🌿'),('ذرة','🌽')]),
+    PathAnimal(id: 'cow', arName: 'البقرة', foodName: 'قمح', foodEmoji: '🌾', wrong: [('عشب','🌿'),('خس','🥬'),('ذرة','🌽'),('خيزران','🎋')]),
+    PathAnimal(id: 'elephant', arName: 'الفيل', foodName: 'فول سوداني', foodEmoji: '🥜', wrong: [('موز','🍌'),('تفاح','🍏'),('أوراق شجر','🍃'),('خيزران','🎋')]),
+    PathAnimal(id: 'squirrel', arName: 'السنجاب', foodName: 'جوز', foodEmoji: '🌰', wrong: [('فول سوداني','🥜'),('جبن','🧀'),('تفاح','🍏'),('ذرة','🌽')]),
+    PathAnimal(id: 'penguin', arName: 'البطريق', foodName: 'جمبري', foodEmoji: '🦐', wrong: [('سمك','🐟'),('دودة','🪱'),('عشب','🌿'),('لحم','🥩')]),
+    PathAnimal(id: 'bee', arName: 'النحلة', foodName: 'زهرة', foodEmoji: '🌸', wrong: [('عسل','🍯'),('ذبابة','🪰'),('أوراق شجر','🍃'),('دودة','🪱')]),
+    PathAnimal(id: 'chicken', arName: 'الدجاجة', foodName: 'ذرة', foodEmoji: '🌽', wrong: [('قمح','🌾'),('دودة','🪱'),('عشب','🌿'),('خبز','🍞')]),
+    PathAnimal(id: 'camel', arName: 'الجمل', foodName: 'صبار', foodEmoji: '🌵', wrong: [('عشب','🌿'),('خيزران','🎋'),('خس','🥬'),('تفاح','🍏')]),
+    PathAnimal(id: 'snake', arName: 'الثعبان', foodName: 'بيضة', foodEmoji: '🥚', wrong: [('فأر','🐁'),('لحم','🥩'),('ضفدع','🐸'),('دودة','🪱')]),
+    PathAnimal(id: 'koala', arName: 'الكوالا', foodName: 'أوراق شجر', foodEmoji: '🍃', wrong: [('خيزران','🎋'),('عشب','🌿'),('خس','🥬'),('موز','🍌')]),
+    PathAnimal(id: 'duck', arName: 'البطة', foodName: 'خبز', foodEmoji: '🍞', wrong: [('سمك','🐟'),('ذرة','🌽'),('دودة','🪱'),('قمح','🌾')]),
+    PathAnimal(id: 'bat', arName: 'الخفاش', foodName: 'عنب', foodEmoji: '🍇', wrong: [('تفاح','🍏'),('موز','🍌'),('ذبابة','🪰'),('دودة','🪱')]),
+    PathAnimal(id: 'hedgehog', arName: 'القنفذ', foodName: 'فطر', foodEmoji: '🍄', wrong: [('جوز','🌰'),('تفاح','🍏'),('دودة','🪱'),('جبن','🧀')]),
   ];
 
   // The twelve approved V5.3 route families, stored compactly as four interior X knots per lane.
@@ -67,7 +85,7 @@ class PathRushPlan {
   ];
 
   static PathRushPlan fromSeed({required int seed, required int difficulty}) {
-    final travel = difficulty >= 2 ? 940 : difficulty == 1 ? 1120 : 1320;
+    final travel = 750; // Hard difficulty speed
     final rounds = <PathRushRound>[];
     for (var roundIndex = 0; roundIndex < roundCount; roundIndex++) {
       final roundSeed = (seed ^ ((roundIndex + 1) * 0x45d9f3b)) & 0xffffffff;
