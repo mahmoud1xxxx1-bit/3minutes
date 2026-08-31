@@ -15,15 +15,26 @@ export interface GoldEscrowSettlement {
   playerAPayout: number;
   playerBPayout: number;
   burnedGold: number;
-  reason: 'playerA_win' | 'playerB_win' | 'double_fail' | 'technical_refund';
+  reason:
+    | 'playerA_win'
+    | 'playerB_win'
+    | 'double_fail'
+    | 'draw_refund'
+    | 'technical_refund';
 }
 
 export function settleGoldEscrow(options: {
   wagerGold: GoldWager;
   outcome: 'playerA' | 'playerB' | 'tie';
   technicalCancel?: boolean;
+  tieIsFailure?: boolean;
 }): GoldEscrowSettlement {
-  const { wagerGold, outcome, technicalCancel = false } = options;
+  const {
+    wagerGold,
+    outcome,
+    technicalCancel = false,
+    tieIsFailure = true,
+  } = options;
   const pool = wagerGold * 2;
 
   if (technicalCancel) {
@@ -56,6 +67,17 @@ export function settleGoldEscrow(options: {
       playerBPayout: pool,
       burnedGold: 0,
       reason: 'playerB_win',
+    };
+  }
+
+  if (!tieIsFailure) {
+    return {
+      playerARefund: wagerGold,
+      playerBRefund: wagerGold,
+      playerAPayout: 0,
+      playerBPayout: 0,
+      burnedGold: 0,
+      reason: 'draw_refund',
     };
   }
 
