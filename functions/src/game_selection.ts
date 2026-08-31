@@ -4,6 +4,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { AUTHORITY_VERSION, COLLECTIONS, boolValue, intValue, stringValue, timestampMillis } from "./firestore.js";
 import { APPROVED_GAMES, MATCH_GAME_COUNT, REGISTRY_VERSION, validateLockedGameIds } from "./registry.js";
 import { seasonAcceptsNewRankedMatch } from "./season_boundary.js";
+import { parseGoldWager } from "./wager.js";
 
 const OPTIONS = {
   region: "me-central2",
@@ -43,6 +44,17 @@ function stringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
+function requireLockedEscrow(match: Record<string, unknown>): void {
+  try {
+    parseGoldWager(match.wagerGold);
+  } catch (_) {
+    throw new HttpsError("failed-precondition", "Ranked Gold wager is missing or invalid.");
+  }
+  if (match.goldEscrowStatus !== "locked") {
+    throw new HttpsError("failed-precondition", "Ranked Gold escrow must be locked before play.");
+  }
+}
+
 export const submitRankedGameSelection = onCall(OPTIONS, async (request) => {
   const uid = requireUid(request.auth?.uid);
   const matchId = requireMatchId(request.data?.matchId);
@@ -57,6 +69,7 @@ export const submitRankedGameSelection = onCall(OPTIONS, async (request) => {
     if (intValue(match.authorityVersion) !== AUTHORITY_VERSION || intValue(match.registryVersion) !== REGISTRY_VERSION) {
       throw new HttpsError("failed-precondition", "Match contract version mismatch.");
     }
+    requireLockedEscrow(match);
     if (match.status !== "waitingReady" || match.countdownStartedAt != null) {
       throw new HttpsError("failed-precondition", "Game selection is already closed.");
     }
@@ -114,6 +127,7 @@ export const markRankedReadyV2 = onCall(OPTIONS, async (request) => {
     if (intValue(match.authorityVersion) !== AUTHORITY_VERSION || intValue(match.registryVersion) !== REGISTRY_VERSION) {
       throw new HttpsError("failed-precondition", "Match contract version mismatch.");
     }
+    requireLockedEscrow(match);
     if (match.status !== "waitingReady") return;
 
     const playerAId = stringValue(match.playerAId);
