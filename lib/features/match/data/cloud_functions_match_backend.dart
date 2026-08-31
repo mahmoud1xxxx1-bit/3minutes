@@ -17,7 +17,7 @@ typedef RankedSettlementListener = void Function(
 );
 
 class CloudFunctionsMatchBackend
-    implements MatchBackend, RankedSettlementResultBackend {
+    implements MatchBackend, RankedWagerMatchBackend, RankedSettlementResultBackend {
   CloudFunctionsMatchBackend({
     FirebaseFunctions? functions,
     FirestoreMatchBackend? readBackend,
@@ -34,10 +34,24 @@ class CloudFunctionsMatchBackend
   }
 
   @override
-  Future<void> joinQueue(PlayerProfile profile) => _call('joinRankedQueue', {
-        'gameName': profile.gameName,
-        'avatarId': profile.avatarId,
-      });
+  Future<void> joinQueue(PlayerProfile profile) async {
+    throw StateError('Ranked matchmaking requires a server-authoritative wager.');
+  }
+
+  @override
+  Future<void> joinQueueWithWager(
+    PlayerProfile profile, {
+    required int wagerCoins,
+  }) {
+    if (wagerCoins <= 0) {
+      throw ArgumentError.value(wagerCoins, 'wagerCoins', 'Must be positive.');
+    }
+    return _call('joinRankedQueue', {
+      'gameName': profile.gameName,
+      'avatarId': profile.avatarId,
+      'wagerCoins': wagerCoins,
+    });
+  }
 
   @override
   Future<void> leaveQueue(String uid) => _call('leaveRankedQueue', const {});
