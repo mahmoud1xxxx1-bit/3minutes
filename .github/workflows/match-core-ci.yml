@@ -1,0 +1,49 @@
+name: Match Core CI
+
+on:
+  push:
+    branches:
+      - feature/premium-core-ux-v1
+    paths:
+      - 'functions/src/**'
+      - 'functions/package.json'
+      - 'lib/features/match/domain/**'
+      - 'lib/features/minigames/domain/**'
+      - 'test/features/match/domain/**'
+      - '.github/workflows/match-core-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  match-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Cloud Functions dependencies
+        run: npm install --prefix functions --no-audit --no-fund
+
+      - name: Build and test Cloud Functions
+        run: npm test --prefix functions
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Resolve Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze match core
+        run: flutter analyze lib/features/match/domain lib/features/minigames/domain test/features/match/domain
+
+      - name: Test match core
+        run: flutter test test/features/match/domain
