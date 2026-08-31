@@ -14,9 +14,9 @@ void main() {
         titleEn: id,
         category: MiniGameCategory.reaction,
         engine: MiniGameEngine.reaction,
-        maxDuration: const Duration(minutes: 1),
+        maxDuration: const Duration(minutes: 3),
         minRawScore: 0,
-        maxRawScore: 100,
+        maxRawScore: 1000,
       );
 
   final registry = MiniGameRegistry(
@@ -29,28 +29,37 @@ void main() {
     ],
   );
 
-  MiniGameResult result(int score, int milliseconds, {bool completed = true}) {
-    return MiniGameResult(
-      completed: completed,
-      score: score,
-      accuracy: 1,
-      mistakes: 0,
-      duration: Duration(milliseconds: milliseconds),
-    );
-  }
+  MiniGameResult cleared(int milliseconds, {int mistakes = 0}) => MiniGameResult(
+        completed: true,
+        score: 1000,
+        accuracy: 1,
+        mistakes: mistakes,
+        duration: Duration(milliseconds: milliseconds),
+        progressStep: 3,
+        progressStepCount: 3,
+      );
 
-  MatchGameSubmission submission(String id, int score, int milliseconds, {bool completed = true}) {
-    return MatchGameSubmission(
-      gameId: id,
-      gameVersion: 1,
-      result: result(score, milliseconds, completed: completed),
-    );
-  }
+  MiniGameResult failed(
+    int milliseconds, {
+    int progressStep = 1,
+    int mistakes = 1,
+  }) => MiniGameResult(
+        completed: false,
+        score: 0,
+        accuracy: .5,
+        mistakes: mistakes,
+        duration: Duration(milliseconds: milliseconds),
+        progressStep: progressStep,
+        progressStepCount: 3,
+      );
+
+  MatchGameSubmission submission(String id, MiniGameResult result) =>
+      MatchGameSubmission(gameId: id, gameVersion: 1, result: result);
 
   const engine = MatchResultEngine();
   const order = ['g1', 'g2', 'g3', 'g4'];
 
-  test('higher total normalized score wins', () {
+  test('more completed 1000-point games wins', () {
     final resolution = engine.resolve(
       matchId: 'match-score',
       playerAId: 'A',
@@ -58,50 +67,92 @@ void main() {
       gameOrder: order,
       registry: registry,
       playerASubmissions: [
-        submission('g1', 90, 10000),
-        submission('g2', 80, 10000),
-        submission('g3', 70, 10000),
-        submission('g4', 60, 10000),
+        submission('g1', cleared(10000)),
+        submission('g2', cleared(10000)),
+        submission('g3', cleared(10000)),
+        submission('g4', cleared(10000)),
       ],
       playerBSubmissions: [
-        submission('g1', 50, 5000),
-        submission('g2', 50, 5000),
-        submission('g3', 50, 5000),
-        submission('g4', 50, 5000),
+        submission('g1', cleared(8000)),
+        submission('g2', cleared(8000)),
+        submission('g3', cleared(8000)),
+        submission('g4', failed(8000, progressStep: 2)),
       ],
     );
 
     expect(resolution.winnerId, 'A');
     expect(resolution.reason, MatchResolutionReason.score);
-    expect(resolution.playerA.totalNormalizedScore, 3000);
-    expect(resolution.playerB.totalNormalizedScore, 2000);
+    expect(resolution.playerA.totalScore, 4000);
+    expect(resolution.playerB.totalScore, 3000);
   });
 
-  test('equal score is decided by lower total time across all four completed games', () {
+  test('equal points at timeout are decided by later locked game position', () {
+    final resolution = engine.resolve(
+      matchId: 'match-progress',
+      playerAId: 'A',
+      playerBId: 'B',
+      gameOrder: order,
+      registry: registry,
+      playerASubmissions: [
+        submission('g1', cleared(10000)),
+        submission('g2', failed(10000)),
+      ],
+      playerBSubmissions: [
+        submission('g1', cleared(9000)),
+        submission('g2', failed(9000)),
+        submission('g3', failed(9000)),
+      ],
+    );
+
+    expect(resolution.playerA.totalScore, 1000);
+    expect(resolution.playerB.totalScore, 1000);
+    expect(resolution.winnerId, 'B');
+    expect(resolution.reason, MatchResolutionReason.gameProgress);
+  });
+
+  test('same score and same game position with failure is double fail', () {
+    final resolution = engine.resolve(
+      matchId: 'match-double-fail',
+      playerAId: 'A',
+      playerBId: 'B',
+      gameOrder: order,
+      registry: registry,
+      playerASubmissions: [
+        submission('g1', cleared(10000)),
+        submission('g2', failed(8000, progressStep: 2, mistakes: 3)),
+      ],
+      playerBSubmissions: [
+        submission('g1', cleared(9000)),
+        submission('g2', failed(7000, progressStep: 1, mistakes: 0)),
+      ],
+    );
+
+    expect(resolution.winnerId, isNull);
+    expect(resolution.loserId, isNull);
+    expect(resolution.reason, MatchResolutionReason.doubleFail);
+    // Time, mistakes and per-game failure depth do not secretly decide it.
+    expect(resolution.playerA.totalScore, resolution.playerB.totalScore);
+  });
+
+  test('4000 to 4000 is decided only by lower total completion time', () {
     final resolution = engine.resolve(
       matchId: 'match-time',
       playerAId: 'A',
       playerBId: 'B',
       gameOrder: order,
       registry: registry,
-      playerASubmissions: [
-        submission('g1', 50, 9000),
-        submission('g2', 50, 9000),
-        submission('g3', 50, 9000),
-        submission('g4', 50, 9000),
-      ],
-      playerBSubmissions: [
-        submission('g1', 50, 10000),
-        submission('g2', 50, 10000),
-        submission('g3', 50, 10000),
-        submission('g4', 50, 10000),
-      ],
+      playerASubmissions: order
+          .map((id) => submission(id, cleared(9000)))
+          .toList(growable: false),
+      playerBSubmissions: order
+          .map((id) => submission(id, cleared(10000)))
+          .toList(growable: false),
     );
 
     expect(resolution.winnerId, 'A');
     expect(resolution.reason, MatchResolutionReason.timeTieBreaker);
-    expect(resolution.playerA.totalDuration, const Duration(seconds: 36));
-    expect(resolution.playerB.totalDuration, const Duration(seconds: 40));
+    expect(resolution.playerA.totalScore, 4000);
+    expect(resolution.playerB.totalScore, 4000);
 
     final receipt = MatchResultReceipt.fromResolution(resolution);
     expect(receipt.decidedByTime, isTrue);
@@ -109,26 +160,48 @@ void main() {
     expect(receipt.games, hasLength(4));
   });
 
-  test('incomplete game prevents match resolution', () {
+  test('exact 4000 score and exact time remains a true tie', () {
+    final a = order
+        .map((id) => submission(id, cleared(9000)))
+        .toList(growable: false);
+    final b = order
+        .map((id) => submission(id, cleared(9000)))
+        .toList(growable: false);
+
+    final resolution = engine.resolve(
+      matchId: 'match-exact-tie',
+      playerAId: 'A',
+      playerBId: 'B',
+      gameOrder: order,
+      registry: registry,
+      playerASubmissions: a,
+      playerBSubmissions: b,
+    );
+
+    expect(resolution.winnerId, isNull);
+    expect(resolution.reason, MatchResolutionReason.exactTie);
+  });
+
+  test('completed result cannot award anything except 1000 points', () {
+    final invalid = MiniGameResult(
+      completed: true,
+      score: 900,
+      accuracy: 1,
+      mistakes: 0,
+      duration: const Duration(seconds: 10),
+      progressStep: 3,
+      progressStepCount: 3,
+    );
+
     expect(
       () => engine.resolve(
-        matchId: 'match-incomplete',
+        matchId: 'invalid-score',
         playerAId: 'A',
         playerBId: 'B',
         gameOrder: order,
         registry: registry,
-        playerASubmissions: [
-          submission('g1', 50, 10000),
-          submission('g2', 50, 10000),
-          submission('g3', 50, 10000),
-          submission('g4', 50, 10000, completed: false),
-        ],
-        playerBSubmissions: [
-          submission('g1', 50, 10000),
-          submission('g2', 50, 10000),
-          submission('g3', 50, 10000),
-          submission('g4', 50, 10000),
-        ],
+        playerASubmissions: [submission('g1', invalid)],
+        playerBSubmissions: [submission('g1', failed(10000))],
       ),
       throwsStateError,
     );
