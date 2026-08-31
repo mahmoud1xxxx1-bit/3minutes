@@ -26,6 +26,7 @@ import {
   REGISTRY_VERSION,
   parseEvidence,
   validateEvidence,
+  validateLockedGameIds,
 } from "./registry.js";
 import { advanceSeasonalRecord } from "./season_integrity.js";
 import { parseGoldWager, settleGoldEscrow } from "./wager.js";
@@ -46,6 +47,12 @@ function requireMatchId(value: unknown): string {
     throw new HttpsError("invalid-argument", "matchId is required.");
   }
   return value.trim();
+}
+
+function strings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function storedRankTier(value: unknown, fallback: RankTier): RankTier {
@@ -105,6 +112,8 @@ export const settleRankedMatchV2 = onCall(CALLABLE_OPTIONS, async (request) => {
       throw new HttpsError("data-loss", "Invalid match participants.");
     }
 
+    // Idempotency gate: concurrent/duplicate callers return the exact stored
+    // payload and never execute any balance/RP/XP writes a second time.
     if (existingSettlement.exists) {
       const stored = existingSettlement.data()?.payload;
       if (stored && typeof stored === "object") return stored;
@@ -155,6 +164,14 @@ export const settleRankedMatchV2 = onCall(CALLABLE_OPTIONS, async (request) => {
         `Ranked registry v${REGISTRY_VERSION} requires exactly ${MATCH_GAME_COUNT} games.`,
       );
     }
+    const lockedGameIds = strings(match.lockedGameIds);
+    if (!validateLockedGameIds(lockedGameIds)) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Ranked settlement requires the same four server-locked games used during play.",
+      );
+    }
+
     const seed = intValue(match.seed);
     const progressA = parseProgress(match.progressA);
     const progressB = parseProgress(match.progressB);
@@ -200,15 +217,20 @@ export const settleRankedMatchV2 = onCall(CALLABLE_OPTIONS, async (request) => {
         gameCount,
         completedGames: progressA.completedGames,
         evidence: evidenceA,
+        lockedGameIds,
       }) ||
       !validateEvidence({
         matchSeed: seed,
         gameCount,
         completedGames: progressB.completedGames,
         evidence: evidenceB,
+        lockedGameIds,
       })
     ) {
-      throw new HttpsError("failed-precondition", "Ranked evidence failed integrity checks.");
+      throw new HttpsError(
+        "failed-precondition",
+        "Ranked evidence does not match the four server-locked games.",
+      );
     }
 
     const resolution = bothComplete
@@ -357,6 +379,7 @@ export const settleRankedMatchV2 = onCall(CALLABLE_OPTIONS, async (request) => {
       wagerGold,
       goldSettlement,
       resolution,
+      lockedGameIds,
       playerA: settlementPlayer({
         uid: playerAId,
         previousRp: previousRpA,
