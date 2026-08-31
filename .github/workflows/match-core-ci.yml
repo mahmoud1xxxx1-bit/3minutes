@@ -18,6 +18,7 @@ on:
       - 'lib/features/minigames/data/game_registry.dart'
       - 'lib/features/minigames/presentation/mini_game_host.dart'
       - 'lib/features/minigames/presentation/level_devil/**'
+      - 'lib/features/minigames/presentation/hidden_pigeon/hidden_pigeon_game.dart'
       - 'test/features/match/domain/**'
       - '.github/workflows/match-core-ci.yml'
   workflow_dispatch:
@@ -65,6 +66,7 @@ jobs:
           lib/features/minigames/data/game_registry.dart
           lib/features/minigames/presentation/mini_game_host.dart
           lib/features/minigames/presentation/level_devil/level_devil_game.dart
+          lib/features/minigames/presentation/hidden_pigeon/hidden_pigeon_game.dart
           test/features/match/domain
 
       - name: Test match core
