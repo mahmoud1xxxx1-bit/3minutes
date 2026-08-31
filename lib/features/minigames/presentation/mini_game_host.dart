@@ -28,6 +28,31 @@ class MiniGameHost extends StatelessWidget {
 
   Key get _runtimeKey => ValueKey('${game.id}-${config.seed}');
 
+  void _complete(MiniGameResult raw) {
+    // Compatibility boundary for the existing game catalog. Mini-games may
+    // keep their internal counters for UI/reporting, but competitive match
+    // points are deliberately binary and universal: objective clear = 1000,
+    // objective failed = 0. This keeps old games from inventing their own
+    // economy/score formula while allowing future games to adopt the contract
+    // directly without touching MatchEngine.
+    final stepCount = raw.progressStepCount < 1 ? 1 : raw.progressStepCount;
+    final normalizedProgress = raw.completed
+        ? stepCount
+        : raw.progressStep.clamp(0, stepCount - 1).toInt();
+
+    onComplete(
+      MiniGameResult(
+        completed: raw.completed,
+        score: raw.completed ? 1000 : 0,
+        accuracy: raw.accuracy.clamp(0.0, 1.0).toDouble(),
+        mistakes: raw.mistakes < 0 ? 0 : raw.mistakes,
+        duration: raw.duration.isNegative ? Duration.zero : raw.duration,
+        progressStep: normalizedProgress,
+        progressStepCount: stepCount,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (game.id) {
@@ -35,74 +60,74 @@ class MiniGameHost extends StatelessWidget {
         return FindDifferencesGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'follow_the_cup':
         return FollowTheCupGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'key_escape':
         return KeyEscapeGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'level_devil':
         return LevelDevilGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'mirror_control':
         return MirrorControlMinigame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'mole_strike':
         return MoleStrikeGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'ninja_slice':
         return NinjaSliceGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'onet_connect':
         return OnetConnectGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'path_rush':
         return PathRushGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'traffic_loop':
         return TrafficLoopGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
       case 'hidden_pigeon':
         return HiddenPigeonGame(
           key: _runtimeKey,
           config: config,
-          onComplete: onComplete,
+          onComplete: _complete,
         );
     }
 
     return legacy.MiniGameHost(
       game: game,
       config: config,
-      onComplete: onComplete,
+      onComplete: _complete,
     );
   }
 }
