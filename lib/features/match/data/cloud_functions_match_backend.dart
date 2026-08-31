@@ -205,10 +205,10 @@ class CloudFunctionsMatchBackend implements
       durationMs: result.duration.inMilliseconds,
     );
 
-    if (!MiniGameEvidencePolicy.isValidMatchEvidence(
+    if (!MiniGameEvidencePolicy.isValidGameEvidence(
       matchSeed: match.seed,
       gameCount: gameCount,
-      evidence: [evidence],
+      evidence: evidence,
       lockedGameIds: match.lockedGameIds,
     )) {
       throw StateError('Ranked mini-game result is outside the official contract.');
