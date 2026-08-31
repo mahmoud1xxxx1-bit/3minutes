@@ -7,12 +7,21 @@ import {
   rankedWeeklyDelta,
   weeklyCompetitionId,
   weeklyRewardFor,
+  weeklyScoreWindowOpen,
 } from "./weekly_competition.js";
 
 test("weekly competition ids roll exactly every seven days", () => {
   assert.equal(weeklyCompetitionId(0), "week_0");
   assert.equal(weeklyCompetitionId(WEEK_MS - 1), "week_0");
   assert.equal(weeklyCompetitionId(WEEK_MS), "week_1");
+});
+
+test("weekly score window freezes as soon as rollover starts", () => {
+  assert.equal(weeklyScoreWindowOpen(undefined), true);
+  assert.equal(weeklyScoreWindowOpen(null), true);
+  assert.equal(weeklyScoreWindowOpen("open"), true);
+  assert.equal(weeklyScoreWindowOpen("processing"), false);
+  assert.equal(weeklyScoreWindowOpen("closed"), false);
 });
 
 test("RP weekly leaderboard rewards match the approved table", () => {
