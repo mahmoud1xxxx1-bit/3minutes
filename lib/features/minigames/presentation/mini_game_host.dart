@@ -12,7 +12,7 @@ import 'mirror_control/mirror_control_minigame.dart';
 import 'mole_strike/mole_strike_game.dart';
 import 'ninja_slice/ninja_slice_game.dart';
 import 'onet_connect/onet_connect_game.dart';
-import 'path_rush/path_rush_game.dart';
+import 'path_rush/path_rush_competitive_game.dart';
 import 'traffic_loop/traffic_loop_game.dart';
 
 class MiniGameHost extends StatelessWidget {
@@ -85,7 +85,7 @@ class MiniGameHost extends StatelessWidget {
           onComplete: _complete,
         );
       case 'path_rush':
-        return PathRushGame(
+        return PathRushCompetitiveGame(
           key: _runtimeKey,
           config: config,
           onComplete: _complete,
