@@ -78,7 +78,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     try {
       final backend = widget.matchBackend;
       if (backend is RankedWagerQueueBackend) {
-        await backend.joinRankedQueueWithWager(
+        await (backend as RankedWagerQueueBackend).joinRankedQueueWithWager(
           widget.profile,
           wager: _selectedWager!,
         );
@@ -120,7 +120,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder<void>(
           transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, animation, __) => FadeTransition(
+          pageBuilder: (_, animation, _) => FadeTransition(
             opacity: animation,
             child: MatchRoomScreen(
               matchId: matchId,
