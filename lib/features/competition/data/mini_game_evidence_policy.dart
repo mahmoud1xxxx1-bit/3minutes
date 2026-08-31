@@ -25,9 +25,10 @@ class MiniGameEvidencePolicy {
     if (evidence.length > gameCount) return false;
 
     final expectedGames = lockedGameIds == null
-        ? GameRegistry.sequence(seed: matchSeed, count: gameCount)
+        ? _descriptorsForEvidence(evidence)
         : _descriptorsForLockedIds(lockedGameIds);
-    if (expectedGames.length != gameCount) return false;
+    if (lockedGameIds != null && expectedGames.length != gameCount) return false;
+    if (lockedGameIds == null && expectedGames.length != evidence.length) return false;
 
     var totalDurationMs = 0;
     for (var index = 0; index < evidence.length; index++) {
@@ -39,7 +40,21 @@ class MiniGameEvidencePolicy {
       if (item.gameSeed != gameSeed(matchSeed: matchSeed, gameIndex: index)) {
         return false;
       }
-      if (item.score < 0 || item.score > maxScorePerGame) return false;
+      if (item.progressStepCount < 1 ||
+          item.progressStep < 0 ||
+          item.progressStep > item.progressStepCount) {
+        return false;
+      }
+      if (item.completed) {
+        if (item.score != maxScorePerGame ||
+            item.progressStep != item.progressStepCount) {
+          return false;
+        }
+      } else {
+        if (item.score != 0 || item.progressStep >= item.progressStepCount) {
+          return false;
+        }
+      }
       if (item.accuracy < 0 || item.accuracy > 1) return false;
       if (item.mistakes < 0) return false;
       if (item.durationMs < 0 || item.durationMs > maxMatchDurationMs) {
@@ -52,8 +67,20 @@ class MiniGameEvidencePolicy {
     return true;
   }
 
+  static List<MiniGameDescriptor> _descriptorsForEvidence(
+    List<MiniGameEvidence> evidence,
+  ) {
+    final ids = evidence.map((item) => item.gameId).toList(growable: false);
+    if (ids.toSet().length != ids.length) return const [];
+    return _descriptorsForIds(ids);
+  }
+
   static List<MiniGameDescriptor> _descriptorsForLockedIds(List<String> ids) {
     if (ids.length != 4 || ids.toSet().length != 4) return const [];
+    return _descriptorsForIds(ids);
+  }
+
+  static List<MiniGameDescriptor> _descriptorsForIds(List<String> ids) {
     final result = <MiniGameDescriptor>[];
     for (final id in ids) {
       final matches = GameRegistry.games.where((game) => game.id == id);
