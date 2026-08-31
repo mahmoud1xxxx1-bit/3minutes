@@ -20,19 +20,17 @@ export interface MiniGameEvidence {
 }
 
 export const APPROVED_GAMES: ReadonlyArray<GameDescriptor> = [
-  { id: "tap_target", category: "precision" },
-  { id: "quick_math", category: "logic" },
-  { id: "color_match", category: "reaction" },
-  { id: "odd_one_out", category: "logic" },
-  { id: "memory_flash", category: "memory" },
-  { id: "direction_swipe", category: "reaction" },
-  { id: "number_order", category: "memory" },
-  { id: "shape_count", category: "logic" },
-  { id: "reaction_stop", category: "reaction" },
-  { id: "symbol_pair", category: "precision" },
-  { id: "mole_strike", category: "reaction" },
+  { id: "find_differences", category: "precision" },
   { id: "follow_the_cup", category: "memory" },
+  { id: "key_escape", category: "logic" },
+  { id: "level_devil", category: "reaction" },
+  { id: "mirror_control", category: "precision" },
+  { id: "mole_strike", category: "reaction" },
+  { id: "ninja_slice", category: "reaction" },
+  { id: "onet_connect", category: "logic" },
   { id: "path_rush", category: "logic" },
+  { id: "traffic_loop", category: "logic" },
+  { id: "hidden_pigeon", category: "precision" },
 ];
 
 const CATEGORIES: ReadonlyArray<GameCategory> = ["reaction", "logic", "memory", "precision"];
