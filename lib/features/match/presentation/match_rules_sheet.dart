@@ -4,7 +4,8 @@ import '../../../core/theme/arena_ui.dart';
 import '../../../core/theme/design_tokens.dart';
 
 Future<void> showMatchRulesSheet(BuildContext context) {
-  final isArabic = Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
+  final isArabic =
+      Localizations.localeOf(context).languageCode.toLowerCase() == 'ar';
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -25,7 +26,7 @@ class _MatchRulesSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: FractionallySizedBox(
-        heightFactor: .88,
+        heightFactor: .9,
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           decoration: const BoxDecoration(
@@ -45,12 +46,18 @@ class _MatchRulesSheet extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, color: GameColors.accentBright),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    color: GameColors.accentBright,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       t('قواعد المواجهة', 'MATCH RULES'),
-                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -68,57 +75,66 @@ class _MatchRulesSheet extends StatelessWidget {
                       number: '1',
                       title: t('اختيار الألعاب', 'GAME SELECTION'),
                       body: t(
-                        'كل لاعب يختار لعبتين. مجموع المواجهة 4 ألعاب، ويُقفل الاختيار قبل بدء العد التنازلي.',
-                        'Each player chooses 2 games. The match contains 4 games total, locked before countdown.',
+                        'كل لاعب يختار لعبتين. تصبح المواجهة 4 ألعاب مختلفة، ويقفل الخادم الألعاب الأربع قبل السماح بزر جاهز.',
+                        'Each player chooses 2 games. The match becomes 4 different games, locked by the server before Ready is allowed.',
                       ),
                     ),
                     _RuleCard(
                       number: '2',
-                      title: t('النقاط', 'SCORING'),
+                      title: t('قاعدة 1000 نقطة', 'THE 1000-POINT RULE'),
                       body: t(
-                        'إكمال هدف اللعبة بالكامل = 1000 نقطة. مثال: في لعبة من 3 جولات، إنهاء الجولات الثلاث بنجاح يمنح 1000 نقطة. الموت والأخطاء لا تخصم نقاطًا؛ تُحفظ فقط في تقرير الأداء.',
-                        'Fully completing a game objective = 1000 points. Example: in a 3-round game, clearing all 3 rounds awards 1000. Deaths and mistakes do not reduce points; they are kept only in the performance report.',
+                        'إكمال هدف أي لعبة بالكامل = 1000 نقطة. عدم إكمال الهدف قبل انتهاء وقت اللعبة = 0 نقطة. لا توجد معادلات سرية أو خصم نقاط بسبب الأخطاء.',
+                        'Fully completing any game objective = 1000 points. Failing to complete it before its time ends = 0 points. There are no hidden formulas or mistake-based point deductions.',
                       ),
                     ),
                     _RuleCard(
                       number: '3',
-                      title: t('إذا انتهى الوقت قبل الإكمال', 'WHEN TIME EXPIRES'),
+                      title: t('الألعاب ذات الجولات أو القلوب', 'ROUNDS, LIVES & MISTAKES'),
                       body: t(
-                        'إذا فشل اللاعبان في إكمال اللعبة، نقارن آخر مرحلة صحيحة وصل إليها كل لاعب. من وصل أبعد تكون نتيجته أعلى. مثال: لاعب وصل للجولة 2 والآخر للجولة 3، صاحب الجولة 3 يتفوق.',
-                        'If neither player completes the game, the last valid progress stage is compared. The player who reached farther ranks higher. Example: round 3 outranks round 2.',
+                        'مثال Level Devil: يجب إنهاء الجولات الثلاث للحصول على 1000 نقطة. عدد مرات الموت، القلوب المتبقية، الأخطاء والجولة التي وصلت إليها تظهر في تقرير الأداء فقط ولا تمنح نقاطًا جزئية.',
+                        'Example — Level Devil: all 3 rounds must be cleared to earn 1000 points. Deaths, remaining lives, mistakes and reached round appear only in the performance report and never award partial points.',
                       ),
                     ),
                     _RuleCard(
                       number: '4',
-                      title: t('التعادل داخل الفشل', 'FAILED-GAME TIE'),
+                      title: t('إذا انتهى وقت المواجهة', 'WHEN MATCH TIME EXPIRES'),
                       body: t(
-                        'إذا انتهى الوقت واللاعبان عند نفس مرحلة التقدم، تُسجل الحالة تعادل فشل. لا يتم اختراع فائز عشوائي.',
-                        'If time expires with both players at the same progress stage, it is recorded as a failed-game tie. No random winner is invented.',
+                        'نقارن أولًا مجموع النقاط. إذا تساوت، يتقدم اللاعب الذي وصل إلى لعبة أبعد في ترتيب الألعاب الأربع. مثال: لاعب توقف في اللعبة 2 والآخر وصل إلى اللعبة 3؛ اللاعب الثاني هو المتقدم.',
+                        'Total points are compared first. If tied, the player who reached a later game in the locked 4-game order is ahead. Example: stopping in game 2 loses to reaching game 3.',
                       ),
                     ),
                     _RuleCard(
                       number: '5',
-                      title: t('حسم المباراة', 'MATCH DECISION'),
+                      title: t('الفشل المتعادل', 'DOUBLE FAIL'),
                       body: t(
-                        'بعد الألعاب الأربع تُقارن النتيجة الإجمالية. إذا تعادلت النقاط بعد إكمال الألعاب، يحسم مجموع الوقت الأقل المباراة.',
-                        'After all 4 games, total score is compared. If completed-match points are tied, the lower total completion time wins.',
-                      ),
-                    ),
-                    _RuleCard(
-                      number: '6',
-                      title: t('عقوبة الفشل المتعادل', 'DOUBLE-FAIL PENALTY'),
-                      body: t(
-                        'إذا انتهت المواجهة بحالة فشل متعادل بدون فائز وفق القواعد، يعود لكل لاعب 50% فقط من رهانه ويُخصم 50% كعقوبة فشل. مثال: رهان 500 Gold → يعود 250 Gold لكل لاعب.',
-                        'If the match ends in an unresolved double-fail, each player receives only 50% of their wager back and 50% is deducted as a failure penalty. Example: 500 Gold wager → 250 Gold returned to each player.',
+                        'إذا تساوت النقاط وكان اللاعبان في نفس رقم اللعبة عند انتهاء الوقت ولم يكملا المواجهة، فلا نستخدم الأخطاء أو الموت أو الزمن لاختراع فائز. تسجل الحالة Double Fail.',
+                        'If points are tied and both players are on the same game when time expires without completing the match, mistakes, deaths and time do not invent a winner. The result is Double Fail.',
                       ),
                       warning: true,
                     ),
                     _RuleCard(
-                      number: '7',
-                      title: t('تقرير الأداء', 'PERFORMANCE REPORT'),
+                      number: '6',
+                      title: t('الوقت يحسم فقط 4000–4000', 'TIME ONLY BREAKS 4000–4000'),
                       body: t(
-                        'بعد المباراة تظهر لكل لاعب تفاصيل كل لعبة: الإكمال، المرحلة التي وصل إليها، الوقت، الأخطاء، مرات الموت أو القلوب عند وجودها، وسبب الفوز أو الخسارة أو التعادل.',
-                        'After the match, each player sees per-game details: completion, reached stage, time, mistakes, deaths or lives when applicable, and the exact win/loss/tie reason.',
+                        'إذا أكمل اللاعبان الألعاب الأربع بنجاح وأصبح المجموع 4000 مقابل 4000، يفوز صاحب مجموع وقت الإكمال الأقل. إذا تساوى الوقت أيضًا تبقى النتيجة تعادلًا حقيقيًا.',
+                        'If both players correctly clear all 4 games for 4000–4000, the lower total completion time wins. If total time is also exactly equal, the result remains a true tie.',
+                      ),
+                    ),
+                    _RuleCard(
+                      number: '7',
+                      title: t('عقوبة Double Fail', 'DOUBLE-FAIL PENALTY'),
+                      body: t(
+                        'في Double Fail يعاد لكل لاعب 50% فقط من Gold الذي راهن به ويخصم 50% كعقوبة فشل. مثال: رهان 500 Gold لكل لاعب → يعود 250 Gold لكل لاعب.',
+                        'In a Double Fail, each player receives only 50% of their wager back and loses 50% as the failure penalty. Example: 500 Gold wager each → 250 Gold returned to each.',
+                      ),
+                      warning: true,
+                    ),
+                    _RuleCard(
+                      number: '8',
+                      title: t('تقرير واضح بعد المباراة', 'CLEAR POST-MATCH REPORT'),
+                      body: t(
+                        'يظهر التقرير نتيجة كل لعبة، هل اكتملت أم فشلت، رقم اللعبة التي وصل إليها اللاعب، الوقت، الأخطاء، الموت أو القلوب عند وجودها، ثم سبب النتيجة النهائية.',
+                        'The report shows every game result, completion or failure, the reached match-game number, time, mistakes, deaths or lives when applicable, and the exact final decision reason.',
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -126,10 +142,14 @@ class _MatchRulesSheet extends StatelessWidget {
                       accent: GameColors.success,
                       child: Text(
                         t(
-                          'مثال كامل: لاعب A أنهى 4 ألعاب = 4000 نقطة. لاعب B أنهى 3 ألعاب فقط = أقل من A. إذا أنهى الاثنان الأربع وأصبح المجموع 4000 مقابل 4000، يفوز صاحب الوقت الإجمالي الأقل.',
-                          'Full example: Player A clears all 4 games = 4000 points. Player B clears only 3 = lower result. If both finish all 4 at 4000–4000, the lower total completion time wins.',
+                          'مثال: A أنهى لعبتين = 2000 نقطة وتوقف في اللعبة 3. B أنهى لعبتين = 2000 نقطة لكنه وصل إلى اللعبة 4، إذن B أعلى. وإذا كان الاثنان عند اللعبة 3 بنفس 2000 نقطة عند انتهاء الوقت فهي Double Fail.',
+                          'Example: A clears 2 games = 2000 and stops in game 3. B also has 2000 but reaches game 4, so B is ahead. If both are in game 3 at the same 2000 when time ends, it is a Double Fail.',
                         ),
-                        style: const TextStyle(color: GameColors.textSoft, height: 1.55, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: GameColors.textSoft,
+                          height: 1.55,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -174,16 +194,29 @@ class _RuleCard extends StatelessWidget {
                 color: color.withValues(alpha: .12),
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: Text(number, style: TextStyle(color: color, fontWeight: FontWeight.w900)),
+              child: Text(
+                number,
+                style: TextStyle(color: color, fontWeight: FontWeight.w900),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                  ),
                   const SizedBox(height: 5),
-                  Text(body, style: const TextStyle(color: GameColors.textSoft, height: 1.5, fontSize: 11)),
+                  Text(
+                    body,
+                    style: const TextStyle(
+                      color: GameColors.textSoft,
+                      height: 1.5,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
             ),
