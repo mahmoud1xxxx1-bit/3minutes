@@ -4,6 +4,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { AUTHORITY_VERSION, COLLECTIONS, intValue, parseProgress, stringValue, timestampMillis } from "./firestore.js";
 import { MATCH_DURATION_MS, MATCH_GAME_COUNT, REGISTRY_VERSION, parseEvidence, validateEvidence, validateLockedGameIds } from "./registry.js";
 import { RANKED_COUNTDOWN_MS, RANKED_SUBMISSION_TRANSPORT_GRACE_MS } from "./season_boundary.js";
+import { parseGoldWager } from "./wager.js";
 
 const OPTIONS = {
   region: "me-central2",
@@ -39,6 +40,17 @@ function requireActiveWindow(match: Record<string, unknown>): void {
   }
 }
 
+function requireLockedGoldEscrow(match: Record<string, unknown>): void {
+  try {
+    parseGoldWager(match.wagerGold);
+  } catch {
+    throw new HttpsError("failed-precondition", "Ranked Gold wager is missing or invalid.");
+  }
+  if (match.goldEscrowStatus !== "locked") {
+    throw new HttpsError("failed-precondition", "Ranked Gold escrow is not locked.");
+  }
+}
+
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
@@ -67,6 +79,7 @@ export const submitRankedGameResultV2 = onCall(OPTIONS, async (request) => {
     if (intValue(match.authorityVersion) !== AUTHORITY_VERSION || intValue(match.registryVersion) !== REGISTRY_VERSION) {
       throw new HttpsError("failed-precondition", "Match contract version mismatch.");
     }
+    requireLockedGoldEscrow(match);
 
     const playerAId = stringValue(match.playerAId);
     const playerBId = stringValue(match.playerBId);
