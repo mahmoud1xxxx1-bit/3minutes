@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../data/match_backend.dart';
 import '../domain/match_outcome.dart';
 import '../domain/match_session.dart';
+import 'match_history_avatar.dart';
 
 class MatchHistoryScreen extends StatefulWidget {
   const MatchHistoryScreen({
@@ -170,14 +171,10 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                     glow: won,
                     child: Row(
                       children: [
-                        Container(
-                          width: 46,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: color.withValues(alpha: .12),
-                          ),
-                          child: Icon(icon, color: color),
+                        MatchHistoryAvatar(
+                          avatarId: match.opponentAvatarId(widget.uid),
+                          statusColor: color,
+                          statusIcon: icon,
                         ),
                         const SizedBox(width: GameSpacing.md),
                         Expanded(
