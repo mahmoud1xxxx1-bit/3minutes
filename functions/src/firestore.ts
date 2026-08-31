@@ -10,6 +10,8 @@ export const COLLECTIONS = {
   seasons: "seasons",
   seasonHistory: "seasonHistory",
   leaderboards: "leaderboards",
+  weeklyLeaderboards: "weeklyLeaderboards",
+  weeklyCompetitionGrants: "weeklyCompetitionGrants",
   entries: "entries",
   inventories: "inventories",
   rankedSettlements: "rankedSettlements",
