@@ -2,11 +2,13 @@ export const ALLOWED_GOLD_WAGERS = [100, 250, 500] as const;
 export type GoldWager = (typeof ALLOWED_GOLD_WAGERS)[number];
 
 export function parseGoldWager(value: unknown): GoldWager {
-  const amount = typeof value === 'number' ? Math.trunc(value) : Number.NaN;
-  if (!ALLOWED_GOLD_WAGERS.includes(amount as GoldWager)) {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
     throw new Error('wagerGold must be exactly 100, 250, or 500.');
   }
-  return amount as GoldWager;
+  if (!ALLOWED_GOLD_WAGERS.includes(value as GoldWager)) {
+    throw new Error('wagerGold must be exactly 100, 250, or 500.');
+  }
+  return value as GoldWager;
 }
 
 export interface GoldEscrowSettlement {
