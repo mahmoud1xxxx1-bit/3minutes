@@ -1,7 +1,7 @@
 ﻿import assert from "node:assert/strict";
 import test from "node:test";
 import { compareMatch } from "./policy.js";
-import { validateEvidenceSequence, validateTimeManipulation, validateTechnicalCancelTime } from "./match_hardening.js";
+import { validateEvidenceSequence, computeAuthoritativeTime, validateTechnicalCancelTime } from "./match_hardening.js";
 
 test("Evidence sequence allows forward progression and idempotent retry", () => {
   assert.equal(validateEvidenceSequence(0, 1), "ok", "First game submit should be ok");
@@ -11,32 +11,27 @@ test("Evidence sequence allows forward progression and idempotent retry", () => 
   assert.equal(validateEvidenceSequence(3, 2), "invalid", "Going backwards is invalid");
 });
 
-test("Time manipulation limits block impossible durations", () => {
+test("Time manipulation limits clamp impossible durations (Server Authoritative)", () => {
   const startMs = 1000;
   
-  // Submit at 2000 (1000ms elapsed). Submitted duration: 5000ms. With 10s buffer: 1000 + 10000 = 11000ms allowed.
-  assert.equal(validateTimeManipulation(5000, startMs, 2000), true, "Fast submit within buffer is allowed");
+  // Submit at 2000 (1000ms server elapsed). Client claims 1000ms. Valid.
+  assert.equal(computeAuthoritativeTime(1000, startMs, 2000, 3000), 1000, "Accurate duration accepted");
   
-  // Submit at 2000. Submitted duration: 12000ms. 12000 > 11000, blocked.
-  assert.equal(validateTimeManipulation(12000, startMs, 2000), false, "Duration significantly larger than real time + buffer is blocked");
+  // Fake fast: Client claims 1ms. Server elapsed 10000ms. Allowed minimum: 10000 - 3000 = 7000. Clamped to 7000.
+  assert.equal(computeAuthoritativeTime(1, startMs, 11000, 3000), 7000, "Fake fast duration (under-reporting) is clamped up to minimum possible");
+  
+  // Fake slow: Client claims 50000ms. Server elapsed 10000ms. Allowed max: 10000 + 3000 = 13000. Clamped to 13000.
+  assert.equal(computeAuthoritativeTime(50000, startMs, 11000, 3000), 13000, "Fake slow duration (over-reporting) is clamped down to maximum possible");
 
-  // null start time is always valid (hasn't started countdown)
-  assert.equal(validateTimeManipulation(99999, null, 2000), true, "Null start time is valid");
+  // null start time is always valid
+  assert.equal(computeAuthoritativeTime(99999, null, 2000), 99999, "Null start time allows claimed duration");
 });
 
 test("Technical cancel is only allowed in the first 15 seconds", () => {
   const startMs = 100000;
-  
-  // Cancel at 105000 (5s in) -> valid
   assert.equal(validateTechnicalCancelTime(startMs, 105000), true, "Cancel at 5s is valid");
-  
-  // Cancel at 115000 (15s in) -> valid
   assert.equal(validateTechnicalCancelTime(startMs, 115000), true, "Cancel at 15s is valid");
-
-  // Cancel at 115001 (15.001s in) -> invalid
   assert.equal(validateTechnicalCancelTime(startMs, 115001), false, "Cancel past 15s is blocked");
-
-  // null start time -> valid
   assert.equal(validateTechnicalCancelTime(null, 200000), true, "Cancel before start is valid");
 });
 

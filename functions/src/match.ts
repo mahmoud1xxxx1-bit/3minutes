@@ -13,7 +13,7 @@ import {
   timestampMillis,
   AUTHORITY_VERSION,
 } from "./firestore.js";
-import { validateEvidenceSequence, validateTimeManipulation, validateTechnicalCancelTime } from "./match_hardening.js";
+import { validateEvidenceSequence, computeAuthoritativeTime, validateTechnicalCancelTime } from "./match_hardening.js";
 import {
   MATCH_DURATION_MS,
   MATCH_GAME_COUNT,
@@ -473,9 +473,7 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
     const mistakes = evidence.reduce((sum, item) => sum + item.mistakes, 0);
     const elapsedMs = evidence.reduce((sum, item) => sum + item.durationMs, 0);
     const startMs = timestampMillis(match.countdownStartedAt);
-    if (!validateTimeManipulation(elapsedMs, startMs, Date.now())) {
-      throw new HttpsError("failed-precondition", "Time manipulation detected (duration > real elapsed time).");
-    }
+    const authoritativeElapsedMs = computeAuthoritativeTime(elapsedMs, startMs, Date.now());
     const progressField = uid === playerAId ? "progressA" : "progressB";
     const saved = parseProgress(match[progressField]);
 
@@ -567,6 +565,21 @@ export const technicalCancelRankedMatch = onCall(CALLABLE_OPTIONS, async (reques
       throw new HttpsError("failed-precondition", "Technical cancellation is only allowed early in the match.");
     }
 
+    const isPlayerA = uid === playerAId;
+    const isPlayerB = uid === playerBId;
+    const otherVote = isPlayerA ? data.cancelVoteB === true : data.cancelVoteA === true;
+
+    // Register this user's vote
+    transaction.update(ref, {
+      [isPlayerA ? "cancelVoteA" : "cancelVoteB"]: true
+    });
+
+    // If the other player hasn't voted yet, wait for them.
+    if (!otherVote) {
+      return { ok: true, pendingMutual: true };
+    }
+
+    // Both players voted for technical cancel. Refund and cancel.
     const wagerCoins = Math.max(0, intValue(data.wagerCoins));
     if (wagerCoins > 0 && data.wagerStatus === "held") {
       const playerAInventoryRef = db.collection(COLLECTIONS.inventories).doc(playerAId);
