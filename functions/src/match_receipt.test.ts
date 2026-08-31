@@ -41,18 +41,16 @@ function failedEvidence(
   };
 }
 
-test("receipt decides the player who completed more 1000-point games", () => {
+test("receipt decides the player with more completed 1000-point games", () => {
   const a = [
     completedEvidence(0, 9000),
     completedEvidence(1, 9000),
     completedEvidence(2, 9000),
-    failedEvidence(3, 1, 3, 9000),
   ];
   const b = [
     completedEvidence(0, 5000),
     completedEvidence(1, 5000),
     failedEvidence(2, 2, 3, 5000),
-    failedEvidence(3, 2, 3, 5000),
   ];
 
   const receipt = buildMatchReceipt({
@@ -67,23 +65,11 @@ test("receipt decides the player who completed more 1000-point games", () => {
   assert.equal(receipt.reason, "score");
   assert.equal(receipt.playerATotalScore, 3000);
   assert.equal(receipt.playerBTotalScore, 2000);
-  assert.equal(receipt.playerACompletedGames, 3);
-  assert.equal(receipt.playerBCompletedGames, 2);
 });
 
-test("equal completed games are decided by farther discrete progress", () => {
-  const a = [
-    completedEvidence(0, 9000),
-    completedEvidence(1, 9000),
-    failedEvidence(2, 2, 3, 9000),
-    failedEvidence(3, 0, 3, 9000),
-  ];
-  const b = [
-    completedEvidence(0, 8000),
-    completedEvidence(1, 8000),
-    failedEvidence(2, 1, 3, 8000),
-    failedEvidence(3, 0, 3, 8000),
-  ];
+test("equal points at timeout are decided by later game position", () => {
+  const a = [completedEvidence(0, 9000)];
+  const b = [completedEvidence(0, 8000), failedEvidence(1, 0, 3, 8000)];
 
   const receipt = buildMatchReceipt({
     matchId: "m2",
@@ -93,23 +79,15 @@ test("equal completed games are decided by farther discrete progress", () => {
     evidenceB: b,
   });
 
-  assert.equal(receipt.winnerId, "A");
-  assert.equal(receipt.reason, "progress");
+  assert.equal(receipt.playerATotalScore, 1000);
+  assert.equal(receipt.playerBTotalScore, 1000);
+  assert.equal(receipt.winnerId, "B");
+  assert.equal(receipt.reason, "gameProgress");
 });
 
-test("same score and same failed progress is double fail even if times differ", () => {
-  const a = [
-    completedEvidence(0, 9000),
-    completedEvidence(1, 9000),
-    failedEvidence(2, 2, 3, 10000),
-    failedEvidence(3, 0, 3, 10000),
-  ];
-  const b = [
-    completedEvidence(0, 5000),
-    completedEvidence(1, 5000),
-    failedEvidence(2, 2, 3, 5000),
-    failedEvidence(3, 0, 3, 5000),
-  ];
+test("same score and same game position is double fail regardless of time", () => {
+  const a = [completedEvidence(0, 9000), failedEvidence(1, 2, 3, 10000)];
+  const b = [completedEvidence(0, 5000), failedEvidence(1, 1, 3, 5000)];
 
   const receipt = buildMatchReceipt({
     matchId: "m3",
