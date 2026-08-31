@@ -7,6 +7,7 @@ import '../data/match_backend.dart';
 import '../domain/match_outcome.dart';
 import '../domain/match_session.dart';
 import 'match_history_avatar.dart';
+import 'ranked_wager_summary.dart';
 
 class MatchHistoryScreen extends StatefulWidget {
   const MatchHistoryScreen({
@@ -210,6 +211,14 @@ class _MatchHistoryScreenState extends State<MatchHistoryScreen> {
                                   fontSize: 12,
                                 ),
                               ),
+                              if (match.hasWager) ...[
+                                const SizedBox(height: 5),
+                                RankedWagerSummary(
+                                  wagerCoins: match.wagerCoins,
+                                  potCoins: match.wagerPotCoins,
+                                  compact: true,
+                                ),
+                              ],
                             ],
                           ),
                         ),
