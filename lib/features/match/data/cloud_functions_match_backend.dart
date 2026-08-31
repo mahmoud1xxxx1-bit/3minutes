@@ -17,7 +17,7 @@ typedef RankedSettlementListener = void Function(
 );
 
 class CloudFunctionsMatchBackend
-    implements MatchBackend, RankedSettlementResultBackend {
+    implements MatchBackend, MatchGameSelectionBackend, RankedSettlementResultBackend {
   CloudFunctionsMatchBackend({
     FirebaseFunctions? functions,
     FirestoreMatchBackend? readBackend,
@@ -57,6 +57,16 @@ class CloudFunctionsMatchBackend
 
   @override
   Future<List<MatchSession>> loadHistory(String uid) => _readBackend.loadHistory(uid);
+
+  @override
+  Future<void> submitGameSelection({
+    required String matchId,
+    required String uid,
+    required List<String> gameIds,
+  }) => _call('submitRankedGameSelection', {
+        'matchId': matchId,
+        'gameIds': gameIds,
+      });
 
   @override
   Future<void> markReady({required String matchId, required String uid}) =>
@@ -111,15 +121,19 @@ class CloudFunctionsMatchBackend
       throw StateError('Ranked progress must advance exactly one game.');
     }
     final gameIndex = current.completedGames;
-    final sequence = GameRegistry.sequence(seed: match.seed, count: gameCount);
+    final sequence = match.lockedGameIds.length == gameCount
+        ? match.lockedGameIds.map((id) => GameRegistry.games.singleWhere((game) => game.id == id)).toList(growable: false)
+        : GameRegistry.sequence(seed: match.seed, count: gameCount);
     if (gameIndex >= sequence.length) throw StateError('Ranked game index is invalid.');
 
     final score = progress.totalScore - current.totalScore;
     final accuracy = progress.accuracyTotal - current.accuracyTotal;
     final mistakes = progress.mistakes - current.mistakes;
     final durationMs = progress.elapsedMs - current.elapsedMs;
+    final descriptor = sequence[gameIndex];
     final evidence = MiniGameEvidence(
-      gameId: sequence[gameIndex].id,
+      gameId: descriptor.id,
+      gameVersion: descriptor.version,
       gameIndex: gameIndex,
       gameSeed: MiniGameEvidencePolicy.gameSeed(
         matchSeed: match.seed,
@@ -134,9 +148,8 @@ class CloudFunctionsMatchBackend
       matchSeed: match.seed,
       gameCount: gameCount,
       evidence: [evidence],
+      lockedGameIds: match.lockedGameIds.length == gameCount ? match.lockedGameIds : null,
     )) {
-      // Single-item validation only works for index zero, so apply the bounds
-      // here and let the server validate the complete ordered evidence chain.
       if (score < 0 ||
           score > MiniGameEvidencePolicy.maxScorePerGame ||
           accuracy < 0 ||
