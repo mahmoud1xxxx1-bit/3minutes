@@ -98,6 +98,7 @@ class CloudFunctionsMatchBackend implements
       playerBGameIds: _stringList(data['playerBGameIds']),
       lockedGameIds: _stringList(data['lockedGameIds']),
       mode: base.mode,
+      wagerGold: (data['wagerGold'] as num?)?.toInt() ?? base.wagerGold,
       rematchMatchId: base.rematchMatchId,
       cancelledBy: base.cancelledBy,
       countdownStartedAt: base.countdownStartedAt,
