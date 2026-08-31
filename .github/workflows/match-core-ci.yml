@@ -7,6 +7,9 @@ on:
     paths:
       - 'functions/src/**'
       - 'functions/package.json'
+      - 'functions/rules-tests.mjs'
+      - 'firebase.json'
+      - 'firestore.rules'
       - 'lib/core/firebase/server_collections.dart'
       - 'lib/features/competition/data/**'
       - 'lib/features/competition/domain/**'
@@ -49,6 +52,13 @@ jobs:
 
       - name: Build and test Cloud Functions
         run: npm test --prefix functions
+
+      - name: Validate Firestore competition rules
+        run: >-
+          npx --yes firebase-tools@15.25.1 emulators:exec
+          --only firestore
+          --project demo-3minutes
+          "npm run test:rules --prefix functions"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
