@@ -5,6 +5,7 @@ import '../../competition/data/mini_game_evidence_policy.dart';
 import '../../competition/domain/mini_game_evidence.dart';
 import '../../competition/domain/ranked_settlement_player.dart';
 import '../../minigames/data/game_registry.dart';
+import '../../minigames/domain/mini_game_contract.dart';
 import '../../profile/domain/player_profile.dart';
 import '../domain/match_progress.dart';
 import '../domain/match_session.dart';
@@ -17,8 +18,11 @@ typedef RankedSettlementListener = void Function(
   RankedSettlementPlayer settlement,
 );
 
-class CloudFunctionsMatchBackend
-    implements MatchBackend, MatchGameSelectionBackend, RankedSettlementResultBackend {
+class CloudFunctionsMatchBackend implements
+    MatchBackend,
+    MatchGameSelectionBackend,
+    DetailedGameResultBackend,
+    RankedSettlementResultBackend {
   CloudFunctionsMatchBackend({
     FirebaseFunctions? functions,
     FirebaseFirestore? firestore,
@@ -150,10 +154,10 @@ class CloudFunctionsMatchBackend
       _call('cancelRankedRematch', {'matchId': matchId});
 
   @override
-  Future<void> submitProgress({
+  Future<void> submitMiniGameResult({
     required String matchId,
     required String uid,
-    required MatchProgress progress,
+    required MiniGameResult result,
     required int gameCount,
   }) async {
     final match = await watchMatch(matchId).first;
@@ -164,20 +168,14 @@ class CloudFunctionsMatchBackend
     if (match.lockedGameIds.length != gameCount) {
       throw StateError('Ranked game selection is not locked.');
     }
+
     final current = match.progressFor(uid);
-    if (progress.completedGames != current.completedGames + 1) {
-      throw StateError('Ranked progress must advance exactly one game.');
-    }
     final gameIndex = current.completedGames;
     final sequence = match.lockedGameIds
         .map((id) => GameRegistry.games.singleWhere((game) => game.id == id))
         .toList(growable: false);
     if (gameIndex >= sequence.length) throw StateError('Ranked game index is invalid.');
 
-    final score = progress.totalScore - current.totalScore;
-    final accuracy = progress.accuracyTotal - current.accuracyTotal;
-    final mistakes = progress.mistakes - current.mistakes;
-    final durationMs = progress.elapsedMs - current.elapsedMs;
     final descriptor = sequence[gameIndex];
     final evidence = MiniGameEvidence(
       gameId: descriptor.id,
@@ -187,31 +185,39 @@ class CloudFunctionsMatchBackend
         matchSeed: match.seed,
         gameIndex: gameIndex,
       ),
-      score: score,
-      accuracy: accuracy,
-      mistakes: mistakes,
-      durationMs: durationMs,
+      completed: result.completed,
+      progressStep: result.progressStep,
+      progressStepCount: result.progressStepCount,
+      score: result.score,
+      accuracy: result.accuracy,
+      mistakes: result.mistakes,
+      durationMs: result.duration.inMilliseconds,
     );
+
     if (!MiniGameEvidencePolicy.isValidMatchEvidence(
       matchSeed: match.seed,
       gameCount: gameCount,
       evidence: [evidence],
       lockedGameIds: match.lockedGameIds,
     )) {
-      if (score < 0 ||
-          score > MiniGameEvidencePolicy.maxScorePerGame ||
-          accuracy < 0 ||
-          accuracy > 1 ||
-          mistakes < 0 ||
-          durationMs < 0 ||
-          durationMs > MiniGameEvidencePolicy.maxMatchDurationMs) {
-        throw StateError('Ranked mini-game result is outside allowed bounds.');
-      }
+      throw StateError('Ranked mini-game result is outside the official contract.');
     }
 
     await _call('submitRankedGameResult', {
       'matchId': matchId,
       'evidence': evidence.toMap(),
     });
+  }
+
+  @override
+  Future<void> submitProgress({
+    required String matchId,
+    required String uid,
+    required MatchProgress progress,
+    required int gameCount,
+  }) {
+    throw StateError(
+      'Ranked matches require DetailedGameResultBackend so completion and progress cannot be lost.',
+    );
   }
 }
