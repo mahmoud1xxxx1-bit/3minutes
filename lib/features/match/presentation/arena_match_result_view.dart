@@ -146,6 +146,13 @@ class _ArenaMatchResultViewState extends State<ArenaMatchResultView> {
     final opponentRequested = iAmA ? match.rematchB : match.rematchA;
     final winnerUid = outcome == MatchOutcome.playerA ? match.playerAId : (outcome == MatchOutcome.playerB ? match.playerBId : null);
     final winnerName = outcome == MatchOutcome.playerA ? match.playerAName : (outcome == MatchOutcome.playerB ? match.playerBName : null);
+    final rematchSubtitle = _settlement?.hasGoldSettlement == true
+        ? (copy.isArabic
+            ? 'نفس الخصم • نفس رهان ${_settlement!.wagerGold} Gold • يحجز الرهان من جديد'
+            : 'Same rival • same ${_settlement!.wagerGold} Gold wager • stake is locked again')
+        : (copy.isArabic
+            ? 'نفس الخصم • مواجهة جديدة • فرصة للرد'
+            : 'Same rival • fresh battle • settle the score');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(GameSpacing.md, GameSpacing.lg, GameSpacing.md, 42),
@@ -168,7 +175,7 @@ class _ArenaMatchResultViewState extends State<ArenaMatchResultView> {
           Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: GameColors.danger)),
         ],
         const SizedBox(height: GameSpacing.lg),
-        ArenaPlayButton(title: copy.rematchNow, subtitle: copy.isArabic ? 'نفس الخصم • مواجهة جديدة • فرصة للرد' : 'Same rival • fresh battle • settle the score', icon: Icons.replay_rounded, onPressed: requested || _rematchBusy || _leaving ? null : _requestRematch),
+        ArenaPlayButton(title: copy.rematchNow, subtitle: rematchSubtitle, icon: Icons.replay_rounded, onPressed: requested || _rematchBusy || _leaving ? null : _requestRematch),
         const SizedBox(height: GameSpacing.sm),
         ArenaPlayButton(title: copy.home, subtitle: copy.isArabic ? 'العودة للساحة ومراجعة تقدمك' : 'Return to the arena and review your progress', icon: Icons.home_rounded, primary: false, onPressed: _leaving || _rematchBusy ? null : _backHome),
       ]),
@@ -264,10 +271,16 @@ class _RewardBoard extends StatelessWidget {
   final RankedSettlementPlayer? settlement;
   final bool loading;
   final bool ranked;
+
+  String _signed(int value) => '${value >= 0 ? '+' : ''}$value';
+
   @override
   Widget build(BuildContext context) {
     final copy = ArenaCopy.of(context);
     final receipt = settlement;
+    final goldColor = receipt != null && receipt.goldNetDelta < 0
+        ? GameColors.danger
+        : GameColors.rewardGold;
     return ArenaCard(accent: GameColors.rewardGold, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       ArenaSectionTitle(
         title: copy.matchRewards,
@@ -293,9 +306,38 @@ class _RewardBoard extends StatelessWidget {
           ArenaMetric(label: copy.xp, value: '+${receipt.xpAwarded}', icon: Icons.auto_awesome_rounded, color: GameColors.violet),
           if (ranked) ...[
             const SizedBox(width: 8),
-            ArenaMetric(label: 'RP', value: '${receipt.rpDelta >= 0 ? '+' : ''}${receipt.rpDelta}', icon: receipt.rpDelta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: receipt.rpDelta >= 0 ? GameColors.success : GameColors.danger),
+            ArenaMetric(label: 'RP', value: _signed(receipt.rpDelta), icon: receipt.rpDelta >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded, color: receipt.rpDelta >= 0 ? GameColors.success : GameColors.danger),
           ],
         ]),
+        if (receipt.hasGoldSettlement) ...[
+          const SizedBox(height: GameSpacing.sm),
+          ArenaCard(
+            accent: goldColor,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(children: [
+              Icon(Icons.paid_rounded, color: goldColor, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_signed(receipt.goldNetDelta)} Gold',
+                      style: TextStyle(color: goldColor, fontWeight: FontWeight.w900, fontSize: 16),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      copy.isArabic
+                          ? 'الرهان ${receipt.wagerGold} • المستلم ${receipt.goldCredited} • الرصيد ${receipt.goldBalanceAfter}'
+                          : 'Wager ${receipt.wagerGold} • credited ${receipt.goldCredited} • balance ${receipt.goldBalanceAfter}',
+                      style: const TextStyle(color: GameColors.textSoft, fontSize: 10, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ]),
+          ),
+        ],
         if (ranked) ...[
           const SizedBox(height: GameSpacing.sm),
           ArenaProgress(value: _rankDeltaProgress(receipt), color: receipt.rpDelta >= 0 ? GameColors.success : GameColors.danger, height: 7),
