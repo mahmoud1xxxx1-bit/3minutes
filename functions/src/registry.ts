@@ -15,6 +15,9 @@ export interface MiniGameEvidence {
   gameVersion: number;
   gameIndex: number;
   gameSeed: number;
+  completed: boolean;
+  progressStep: number;
+  progressStepCount: number;
   score: number;
   accuracy: number;
   mistakes: number;
@@ -114,6 +117,9 @@ export function parseEvidence(value: unknown): MiniGameEvidence[] {
     const gameVersion = item.gameVersion;
     const gameIndex = item.gameIndex;
     const evidenceSeed = item.gameSeed;
+    const completed = item.completed;
+    const progressStep = item.progressStep;
+    const progressStepCount = item.progressStepCount;
     const score = item.score;
     const accuracy = item.accuracy;
     const mistakes = item.mistakes;
@@ -122,11 +128,26 @@ export function parseEvidence(value: unknown): MiniGameEvidence[] {
     if (!finiteNumber(gameVersion) || !Number.isInteger(gameVersion) || gameVersion < 1) throw new Error(`evidence[${index}].gameVersion is invalid`);
     if (!finiteNumber(gameIndex) || !Number.isInteger(gameIndex)) throw new Error(`evidence[${index}].gameIndex is invalid`);
     if (!finiteNumber(evidenceSeed) || !Number.isInteger(evidenceSeed)) throw new Error(`evidence[${index}].gameSeed is invalid`);
+    if (typeof completed !== "boolean") throw new Error(`evidence[${index}].completed is invalid`);
+    if (!finiteNumber(progressStep) || !Number.isInteger(progressStep)) throw new Error(`evidence[${index}].progressStep is invalid`);
+    if (!finiteNumber(progressStepCount) || !Number.isInteger(progressStepCount)) throw new Error(`evidence[${index}].progressStepCount is invalid`);
     if (!finiteNumber(score) || !Number.isInteger(score)) throw new Error(`evidence[${index}].score is invalid`);
     if (!finiteNumber(accuracy)) throw new Error(`evidence[${index}].accuracy is invalid`);
     if (!finiteNumber(mistakes) || !Number.isInteger(mistakes)) throw new Error(`evidence[${index}].mistakes is invalid`);
     if (!finiteNumber(durationMs) || !Number.isInteger(durationMs)) throw new Error(`evidence[${index}].durationMs is invalid`);
-    return { gameId, gameVersion, gameIndex, gameSeed: evidenceSeed, score, accuracy, mistakes, durationMs };
+    return {
+      gameId,
+      gameVersion,
+      gameIndex,
+      gameSeed: evidenceSeed,
+      completed,
+      progressStep,
+      progressStepCount,
+      score,
+      accuracy,
+      mistakes,
+      durationMs,
+    };
   });
 }
 
@@ -162,7 +183,15 @@ export function validateEvidence(options: {
     if (item.gameId !== game.id) return false;
     if (item.gameVersion !== game.version) return false;
     if (item.gameSeed !== gameSeed(matchSeed, index)) return false;
-    if (item.score < 0 || item.score > MAX_SCORE_PER_GAME) return false;
+    if (item.progressStepCount < 1) return false;
+    if (item.progressStep < 0 || item.progressStep > item.progressStepCount) return false;
+    if (item.completed) {
+      if (item.score !== MAX_SCORE_PER_GAME) return false;
+      if (item.progressStep !== item.progressStepCount) return false;
+    } else {
+      if (item.score !== 0) return false;
+      if (item.progressStep >= item.progressStepCount) return false;
+    }
     if (item.accuracy < 0 || item.accuracy > 1) return false;
     if (item.mistakes < 0) return false;
     if (item.durationMs < 0 || item.durationMs > MATCH_DURATION_MS) return false;
