@@ -5,9 +5,6 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../economy/data/cosmetic_loadout_repository.dart';
-import '../../economy/domain/cosmetic_loadout.dart';
-import '../../economy/presentation/cosmetic_runtime.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../minigames/domain/mini_game_contract.dart';
 import '../../minigames/presentation/mini_game_host.dart';
@@ -16,6 +13,7 @@ import '../domain/match_outcome.dart';
 import '../domain/match_runtime.dart';
 import '../domain/match_session.dart';
 import '../domain/match_settlement.dart';
+import 'ranked_result_header.dart';
 
 class MatchPlayScreen extends StatefulWidget {
   const MatchPlayScreen({
@@ -616,6 +614,11 @@ class _MatchResultViewState extends State<_MatchResultView> {
         : outcome == MatchOutcome.playerB
             ? match.playerBName
             : null;
+    final winnerAvatarId = outcome == MatchOutcome.playerA
+        ? match.playerAAvatarId
+        : outcome == MatchOutcome.playerB
+            ? match.playerBAvatarId
+            : null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(GameSpacing.lg),
@@ -630,6 +633,7 @@ class _MatchResultViewState extends State<_MatchResultView> {
             _RankedResultHeader(
               winnerUid: winnerUid,
               winnerName: winnerName,
+              winnerAvatarId: winnerAvatarId,
               title: title,
               resultColor: resultColor,
               resultIcon: resultIcon,
@@ -708,6 +712,7 @@ class _RankedResultHeader extends StatelessWidget {
   const _RankedResultHeader({
     required this.winnerUid,
     required this.winnerName,
+    required this.winnerAvatarId,
     required this.title,
     required this.resultColor,
     required this.resultIcon,
@@ -715,6 +720,7 @@ class _RankedResultHeader extends StatelessWidget {
 
   final String? winnerUid;
   final String? winnerName;
+  final String? winnerAvatarId;
   final String title;
   final Color resultColor;
   final IconData resultIcon;
@@ -731,38 +737,13 @@ class _RankedResultHeader extends StatelessWidget {
       );
     }
 
-    return FutureBuilder<CosmeticLoadout>(
-      future: CosmeticLoadoutRepository().load(uid),
-      builder: (context, snapshot) {
-        final loadout = snapshot.data ?? const CosmeticLoadout();
-        final effect = loadout.victoryEffectId;
-        if (effect == null) {
-          return _DefaultResultHeader(
-            title: title,
-            resultColor: resultColor,
-            resultIcon: resultIcon,
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            CosmeticVictoryEffect(
-              effectId: effect,
-              winnerName: name,
-              height: 230,
-            ),
-            const SizedBox(height: GameSpacing.md),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    color: resultColor,
-                    fontWeight: FontWeight.w900,
-                  ),
-            ),
-          ],
-        );
-      },
+    return RankedResultHeader(
+      winnerUid: uid,
+      winnerName: name,
+      winnerAvatarId: winnerAvatarId,
+      title: title,
+      resultColor: resultColor,
+      resultIcon: resultIcon,
     );
   }
 }
