@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../core/audio/game_audio_controller.dart';
 import '../../../core/platform/room_invite_service.dart';
 import '../../../core/theme/cosmic_background.dart';
-import '../../../core/theme/game_dock.dart';
+import '../../../core/theme/game_nav_dock.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/data/competition_backend.dart';
