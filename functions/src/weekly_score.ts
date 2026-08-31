@@ -1,5 +1,8 @@
 import { intValue, stringValue } from "./firestore.js";
-import { rankedWeeklyDelta } from "./weekly_competition.js";
+import {
+  economicGoldScoreDelta,
+  rankedWeeklyDelta,
+} from "./weekly_competition.js";
 
 export interface RankedWeeklyPlayerInput {
   uid: string;
@@ -12,6 +15,11 @@ export interface RankedWeeklyPlayerInput {
 export interface RankedWeeklyScoreEvent {
   playerA: RankedWeeklyPlayerInput;
   playerB: RankedWeeklyPlayerInput;
+}
+
+export interface EconomicGoldWeeklyScoreEvent {
+  uid: string;
+  goldDelta: number;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -43,7 +51,9 @@ function playerFromPayload(
 
 /**
  * Converts the authoritative ranked settlement receipt into a weekly score
- * event. The client cannot provide or override these deltas.
+ * event. RP uses this settlement event. Gold is intentionally accumulated from
+ * the immutable Gold transaction ledger instead, so conversions, purchases,
+ * escrow locks/refunds and future economy actions share one source of truth.
  */
 export function rankedWeeklyScoreEvent(options: {
   payload: unknown;
@@ -55,4 +65,23 @@ export function rankedWeeklyScoreEvent(options: {
   const playerB = playerFromPayload(payload.playerB, options.profileB);
   if (!playerA || !playerB || playerA.uid === playerB.uid) return null;
   return { playerA, playerB };
+}
+
+/**
+ * Accepts only server-authored Gold ledger events that should affect the
+ * strategic weekly board. Weekly prizes themselves are explicitly excluded so
+ * last week's reward cannot create an artificial lead in the new week.
+ */
+export function economicGoldWeeklyScoreEvent(
+  transaction: unknown,
+): EconomicGoldWeeklyScoreEvent | null {
+  const data = record(transaction);
+  if (data.excludedFromWeeklyGoldScore === true) return null;
+  const uid = stringValue(data.uid);
+  if (!uid) return null;
+  const rawAmount = data.amount;
+  if (typeof rawAmount !== "number" || !Number.isFinite(rawAmount)) return null;
+  const goldDelta = economicGoldScoreDelta(rawAmount);
+  if (goldDelta === 0) return null;
+  return { uid, goldDelta };
 }
