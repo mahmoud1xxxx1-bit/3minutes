@@ -1,9 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-
-import '../../../core/art/approved_identity_art_manifest.dart';
 
 class AvatarArtwork extends StatelessWidget {
   const AvatarArtwork({
@@ -17,27 +14,17 @@ class AvatarArtwork extends StatelessWidget {
   final double size;
   final double borderRadius;
 
-  static bool supports(String id) =>
-      ApprovedIdentityArtManifest.avatarMasterPath(id) != null &&
-      _specFor(id) != null;
+  static bool supports(String id) => _specFor(id) != null;
 
-  /// Warms the production avatar bundle only after the complete owner-approved
-  /// source set has been restored and explicitly enabled by the manifest.
-  ///
-  /// Until then this intentionally performs no asset decoding so the existing
-  /// deterministic painter remains the safe release fallback.
-  static Future<void> preloadAll() async {
-    if (!ApprovedIdentityArtManifest.productionSourcesAvailable) return;
-    await Future.wait(
-      ApprovedIdentityArtManifest.avatarMasterPaths.values.map(rootBundle.load),
-    );
-  }
+  /// Kept as a compatibility hook for the shell preload gate.
+  /// Avatars are now deterministic vector art rendered locally, so there is
+  /// no image decoding or network/disk wait before Shop/Profile can paint.
+  static Future<void> preloadAll() async {}
 
   @override
   Widget build(BuildContext context) {
     final spec = _specFor(avatarId);
-    final approvedPath = ApprovedIdentityArtManifest.avatarMasterPath(avatarId);
-    if (spec == null || approvedPath == null) {
+    if (spec == null) {
       return SizedBox.square(
         dimension: size,
         child: const Icon(Icons.person_rounded),
@@ -49,26 +36,11 @@ class AvatarArtwork extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: SizedBox.square(
           dimension: size,
-          child: ApprovedIdentityArtManifest.productionSourcesAvailable
-              ? Image.asset(
-                  approvedPath,
-                  width: size,
-                  height: size,
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.high,
-                  gaplessPlayback: true,
-                  excludeFromSemantics: true,
-                  errorBuilder: (_, __, ___) => _fallbackPortrait(spec),
-                )
-              : _fallbackPortrait(spec),
+          child: CustomPaint(
+            painter: _AvatarPortraitPainter(spec),
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _fallbackPortrait(_AvatarSpec spec) {
-    return CustomPaint(
-      painter: _AvatarPortraitPainter(spec),
     );
   }
 
