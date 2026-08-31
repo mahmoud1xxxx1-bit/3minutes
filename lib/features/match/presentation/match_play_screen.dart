@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/cosmic_background.dart';
 import '../../../core/theme/design_tokens.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../competition/domain/ranked_settlement_player.dart';
 import '../../minigames/data/game_registry.dart';
 import '../../minigames/domain/mini_game_contract.dart';
 import '../../minigames/presentation/mini_game_host.dart';
@@ -14,6 +15,7 @@ import '../domain/match_runtime.dart';
 import '../domain/match_session.dart';
 import '../domain/match_settlement.dart';
 import 'ranked_result_header.dart';
+import 'ranked_reward_receipt.dart';
 
 class MatchPlayScreen extends StatefulWidget {
   const MatchPlayScreen({
@@ -426,16 +428,28 @@ class _MatchResultViewState extends State<_MatchResultView> {
   bool _rematchBusy = false;
   bool _switchingMatch = false;
   bool _finalizeStarted = false;
+  RankedSettlementPlayer? _settlement;
   String? _error;
 
   Future<void> _finalize() async {
     if (_finalizeStarted) return;
     _finalizeStarted = true;
     try {
-      await widget.matchBackend.finalizeMatch(
-        matchId: widget.match.id,
-        uid: widget.uid,
-      );
+      final backend = widget.matchBackend;
+      if (backend is RankedSettlementResultBackend) {
+        final settlement = await backend.finalizeMatchWithResult(
+          matchId: widget.match.id,
+          uid: widget.uid,
+        );
+        if (mounted && settlement != null) {
+          setState(() => _settlement = settlement);
+        }
+      } else {
+        await backend.finalizeMatch(
+          matchId: widget.match.id,
+          uid: widget.uid,
+        );
+      }
     } catch (_) {
       _finalizeStarted = false;
     }
@@ -663,6 +677,10 @@ class _MatchResultViewState extends State<_MatchResultView> {
                 ],
               ),
             ),
+            if (_settlement != null) ...[
+              const SizedBox(height: GameSpacing.md),
+              RankedRewardReceipt(settlement: _settlement!),
+            ],
             const SizedBox(height: GameSpacing.md),
             if (requested || opponentRequested)
               Text(

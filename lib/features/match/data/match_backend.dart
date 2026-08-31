@@ -92,3 +92,22 @@ abstract interface class RankedSettlementResultBackend {
     required String uid,
   });
 }
+
+/// Lets result surfaces invoke the optional server-authoritative settlement
+/// receipt through the common MatchBackend type after checking the capability.
+extension RankedSettlementResultBackendBridge on MatchBackend {
+  Future<RankedSettlementPlayer?> finalizeMatchWithResult({
+    required String matchId,
+    required String uid,
+  }) {
+    if (this is! RankedSettlementResultBackend) {
+      throw UnsupportedError(
+        'This match backend does not expose Ranked settlement receipts.',
+      );
+    }
+    return (this as RankedSettlementResultBackend).finalizeMatchWithResult(
+      matchId: matchId,
+      uid: uid,
+    );
+  }
+}
