@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../competition/data/mini_game_evidence_policy.dart';
@@ -20,12 +21,15 @@ class CloudFunctionsMatchBackend
     implements MatchBackend, MatchGameSelectionBackend, RankedSettlementResultBackend {
   CloudFunctionsMatchBackend({
     FirebaseFunctions? functions,
+    FirebaseFirestore? firestore,
     FirestoreMatchBackend? readBackend,
     this.onSettlement,
   })  : _functions = functions ?? FirebaseFunctions.instanceFor(region: 'me-central2'),
+        _firestore = firestore ?? FirebaseFirestore.instance,
         _readBackend = readBackend ?? FirestoreMatchBackend();
 
   final FirebaseFunctions _functions;
+  final FirebaseFirestore _firestore;
   final FirestoreMatchBackend _readBackend;
   final RankedSettlementListener? onSettlement;
 
@@ -52,8 +56,49 @@ class CloudFunctionsMatchBackend
   @override
   Stream<MatchTicket?> watchTicket(String uid) => _readBackend.watchTicket(uid);
 
+  List<String> _stringList(Object? value) {
+    if (value is! List) return const [];
+    return List<String>.unmodifiable(value.whereType<String>());
+  }
+
+  MatchSession _withSelection(MatchSession base, Map<String, dynamic> data) {
+    return MatchSession(
+      id: base.id,
+      playerAId: base.playerAId,
+      playerAName: base.playerAName,
+      playerAAvatarId: base.playerAAvatarId,
+      playerBId: base.playerBId,
+      playerBName: base.playerBName,
+      playerBAvatarId: base.playerBAvatarId,
+      seed: base.seed,
+      gameCount: base.gameCount,
+      registryVersion: base.registryVersion,
+      status: base.status,
+      readyA: base.readyA,
+      readyB: base.readyB,
+      progressA: base.progressA,
+      progressB: base.progressB,
+      rematchA: base.rematchA,
+      rematchB: base.rematchB,
+      playerAGameIds: _stringList(data['playerAGameIds']),
+      playerBGameIds: _stringList(data['playerBGameIds']),
+      lockedGameIds: _stringList(data['lockedGameIds']),
+      mode: base.mode,
+      rematchMatchId: base.rematchMatchId,
+      cancelledBy: base.cancelledBy,
+      countdownStartedAt: base.countdownStartedAt,
+      createdAt: base.createdAt,
+    );
+  }
+
   @override
-  Stream<MatchSession?> watchMatch(String matchId) => _readBackend.watchMatch(matchId);
+  Stream<MatchSession?> watchMatch(String matchId) =>
+      _readBackend.watchMatch(matchId).asyncMap((base) async {
+        if (base == null) return null;
+        final snapshot = await _firestore.collection('matches').doc(matchId).get();
+        final data = snapshot.data();
+        return data == null ? base : _withSelection(base, data);
+      });
 
   @override
   Future<List<MatchSession>> loadHistory(String uid) => _readBackend.loadHistory(uid);
@@ -116,14 +161,17 @@ class CloudFunctionsMatchBackend
     if (match.registryVersion != GameRegistry.version) {
       throw StateError('Registry version mismatch.');
     }
+    if (match.lockedGameIds.length != gameCount) {
+      throw StateError('Ranked game selection is not locked.');
+    }
     final current = match.progressFor(uid);
     if (progress.completedGames != current.completedGames + 1) {
       throw StateError('Ranked progress must advance exactly one game.');
     }
     final gameIndex = current.completedGames;
-    final sequence = match.lockedGameIds.length == gameCount
-        ? match.lockedGameIds.map((id) => GameRegistry.games.singleWhere((game) => game.id == id)).toList(growable: false)
-        : GameRegistry.sequence(seed: match.seed, count: gameCount);
+    final sequence = match.lockedGameIds
+        .map((id) => GameRegistry.games.singleWhere((game) => game.id == id))
+        .toList(growable: false);
     if (gameIndex >= sequence.length) throw StateError('Ranked game index is invalid.');
 
     final score = progress.totalScore - current.totalScore;
@@ -148,7 +196,7 @@ class CloudFunctionsMatchBackend
       matchSeed: match.seed,
       gameCount: gameCount,
       evidence: [evidence],
-      lockedGameIds: match.lockedGameIds.length == gameCount ? match.lockedGameIds : null,
+      lockedGameIds: match.lockedGameIds,
     )) {
       if (score < 0 ||
           score > MiniGameEvidencePolicy.maxScorePerGame ||
