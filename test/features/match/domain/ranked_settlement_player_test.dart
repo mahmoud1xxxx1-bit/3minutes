@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:three_minutes/features/competition/domain/ranked_settlement_player.dart';
+import 'package:game/features/competition/domain/ranked_settlement_player.dart';
 
 void main() {
   group('RankedSettlementPlayer', () {
