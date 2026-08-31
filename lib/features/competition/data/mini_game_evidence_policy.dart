@@ -1,4 +1,5 @@
 import '../../minigames/data/game_registry.dart';
+import '../../minigames/domain/mini_game_contract.dart';
 import '../domain/mini_game_evidence.dart';
 
 class MiniGameEvidencePolicy {
