@@ -487,7 +487,7 @@ export const submitRankedProgress = onCall(CALLABLE_OPTIONS, async (request) => 
       accuracyTotal,
       mistakes,
       elapsedMs: authoritativeElapsedMs,
-      completedAt: FieldValue.serverTimestamp(),
+      completedAt: evidence.length >= gameCount ? FieldValue.serverTimestamp() : null,
     };
 
     transaction.set(
