@@ -13,10 +13,12 @@ class MatchmakingScreen extends StatefulWidget {
     super.key,
     required this.profile,
     required this.matchBackend,
+    this.wagerCoins = 0,
   });
 
   final PlayerProfile profile;
   final MatchBackend matchBackend;
+  final int wagerCoins;
 
   @override
   State<MatchmakingScreen> createState() => _MatchmakingScreenState();
@@ -42,7 +44,18 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       });
     }
     try {
-      await widget.matchBackend.joinQueue(widget.profile);
+      if (widget.wagerCoins > 0) {
+        final backend = widget.matchBackend;
+        if (backend is! RankedWagerMatchBackend) {
+          throw StateError('Coin wagers require the ranked server authority.');
+        }
+        await backend.joinQueueWithWager(
+          widget.profile,
+          wagerCoins: widget.wagerCoins,
+        );
+      } else {
+        await widget.matchBackend.joinQueue(widget.profile);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() => _error = AppLocalizations.of(context).matchmakingFailed);
@@ -81,6 +94,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -179,6 +193,19 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
+                      if (widget.wagerCoins > 0) ...[
+                        const SizedBox(height: GameSpacing.sm),
+                        Center(
+                          child: Chip(
+                            avatar: const Icon(Icons.toll_rounded, size: 18),
+                            label: Text(
+                              ar
+                                  ? 'الرهان ${widget.wagerCoins} • الجائزة ${widget.wagerCoins * 2}'
+                                  : 'Wager ${widget.wagerCoins} • Pot ${widget.wagerCoins * 2}',
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: GameSpacing.sm),
                       Text(
                         l10n.fairMatchMessage,
