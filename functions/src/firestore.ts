@@ -23,6 +23,7 @@ export const COLLECTIONS = {
   progressionEvents: "progressionEvents",
   players: "players",
   coinTransactions: "coinTransactions",
+  goldTransactions: "goldTransactions",
   prestigeStarTransactions: "prestigeStarTransactions",
   purchaseReceipts: "purchaseReceipts",
   achievements: "achievements",
