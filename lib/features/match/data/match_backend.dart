@@ -4,6 +4,7 @@ import '../../profile/domain/player_profile.dart';
 import '../domain/match_progress.dart';
 import '../domain/match_session.dart';
 import '../domain/match_ticket.dart';
+import '../domain/ranked_wager.dart';
 
 abstract class MatchBackend {
   Future<void> joinQueue(PlayerProfile profile);
@@ -53,6 +54,15 @@ abstract class MatchBackend {
     required String uid,
     required MatchProgress progress,
     required int gameCount,
+  });
+}
+
+/// Capability implemented by Ranked authority only. Quick and social modes stay
+/// outside the Gold wager economy.
+abstract interface class RankedWagerQueueBackend {
+  Future<void> joinRankedQueueWithWager(
+    PlayerProfile profile, {
+    required RankedWager wager,
   });
 }
 
