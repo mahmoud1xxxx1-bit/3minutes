@@ -188,6 +188,8 @@ class FirestoreMatchBackend implements MatchBackend {
     final data = snapshot.data() ?? const <String, dynamic>{};
     final countdownTimestamp = data['countdownStartedAt'];
     final createdTimestamp = data['createdAt'];
+    final rawWagerCoins = (data['wagerCoins'] as num?)?.toInt() ?? 0;
+    final rawWagerPotCoins = (data['wagerPotCoins'] as num?)?.toInt() ?? 0;
     return MatchSession(
       id: snapshot.id,
       playerAId: data['playerAId'] as String? ?? '',
@@ -211,6 +213,9 @@ class FirestoreMatchBackend implements MatchBackend {
       rematchA: data['rematchA'] as bool? ?? false,
       rematchB: data['rematchB'] as bool? ?? false,
       mode: data['mode'] as String? ?? 'ranked',
+      wagerCoins: rawWagerCoins < 0 ? 0 : rawWagerCoins,
+      wagerPotCoins: rawWagerPotCoins < 0 ? 0 : rawWagerPotCoins,
+      wagerStatus: data['wagerStatus'] as String?,
       rematchMatchId: data['rematchMatchId'] as String?,
       cancelledBy: data['cancelledBy'] as String?,
       countdownStartedAt: countdownTimestamp is Timestamp
