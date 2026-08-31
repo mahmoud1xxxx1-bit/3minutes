@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import '../../../core/audio/game_audio_controller.dart';
 import '../../../core/platform/room_invite_service.dart';
 import '../../../core/theme/cosmic_background.dart';
-import '../../../core/theme/design_tokens.dart';
+import '../../../core/theme/game_glyphs.dart';
+import '../../../core/theme/game_nav_dock.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/data/auth_service.dart';
 import '../../competition/data/competition_backend.dart';
@@ -159,83 +160,27 @@ class _GameShellScreenState extends State<GameShellScreen> {
           ),
         ];
 
+        final navItems = <GameNavItemData>[
+          GameNavItemData(label: l10n.home, glyph: GameGlyphType.arena),
+          GameNavItemData(label: l10n.season, glyph: GameGlyphType.season),
+          GameNavItemData(label: social.friends, glyph: GameGlyphType.squad),
+          GameNavItemData(label: l10n.shop, glyph: GameGlyphType.vault),
+          GameNavItemData(label: l10n.profile, glyph: GameGlyphType.identity),
+        ];
+
         return Scaffold(
           extendBody: true,
           body: CosmicBackground(
             child: IndexedStack(index: _index, children: pages),
           ),
-          bottomNavigationBar: SafeArea(
-            top: false,
-            minimum: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-            child: Container(
-              decoration: BoxDecoration(
-                color: GameColors.surfaceGlass,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: GameColors.surfaceStrong,
-                  width: .8,
-                ),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 24,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: NavigationBar(
-                selectedIndex: _index,
-                onDestinationSelected: (value) {
-                  unawaited(GameAudioController.instance.playSfx(GameSfx.tap));
-                  setState(() => _index = value);
-                },
-                backgroundColor: Colors.transparent,
-                indicatorColor: GameColors.accentSoft,
-                destinations: [
-                  NavigationDestination(
-                    icon: const Icon(Icons.home_rounded),
-                    selectedIcon: const Icon(
-                      Icons.home_rounded,
-                      color: GameColors.accentBright,
-                    ),
-                    label: l10n.home,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.auto_awesome_rounded),
-                    selectedIcon: const Icon(
-                      Icons.auto_awesome_rounded,
-                      color: GameColors.accentBright,
-                    ),
-                    label: l10n.season,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.group_rounded),
-                    selectedIcon: const Icon(
-                      Icons.group_rounded,
-                      color: GameColors.accentBright,
-                    ),
-                    label: social.friends,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.storefront_rounded),
-                    selectedIcon: const Icon(
-                      Icons.storefront_rounded,
-                      color: GameColors.accentBright,
-                    ),
-                    label: l10n.shop,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.person_rounded),
-                    selectedIcon: const Icon(
-                      Icons.person_rounded,
-                      color: GameColors.accentBright,
-                    ),
-                    label: l10n.profile,
-                  ),
-                ],
-              ),
-            ),
+          bottomNavigationBar: GameNavDock(
+            index: _index,
+            items: navItems,
+            onChanged: (value) {
+              if (value == _index) return;
+              unawaited(GameAudioController.instance.playSfx(GameSfx.tap));
+              setState(() => _index = value);
+            },
           ),
         );
       },
