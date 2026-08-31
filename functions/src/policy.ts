@@ -136,13 +136,23 @@ export function compareMatch(
   const aFinished = playerA.completedGames >= gameCount;
   const bFinished = playerB.completedGames >= gameCount;
 
+  // Official completed-match policy:
+  // 1) highest total score wins;
+  // 2) only when score is exactly tied, lowest accumulated gameplay time wins;
+  // 3) exact score+time equality remains a true tie (never random).
   if (aFinished && bFinished) {
-    const aTime = playerA.completedAtMs;
-    const bTime = playerB.completedAtMs;
-    if (aTime !== null && bTime !== null && aTime !== bTime) {
-      return aTime < bTime ? "playerA" : "playerB";
+    if (playerA.totalScore !== playerB.totalScore) {
+      return playerA.totalScore > playerB.totalScore ? "playerA" : "playerB";
     }
-  } else if (aFinished !== bFinished) {
+    if (playerA.elapsedMs !== playerB.elapsedMs) {
+      return playerA.elapsedMs < playerB.elapsedMs ? "playerA" : "playerB";
+    }
+    return "tie";
+  }
+
+  // Deadline/incomplete fallback. Disconnect/forfeit policy is handled by the
+  // dedicated match-state layer; this keeps settlement deterministic meanwhile.
+  if (aFinished !== bFinished) {
     return aFinished ? "playerA" : "playerB";
   }
 
