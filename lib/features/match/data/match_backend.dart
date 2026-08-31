@@ -85,10 +85,9 @@ abstract interface class DetailedGameResultBackend {
   });
 }
 
-/// Optional capability implemented only by ranked backends that can return the
-/// server-authoritative settlement receipt. Spark fallbacks intentionally do
-/// not implement this interface because they do not award Ranked RP.
-abstract interface class RankedSettlementResultBackend {
+/// Ranked settlement is a strict MatchBackend subtype so Dart can safely
+/// promote a backend after the runtime capability check.
+abstract interface class RankedSettlementResultBackend implements MatchBackend {
   Future<RankedSettlementPlayer?> finalizeMatchWithResult({
     required String matchId,
     required String uid,
