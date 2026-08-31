@@ -12,6 +12,7 @@ import '../../minigames/data/game_registry.dart';
 import '../data/match_backend.dart';
 import '../domain/match_session.dart';
 import 'audio_match_play_screen.dart';
+import 'ranked_wager_summary.dart';
 
 class MatchRoomScreen extends StatefulWidget {
   const MatchRoomScreen({
@@ -276,6 +277,13 @@ class _MatchRoomScreenState extends State<MatchRoomScreen> {
               loadout: loadoutSnapshot.data ?? const CosmeticLoadout(),
             ),
           ),
+          if (match.hasWager) ...[
+            const SizedBox(height: GameSpacing.sm),
+            RankedWagerSummary(
+              wagerCoins: match.wagerCoins,
+              potCoins: match.wagerPotCoins,
+            ),
+          ],
           const Spacer(),
           AnimatedSwitcher(
             duration: GameDurations.normal,
