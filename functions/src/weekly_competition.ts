@@ -36,6 +36,17 @@ export function weeklyCompetitionId(nowMs: number): string {
   return `week_${index}`;
 }
 
+/**
+ * Score mutations are accepted only while the weekly document is open. Once
+ * rollover changes the state to processing or closed, the standings are frozen
+ * so delayed Firestore events cannot alter already-paying/paid results.
+ * A missing week document is treated as open because the first valid score
+ * event is responsible for creating it.
+ */
+export function weeklyScoreWindowOpen(state: unknown): boolean {
+  return state === undefined || state === null || state === "open";
+}
+
 export function weeklyRewardFor(
   board: WeeklyBoardKind,
   standing: number,
