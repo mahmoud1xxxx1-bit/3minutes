@@ -239,7 +239,9 @@ export const processWeeklyRewardPage = onTaskDispatched<WeeklyRewardPageTask>(
 
     const weekRef = getFirestore().collection(COLLECTIONS.weeklyLeaderboards).doc(weekId);
     const week = (await weekRef.get()).data();
-    if (!week || week.state === "closed") return;
+    // Reward workers are allowed to run only after rollover freezes standings.
+    // This blocks accidental/stale/manual task dispatches from paying an open week.
+    if (!week || week.state !== "processing") return;
 
     const cursor = raw?.cursor && typeof raw.cursor === "object"
       ? {
@@ -272,7 +274,7 @@ export const processWeeklyRewardPage = onTaskDispatched<WeeklyRewardPageTask>(
       return {
         uid: doc.id,
         score,
-        active: boolValue(data.active, true),
+        active: boolValue(data.active, false),
         standing: result.awardedStanding,
       };
     });
