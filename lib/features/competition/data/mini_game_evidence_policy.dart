@@ -15,6 +15,28 @@ class MiniGameEvidencePolicy {
     return matchSeed ^ ((gameIndex + 1) * _seedMix);
   }
 
+  /// Validates one result before it is sent to the server. Unlike
+  /// [isValidMatchEvidence], this preserves the real game index (0..3), so
+  /// games 2-4 are not accidentally validated as game 1.
+  static bool isValidGameEvidence({
+    required int matchSeed,
+    required int gameCount,
+    required MiniGameEvidence evidence,
+    required List<String> lockedGameIds,
+  }) {
+    if (gameCount != 4) return false;
+    final expectedGames = _descriptorsForLockedIds(lockedGameIds);
+    if (expectedGames.length != gameCount) return false;
+    final index = evidence.gameIndex;
+    if (index < 0 || index >= gameCount) return false;
+    return _isValidEvidenceItem(
+      item: evidence,
+      expected: expectedGames[index],
+      matchSeed: matchSeed,
+      expectedIndex: index,
+    );
+  }
+
   static bool isValidMatchEvidence({
     required int matchSeed,
     required int gameCount,
@@ -28,42 +50,61 @@ class MiniGameEvidencePolicy {
         ? _descriptorsForEvidence(evidence)
         : _descriptorsForLockedIds(lockedGameIds);
     if (lockedGameIds != null && expectedGames.length != gameCount) return false;
-    if (lockedGameIds == null && expectedGames.length != evidence.length) return false;
+    if (lockedGameIds == null && expectedGames.length != evidence.length) {
+      return false;
+    }
 
     var totalDurationMs = 0;
     for (var index = 0; index < evidence.length; index++) {
       final item = evidence[index];
-      final expected = expectedGames[index];
-      if (item.gameIndex != index) return false;
-      if (item.gameId != expected.id) return false;
-      if (item.gameVersion != expected.version) return false;
-      if (item.gameSeed != gameSeed(matchSeed: matchSeed, gameIndex: index)) {
-        return false;
-      }
-      if (item.progressStepCount < 1 ||
-          item.progressStep < 0 ||
-          item.progressStep > item.progressStepCount) {
-        return false;
-      }
-      if (item.completed) {
-        if (item.score != maxScorePerGame ||
-            item.progressStep != item.progressStepCount) {
-          return false;
-        }
-      } else {
-        if (item.score != 0 || item.progressStep >= item.progressStepCount) {
-          return false;
-        }
-      }
-      if (item.accuracy < 0 || item.accuracy > 1) return false;
-      if (item.mistakes < 0) return false;
-      if (item.durationMs < 0 || item.durationMs > maxMatchDurationMs) {
+      if (!_isValidEvidenceItem(
+        item: item,
+        expected: expectedGames[index],
+        matchSeed: matchSeed,
+        expectedIndex: index,
+      )) {
         return false;
       }
       totalDurationMs += item.durationMs;
       if (totalDurationMs > maxMatchDurationMs) return false;
     }
 
+    return true;
+  }
+
+  static bool _isValidEvidenceItem({
+    required MiniGameEvidence item,
+    required MiniGameDescriptor expected,
+    required int matchSeed,
+    required int expectedIndex,
+  }) {
+    if (item.gameIndex != expectedIndex) return false;
+    if (item.gameId != expected.id) return false;
+    if (item.gameVersion != expected.version) return false;
+    if (item.gameSeed !=
+        gameSeed(matchSeed: matchSeed, gameIndex: expectedIndex)) {
+      return false;
+    }
+    if (item.progressStepCount < 1 ||
+        item.progressStep < 0 ||
+        item.progressStep > item.progressStepCount) {
+      return false;
+    }
+    if (item.completed) {
+      if (item.score != maxScorePerGame ||
+          item.progressStep != item.progressStepCount) {
+        return false;
+      }
+    } else {
+      if (item.score != 0 || item.progressStep >= item.progressStepCount) {
+        return false;
+      }
+    }
+    if (item.accuracy < 0 || item.accuracy > 1) return false;
+    if (item.mistakes < 0) return false;
+    if (item.durationMs < 0 || item.durationMs > maxMatchDurationMs) {
+      return false;
+    }
     return true;
   }
 
