@@ -14,6 +14,7 @@ import '../../profile/domain/player_profile.dart';
 import '../data/match_backend.dart';
 import '../domain/match_ticket.dart';
 import 'match_room_screen.dart';
+import 'match_rules_sheet.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({
@@ -156,6 +157,11 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
                                 Text(copy.fairFight, style: const TextStyle(color: GameColors.muted, fontSize: 10)),
                               ],
                             ),
+                          ),
+                          IconButton(
+                            tooltip: copy.isArabic ? 'قواعد المواجهة' : 'Match rules',
+                            onPressed: () => showMatchRulesSheet(context),
+                            icon: const Icon(Icons.info_outline_rounded, color: GameColors.accentBright),
                           ),
                           ArenaPill(label: elapsedText, icon: Icons.timer_outlined, color: GameColors.accentBright),
                         ],
