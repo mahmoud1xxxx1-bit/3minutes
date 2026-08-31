@@ -1,4 +1,4 @@
-export const REGISTRY_VERSION = 5;
+export const REGISTRY_VERSION = 7;
 export const MATCH_GAME_COUNT = 8;
 export const MATCH_DURATION_MS = 180000;
 
