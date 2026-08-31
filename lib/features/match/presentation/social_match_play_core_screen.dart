@@ -18,6 +18,7 @@ import '../data/social_match_backend.dart';
 import '../domain/match_runtime.dart';
 import '../domain/multiplayer_match.dart';
 import '../domain/multiplayer_result.dart';
+import 'social_result_identity.dart';
 
 class SocialMatchPlayScreen extends StatefulWidget {
   const SocialMatchPlayScreen({
@@ -577,40 +578,14 @@ class _SocialResultView extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(GameSpacing.lg, GameSpacing.xl, GameSpacing.lg, GameSpacing.xl),
           children: [
-            if (winnerLoadout.victoryEffectId != null)
-              CosmeticVictoryEffect(
-                effectId: winnerLoadout.victoryEffectId!,
-                winnerName: winner.displayName,
-                height: 240,
-              )
-            else ...[
-              Center(
-                child: Container(
-                  width: 112,
-                  height: 112,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: first ? GameColors.cosmicGradient : null,
-                    color: first ? null : GameColors.accentSoft,
-                    boxShadow: first ? GameShadows.primaryGlow : null,
-                  ),
-                  child: Icon(
-                    first ? Icons.emoji_events_rounded : Icons.leaderboard_rounded,
-                    size: 58,
-                    color: first ? Colors.white : GameColors.accentBright,
-                  ),
-                ),
-              ),
-              const SizedBox(height: GameSpacing.sm),
-              Text(
-                first ? l10n.victory : '#${myPlacement.position}',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: first ? GameColors.rewardGold : GameColors.textStrong,
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-            ],
+            SocialResultWinnerHeader(
+              winnerUid: winner.uid,
+              winnerName: winner.displayName,
+              winnerAvatarId: winner.avatarId,
+              loadout: winnerLoadout,
+              placementLabel: first ? l10n.victory : '#${myPlacement.position}',
+              isWinner: first,
+            ),
             const SizedBox(height: GameSpacing.lg),
             for (var index = 0; index < placements.length; index++) ...[
               Builder(
@@ -632,6 +607,11 @@ class _SocialResultView extends StatelessWidget {
                             ),
                           ),
                         ),
+                        SocialPlacementAvatar(
+                          avatarId: participant.avatarId,
+                          position: placement.position,
+                        ),
+                        const SizedBox(width: GameSpacing.sm),
                         Expanded(
                           child: Text(
                             participant.displayName,
