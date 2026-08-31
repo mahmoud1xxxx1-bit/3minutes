@@ -22,6 +22,7 @@ import {
   nextWeeklyStanding,
   type WeeklyStandingState,
 } from "./weekly_ranking.js";
+import { weeklyRolloverPlan } from "./weekly_rollover_policy.js";
 
 const REGION = "me-central2";
 const PAGE_SIZE = 200;
@@ -316,25 +317,34 @@ export const rolloverWeeklyCompetition = onSchedule(
     const db = getFirestore();
     const weekRef = db.collection(COLLECTIONS.weeklyLeaderboards).doc(previousWeekId);
 
-    const shouldStart = await db.runTransaction(async (transaction) => {
+    const plan = await db.runTransaction(async (transaction) => {
       const snap = await transaction.get(weekRef);
-      if (!snap.exists) return false;
+      if (!snap.exists) return null;
       const data = snap.data() ?? {};
-      if (data.state === "closed" || data.state === "processing") return false;
       const endsAt = data.endsAt;
-      if (!(endsAt instanceof Timestamp) || endsAt.toMillis() > now) return false;
-      transaction.update(weekRef, {
-        state: "processing",
-        processingStartedAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
+      const nextPlan = weeklyRolloverPlan({
+        state: data.state,
+        endsAtMs: endsAt instanceof Timestamp ? endsAt.toMillis() : null,
+        nowMs: now,
+        rpRewardsComplete: boolValue(data.rpRewardsComplete),
+        goldRewardsComplete: boolValue(data.goldRewardsComplete),
       });
-      return true;
+      if (!nextPlan) return null;
+      if (nextPlan.markProcessing) {
+        transaction.update(weekRef, {
+          state: "processing",
+          processingStartedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+      }
+      return nextPlan;
     });
-    if (!shouldStart) return;
+    if (!plan) return;
 
-    await Promise.all([
-      enqueueRewardPage({ weekId: previousWeekId, board: "rp", offset: 0 }),
-      enqueueRewardPage({ weekId: previousWeekId, board: "gold", offset: 0 }),
-    ]);
+    await Promise.all(
+      plan.boardsToEnqueue.map((board) =>
+        enqueueRewardPage({ weekId: previousWeekId, board, offset: 0 }),
+      ),
+    );
   },
 );
