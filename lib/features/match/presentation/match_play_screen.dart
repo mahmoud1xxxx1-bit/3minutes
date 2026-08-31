@@ -52,6 +52,7 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
   MatchRuntime? _ensureRuntime(MatchSession match) {
     final countdownStartedAt = match.countdownStartedAt;
     if (countdownStartedAt == null) return null;
+    if (match.isRanked && !match.gameSelectionLocked) return null;
 
     final savedProgress = match.progressFor(widget.uid);
     final current = _runtime;
@@ -65,6 +66,7 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
         seed: match.seed,
         startedAt: countdownStartedAt.add(const Duration(seconds: 3)),
         gameCount: match.gameCount,
+        lockedGameIds: match.isRanked ? match.lockedGameIds : null,
         initialProgress: savedProgress,
       );
     }
@@ -81,13 +83,23 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
     });
 
     try {
-      final nextProgress = runtime.previewResult(result);
-      await widget.matchBackend.submitProgress(
-        matchId: match.id,
-        uid: widget.uid,
-        progress: nextProgress,
-        gameCount: match.gameCount,
-      );
+      final detailedBackend = widget.matchBackend;
+      if (match.isRanked && detailedBackend is DetailedGameResultBackend) {
+        await detailedBackend.submitMiniGameResult(
+          matchId: match.id,
+          uid: widget.uid,
+          result: result,
+          gameCount: match.gameCount,
+        );
+      } else {
+        final nextProgress = runtime.previewResult(result);
+        await widget.matchBackend.submitProgress(
+          matchId: match.id,
+          uid: widget.uid,
+          progress: nextProgress,
+          gameCount: match.gameCount,
+        );
+      }
       runtime.recordResult(result);
     } catch (_) {
       if (!mounted) return;
@@ -130,6 +142,12 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                 if (match.registryVersion != GameRegistry.version) {
                   return _CenteredMessage(text: l10n.legacyMatchTitle, color: GameColors.warning);
                 }
+                if (match.isRanked && !match.gameSelectionLocked) {
+                  return const _CenteredMessage(
+                    text: 'The four-game set is not locked yet.',
+                    color: GameColors.warning,
+                  );
+                }
 
                 final activeRuntime = _ensureRuntime(match);
                 if (activeRuntime == null) return const Center(child: CircularProgressIndicator());
@@ -161,7 +179,7 @@ class _MatchPlayScreenState extends State<MatchPlayScreen> {
                       _RankedHud(
                         gameIndex: gameIndex,
                         gameCount: match.gameCount,
-                        gameTitle: game.title,
+                        gameTitle: game.title.isEmpty ? game.id.replaceAll('_', ' ') : game.title,
                         remaining: remaining,
                         clock: _clock(remaining),
                       ),
