@@ -698,7 +698,7 @@ class TrollEngine {
     this.levelsPerMechanic = 3,  // 3 for Season 11, 5 for Seasons 1-5
     this.mechanicOffset = 0,     // 0=S1/S11, 4=S2, 8=S3, 12=S4, 16=S5
   }) {
-    rng = Random(); // completely random every time the player enters
+    rng = Random(round + (mechanicOffset * 100)); // deterministic seed based on level
     _loadLevel(round);
   }
 
@@ -818,7 +818,27 @@ class TrollEngine {
   }
 
   /// Random safe gap between traps: kMinGap to kMinGap+3
-  int _gap() => rng.nextInt(4) + kMinGap;
+  int _gap([String? lastTrap, String? nextTrap]) {
+    int baseGap = rng.nextInt(4) + kMinGap;
+    
+    // --- STAGE VALIDATOR LOGIC ---
+    // Prevent impossible overlapping or overly tight timings
+    if (lastTrap != null && nextTrap != null) {
+      if ((lastTrap == 'Thwomp' || lastTrap == 'MThwomp') && nextTrap.contains('Spike')) {
+        baseGap += 4; // Extra space after a thwomp before spikes
+      }
+      if (lastTrap == 'JDrop' && nextTrap == 'Thwomp') {
+        baseGap += 5; // Impossible to dodge thwomp if floor just dropped
+      }
+      if (lastTrap == 'FFloor' && nextTrap == 'FFloor') {
+        baseGap += 2; // Space out falling floors
+      }
+      if (lastTrap == 'RevCtrl' || nextTrap == 'RevCtrl') {
+        baseGap += 6; // Give player time to adjust to reverse controls
+      }
+    }
+    return baseGap;
+  }
 
 
   void _spawnParticles(double px, double py, int count, Color c) {
@@ -1160,10 +1180,12 @@ class TrollEngine {
     void runRecipe(List<String> pool, {int startCol = 15}) {
       currentCol = startCol;
       pool.shuffle(rng);
+      String? lastTrap;
       for (final trapType in pool) {
         if (currentCol + 15 >= mapCols) break; // safety: don't overflow grid
         placeTrap(trapType, currentCol);
-        currentCol += _gap() + 5; // gap + trap footprint
+        currentCol += _gap(lastTrap, trapType) + 5; // gap + trap footprint
+        lastTrap = trapType;
       }
       addRunningDoor(kDoorClearance, 0);
     }
@@ -1355,7 +1377,8 @@ class TrollEngine {
           grid[13][currentCol + i] = 'X';
         }
         placeTrap(t, currentCol);
-        currentCol += _gap() + 4;
+          currentCol += _gap(lastTrap, t) + 4;
+          lastTrap = t;
       }
       addRunningDoor(kDoorClearance, 0);
 
@@ -1400,7 +1423,8 @@ class TrollEngine {
           currentCol += 4;
         }
         placeTrap(t, currentCol);
-        currentCol += _gap() + 4;
+          currentCol += _gap(lastTrap, t) + 4;
+          lastTrap = t;
       }
       addRunningDoor(kDoorClearance, 0);
 
@@ -1425,7 +1449,8 @@ class TrollEngine {
           grid[13][currentCol + i] = 'X';
         }
         placeTrap(t, currentCol);
-        currentCol += _gap() + 10;
+          currentCol += _gap(lastTrap, t) + 10;
+          lastTrap = t;
       }
       addRunningDoor(kDoorClearance, 0);
 
@@ -1450,7 +1475,8 @@ class TrollEngine {
           grid[13][currentCol + i] = 'X';
         }
         placeTrap(t, currentCol);
-        currentCol += _gap() + 4;
+          currentCol += _gap(lastTrap, t) + 4;
+          lastTrap = t;
       }
       addRunningDoor(kDoorClearance, 0);
 
@@ -1475,7 +1501,8 @@ class TrollEngine {
           grid[13][currentCol + i] = 'X';
         }
         placeTrap(t, currentCol);
-        currentCol += _gap() + 8;
+          currentCol += _gap(lastTrap, t) + 8;
+          lastTrap = t;
       }
       addRunningDoor(kDoorClearance, 0);
 
@@ -1500,7 +1527,8 @@ class TrollEngine {
           grid[13][currentCol + i] = 'X';
         }
         placeTrap(t, currentCol);
-        currentCol += _gap() + 6;
+          currentCol += _gap(lastTrap, t) + 6;
+          lastTrap = t;
       }
       addRunningDoor(kDoorClearance, 0);
 
@@ -1525,7 +1553,8 @@ class TrollEngine {
           grid[13][currentCol + i] = 'X';
         }
         placeTrap(t, currentCol);
-        currentCol += _gap() + 5;
+          currentCol += _gap(lastTrap, t) + 5;
+          lastTrap = t;
       }
       addRunningDoor(kDoorClearance, 0);
 
