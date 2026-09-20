@@ -9,6 +9,9 @@ on:
       - '.ci-no-apk-trigger'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -111,15 +114,15 @@ jobs:
         if: always()
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
-          "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/apkcert.txt
+          "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee /tmp/apkcert.txt
           grep -Fi '4ba2bad2ad8fb270c0f7bab61107ba6fee332a0920c95039cb0e83ba5dff8530' /tmp/apkcert.txt
 
       - name: Upload validated debug APK
         if: success() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: 3minutes-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: LVL-LOOL-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 7
 
