@@ -282,6 +282,7 @@ class ErraticPatrolSpikeTrap extends TrollTrap {
   double leftBound = -1;
   double rightBound = -1;
   int direction = 1;
+  Random? _movementRng;
   
   ErraticPatrolSpikeTrap(this.spikeId, this.speed);
 
@@ -292,24 +293,25 @@ class ErraticPatrolSpikeTrap extends TrollTrap {
     }
     var spike = _cachedSpike;
     if (spike == null) return;
-    
+
+    // Gameplay movement gets its own deterministic RNG. It never consumes the
+    // level-generation RNG, so frame timing/order cannot change the sequence.
+    _movementRng ??= Random(engine.stageSeed ^ spikeId.hashCode);
+
     if (leftBound == -1) {
-      // Initial bounds
-      leftBound = spike.rect.x - (engine.rng.nextDouble() * 3 + 1) * 40.0;
-      rightBound = spike.rect.x + (engine.rng.nextDouble() * 3 + 2) * 40.0;
+      leftBound = spike.rect.x - (_movementRng!.nextDouble() * 3 + 1) * 40.0;
+      rightBound = spike.rect.x + (_movementRng!.nextDouble() * 3 + 2) * 40.0;
     }
     
     spike.rect.x += speed * direction * dt;
     if (direction == 1 && spike.rect.x >= rightBound) {
       spike.rect.x = rightBound;
       direction = -1;
-      // Assign a new unpredictable left bound based on level seed
-      leftBound = spike.rect.x - (engine.rng.nextDouble() * 4 + 2) * 40.0;
+      leftBound = spike.rect.x - (_movementRng!.nextDouble() * 4 + 2) * 40.0;
     } else if (direction == -1 && spike.rect.x <= leftBound) {
       spike.rect.x = leftBound;
       direction = 1;
-      // Assign a new unpredictable right bound based on level seed
-      rightBound = spike.rect.x + (engine.rng.nextDouble() * 4 + 2) * 40.0;
+      rightBound = spike.rect.x + (_movementRng!.nextDouble() * 4 + 2) * 40.0;
     }
   }
 }
@@ -698,11 +700,13 @@ class TrollEngine {
     this.levelsPerMechanic = 3,  // 3 for Season 11, 5 for Seasons 1-5
     this.mechanicOffset = 0,     // 0=S1/S11, 4=S2, 8=S3, 12=S4, 16=S5
   }) {
-    rng = Random(round + (mechanicOffset * 100)); // deterministic seed based on level
+    stageSeed = round + (mechanicOffset * 1000);
+    rng = Random(stageSeed); // generation RNG only
     _loadLevel(round);
   }
 
   late Random rng;
+  late final int stageSeed;
 
   int round;
   final int maxRounds;
