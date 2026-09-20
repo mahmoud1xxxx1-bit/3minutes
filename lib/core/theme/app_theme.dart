@@ -56,7 +56,7 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.transparent,
       canvasColor: GameColors.background,
       dividerColor: GameColors.surfaceStrong,
-      splashFactory: InkRipple.splashFactory,
+      splashFactory: InkSparkle.splashFactory,
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         foregroundColor: GameColors.textStrong,
@@ -67,7 +67,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(54),
+          minimumSize: const Size.fromHeight(56),
           backgroundColor: GameColors.accent,
           foregroundColor: GameColors.backgroundDeep,
           disabledBackgroundColor: GameColors.surfaceRaised,
@@ -80,7 +80,7 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(50),
+          minimumSize: const Size.fromHeight(52),
           foregroundColor: GameColors.textStrong,
           side: const BorderSide(color: GameColors.surfaceStrong),
           shape: RoundedRectangleBorder(
@@ -141,7 +141,7 @@ class AppTheme {
         backgroundColor: GameColors.surfaceGlass,
         indicatorColor: GameColors.accentSoft,
         elevation: 0,
-        height: 68,
+        height: 72,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       dialogTheme: DialogThemeData(
