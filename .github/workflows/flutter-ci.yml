@@ -63,7 +63,7 @@ jobs:
 
       - name: Build Android debug APK
         if: always()
-        run: flutter build apk --release -t lib/main_level_devil_app.dart
+        run: flutter build apk --release -t lib/main_lvllo_app.dart
 
       - name: Verify generated Google OAuth resources
         if: always()
