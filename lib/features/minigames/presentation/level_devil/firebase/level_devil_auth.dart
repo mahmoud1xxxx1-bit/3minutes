@@ -23,7 +23,6 @@ class LevelDevilAuth {
         final googleSignIn = GoogleSignIn.instance;
         try {
           await googleSignIn.initialize(
-            clientId: '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com',
             serverClientId: '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com',
           );
         } catch (_) {}

@@ -25,13 +25,10 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            val ciKeystore = System.getenv("CI_DEBUG_KEYSTORE")
-            if (!ciKeystore.isNullOrBlank()) {
-                storeFile = file(ciKeystore)
-                storePassword = "android"
-                keyAlias = "androiddebugkey"
-                keyPassword = "android"
-            }
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
