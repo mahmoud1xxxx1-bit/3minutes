@@ -385,16 +385,22 @@ class _MailboxDialogState extends State<MailboxDialog> {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
-  final prefs = await SharedPreferences.getInstance(); globalLanguageNotifier.value = prefs.getString('ld_lang') ?? 'en'; runApp(const LevelDevilApp());
-}
+    WidgetsFlutterBinding.ensureInitialized();
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch(e) {}
+    
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    
+    final prefs = await SharedPreferences.getInstance();
+    globalLanguageNotifier.value = prefs.getString('ld_lang') ?? 'en'; 
+    runApp(const LevelDevilApp());
+  }
 
 class LevelDevilApp extends StatelessWidget {
   const LevelDevilApp({super.key});
