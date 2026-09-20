@@ -706,7 +706,7 @@ class TrollEngine {
   }
 
   late Random rng;
-  late final int stageSeed;
+  int stageSeed;
 
   int round;
   final int maxRounds;
@@ -876,7 +876,8 @@ class TrollEngine {
     if (failed) {
       if (roundHearts > 0) {
         // Retry same round, reseed for exact same layout (muscle memory)
-        rng = Random(round + (mechanicOffset * 100));
+        stageSeed = round + (mechanicOffset * 1000);
+        rng = Random(stageSeed);
         _loadLevel(round);
       } else {
         allComplete = true;
@@ -891,7 +892,8 @@ class TrollEngine {
       } else {
         roundHearts = 2;
         round++;
-        rng = Random(round + (mechanicOffset * 100));
+        stageSeed = round + (mechanicOffset * 1000);
+        rng = Random(stageSeed);
         _loadLevel(round);
       }
     }
