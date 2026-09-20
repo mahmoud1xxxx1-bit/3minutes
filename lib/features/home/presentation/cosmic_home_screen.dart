@@ -25,6 +25,7 @@ import '../../match/presentation/practice_screen.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../profile/domain/player_profile.dart';
 import '../../settings/presentation/settings_screen.dart';
+import '../../minigames/presentation/level_devil/level_devil_hub_screen.dart';
 import '../../social/data/room_backend.dart';
 import '../../social/data/social_backend.dart';
 import '../../social/presentation/friends_screen.dart';
@@ -141,6 +142,14 @@ class CosmicHomeScreen extends StatelessWidget {
                 _ProfileHero(profile: profile),
                 const SizedBox(height: GameSpacing.md),
                 _SeasonSummary(profile: profile),
+                const SizedBox(height: GameSpacing.md),
+                _LevelDevilGateway(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const LevelDevilHubScreen(),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: GameSpacing.lg),
                 _RankedPlayButton(
                   profile: profile,
@@ -226,6 +235,79 @@ class CosmicHomeScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _LevelDevilGateway extends StatelessWidget {
+  const _LevelDevilGateway({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ar = Localizations.localeOf(context).languageCode == 'ar';
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(GameRadii.panel),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(GameRadii.panel),
+        child: Ink(
+          padding: const EdgeInsets.all(GameSpacing.lg),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: AlignmentDirectional.topStart,
+              end: AlignmentDirectional.bottomEnd,
+              colors: [Color(0xFF4A1020), Color(0xFF24112F), Color(0xFF10162C)],
+            ),
+            borderRadius: BorderRadius.circular(GameRadii.panel),
+            border: Border.all(color: GameColors.danger.withValues(alpha: .42)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x332F0714), blurRadius: 26, offset: Offset(0, 10)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  color: GameColors.danger.withValues(alpha: .12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: GameColors.danger.withValues(alpha: .35)),
+                ),
+                child: const Icon(Icons.local_fire_department_rounded, color: GameColors.danger, size: 34),
+              ),
+              const SizedBox(width: GameSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LVL LOOL',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ar ? '175 مرحلة • 6 مواسم • العب مباشرة' : '175 stages • 6 seasons • PLAY NOW',
+                      style: const TextStyle(color: GameColors.danger, fontWeight: FontWeight.w900, fontSize: 12),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ar ? 'خريطة مراحل سريعة وواضحة بدون قوائم مزعجة.' : 'Jump straight into the season and stage map.',
+                      style: const TextStyle(color: GameColors.textSoft, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios_rounded, color: GameColors.danger, size: 18),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
