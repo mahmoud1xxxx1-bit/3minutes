@@ -20,8 +20,12 @@ class _LevelDevilLoginScreenState extends State<LevelDevilLoginScreen> {
     super.initState();
     // Check if user is already logged in
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (FirebaseAuth.instance.currentUser != null) {
-        _navigateToHome();
+      try {
+        if (FirebaseAuth.instance.currentUser != null) {
+          _navigateToHome();
+        }
+      } catch (e) {
+        print("Firebase auth check failed: $e");
       }
     });
   }
