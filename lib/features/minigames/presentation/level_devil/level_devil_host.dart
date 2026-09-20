@@ -30,7 +30,10 @@ class _LevelDevilHostState extends State<LevelDevilHost> {
   Widget build(BuildContext context) {
     // The config seed is the existing global stage number. Keep the stage
     // identity exactly as defined by the game design: 1..175.
-    final stageId = widget.config.seed.clamp(1, TrollStagePlan.totalStages);
+    final stageId = widget.config.seed;
+    if (stageId < 1 || stageId > TrollStagePlan.totalStages) {
+      throw StateError('LVL LOOL stage id must be between 1 and 175: $stageId');
+    }
     final plan = TrollStagePlan.fromStageId(stageId);
 
     return TrollGame(
