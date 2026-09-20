@@ -295,21 +295,21 @@ class ErraticPatrolSpikeTrap extends TrollTrap {
     
     if (leftBound == -1) {
       // Initial bounds
-      leftBound = spike.rect.x - (Random().nextDouble() * 3 + 1) * 40.0;
-      rightBound = spike.rect.x + (Random().nextDouble() * 3 + 2) * 40.0;
+      leftBound = spike.rect.x - (engine.rng.nextDouble() * 3 + 1) * 40.0;
+      rightBound = spike.rect.x + (engine.rng.nextDouble() * 3 + 2) * 40.0;
     }
     
     spike.rect.x += speed * direction * dt;
     if (direction == 1 && spike.rect.x >= rightBound) {
       spike.rect.x = rightBound;
       direction = -1;
-      // Assign a new unpredictable left bound (2 to 6 blocks back)
-      leftBound = spike.rect.x - (Random().nextDouble() * 4 + 2) * 40.0;
+      // Assign a new unpredictable left bound based on level seed
+      leftBound = spike.rect.x - (engine.rng.nextDouble() * 4 + 2) * 40.0;
     } else if (direction == -1 && spike.rect.x <= leftBound) {
       spike.rect.x = leftBound;
       direction = 1;
-      // Assign a new unpredictable right bound (2 to 6 blocks forward)
-      rightBound = spike.rect.x + (Random().nextDouble() * 4 + 2) * 40.0;
+      // Assign a new unpredictable right bound based on level seed
+      rightBound = spike.rect.x + (engine.rng.nextDouble() * 4 + 2) * 40.0;
     }
   }
 }
@@ -869,17 +869,27 @@ class TrollEngine {
   bool completedAsWin = false; // true = player actually reached the door
 
   void nextRound({bool failed = false}) {
-    if (!failed) {
-      totalScore += roundHearts * 250;
-    }
-    roundIndex++;
-    if (roundIndex >= maxRounds) {
-      allComplete = true;
-      completedAsWin = !failed; // Only true if player won this round
+    if (failed) {
+      if (roundHearts > 0) {
+        // Retry same round, reseed for exact same layout (muscle memory)
+        rng = Random(round + (mechanicOffset * 100));
+        _loadLevel(round);
+      } else {
+        allComplete = true;
+        completedAsWin = false;
+      }
     } else {
-      roundHearts = 2;
-      round++;
-      _loadLevel(round);
+      totalScore += roundHearts * 250;
+      roundIndex++;
+      if (roundIndex >= maxRounds) {
+        allComplete = true;
+        completedAsWin = true;
+      } else {
+        roundHearts = 2;
+        round++;
+        rng = Random(round + (mechanicOffset * 100));
+        _loadLevel(round);
+      }
     }
   }
 
@@ -1910,9 +1920,7 @@ class TrollEngine {
     }
 
     if (isChasedLevel) {
-       // Safety cap: max 180 px/s so the player always has a fighting chance
-       final safeSpeed = chaseWallSpeed.clamp(0.0, 180.0);
-       chaseWallX += safeSpeed * dt;
+       chaseWallX += chaseWallSpeed * dt;
        if (player.rect.x < chaseWallX) {
          killPlayer();
        }

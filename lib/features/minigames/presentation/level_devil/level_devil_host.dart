@@ -27,13 +27,20 @@ class _LevelDevilHostState extends State<LevelDevilHost> {
 
   @override
   Widget build(BuildContext context) {
-    // We have 20 chapters. Pick one based on the seed.
-    // Each chapter has 3 rounds. We want to skip round 1 and play rounds 2 and 3.
-    final chapter = (widget.config.seed % 20) + 1;
-    final startRound = ((chapter - 1) * 3) + 2;
+    // Map seed 1-100 directly to Season and Mechanics (5 seasons x 20 stages)
+    int stage = widget.config.seed;
+    if (stage < 1) stage = 1;
+    if (stage > 100) stage = ((stage - 1) % 100) + 1;
+
+    final seasonIndex = (stage - 1) ~/ 20; // 0 to 4
+    final mechanicOffset = seasonIndex * 4;
+    final localRound = ((stage - 1) % 20) + 1; // 1 to 20
 
     return TrollGame(
-      startRound: startRound,
+      startRound: localRound,
+      maxRounds: 1, // Single stage in host mode
+      levelsPerMechanic: 5,
+      mechanicOffset: mechanicOffset,
       onWin: (int score) {
         final duration = DateTime.now().difference(_startTime);
         widget.onComplete(
@@ -42,6 +49,18 @@ class _LevelDevilHostState extends State<LevelDevilHost> {
             score: score,
             accuracy: 1.0,
             mistakes: 0,
+            duration: duration,
+          ),
+        );
+      },
+      onFail: () {
+        final duration = DateTime.now().difference(_startTime);
+        widget.onComplete(
+          MiniGameResult(
+            completed: false,
+            score: 0,
+            accuracy: 0.0,
+            mistakes: 1,
             duration: duration,
           ),
         );
