@@ -87,13 +87,13 @@ jobs:
         run: flutter test
 
       - name: Build Android debug APK
-        if: github.event_name == 'workflow_dispatch'
+        if: always()
         env:
           CI_DEBUG_KEYSTORE: /home/runner/.android/debug.keystore
-        run: flutter build apk --debug
+        run: flutter build apk --release -t lib/main_level_devil_app.dart
 
       - name: Verify generated Google OAuth resources
-        if: github.event_name == 'workflow_dispatch'
+        if: always()
         run: |
           VALUES_FILE=$(find build android -type f -name values.xml -path '*google-services*' -o -type f -name values.xml -path '*GoogleServices*' | head -1)
           if [ -z "$VALUES_FILE" ]; then
@@ -108,7 +108,7 @@ jobs:
           grep -F '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com' "$VALUES_FILE"
 
       - name: Verify APK certificate
-        if: github.event_name == 'workflow_dispatch'
+        if: always()
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/apkcert.txt
@@ -122,3 +122,14 @@ jobs:
           path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Commit and push APK
+        if: always()
+        run: |
+          mkdir -p releases
+          cp build/app/outputs/flutter-apk/app-release.apk releases/LVL_LOOL_1.0.0.apk
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add releases/LVL_LOOL_1.0.0.apk
+          git commit -m "ci: auto-build and upload signed APK" || echo "No changes to commit"
+          git push origin HEAD:main || echo "Failed to push"
