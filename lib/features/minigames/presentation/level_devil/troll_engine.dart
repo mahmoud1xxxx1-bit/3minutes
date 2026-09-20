@@ -818,6 +818,7 @@ class TrollEngine {
   }
 
   /// Random safe gap between traps: kMinGap to kMinGap+3
+  String? lastTrap = null;
   int _gap([String? lastTrap, String? nextTrap]) {
     int baseGap = rng.nextInt(4) + kMinGap;
     
@@ -1180,7 +1181,7 @@ class TrollEngine {
     void runRecipe(List<String> pool, {int startCol = 15}) {
       currentCol = startCol;
       pool.shuffle(rng);
-      String? lastTrap;
+      lastTrap = null;
       for (final trapType in pool) {
         if (currentCol + 15 >= mapCols) break; // safety: don't overflow grid
         placeTrap(trapType, currentCol);
