@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/cosmic_background.dart';
-import '../../../core/theme/design_tokens.dart';
+import '../../../../core/theme/cosmic_background.dart';
+import '../../../../core/theme/design_tokens.dart';
 import 'troll_game.dart';
 import 'troll_stage_plan.dart';
 
