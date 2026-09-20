@@ -706,7 +706,7 @@ class TrollEngine {
   }
 
   late Random rng;
-  int stageSeed;
+  late int stageSeed;
 
   int round;
   final int maxRounds;
