@@ -129,7 +129,7 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
                           border: Border.all(color: GameColors.accent.withOpacity(.25)),
                         ),
                         child: Text(
-                          '$_startStage–$_startStage + $_count - 1',
+                          '$_startStage–${_startStage + _count - 1}',
                           style: const TextStyle(color: GameColors.accentBright, fontWeight: FontWeight.w900, fontSize: 11),
                         ),
                       ),
@@ -142,7 +142,7 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
                     (_, index) {
-                      final stageId = $_startStage + index;
+                      final stageId = _startStage + index;
                       final plan = TrollStagePlan.fromStageId(stageId);
                       return _StageCard(
                         stageId: stageId,
@@ -153,8 +153,8 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
                     },
                     childCount: _count,
                   ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: MediaQuery.sizeOf(context).width >= 900 ? 6 : MediaQuery.sizeOf(context).width >= 600 ? 4 : 3,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
                     childAspectRatio: .96,
