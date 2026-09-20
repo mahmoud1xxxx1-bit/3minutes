@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/mini_game_contract.dart';
 import 'troll_game.dart';
+import 'troll_stage_plan.dart';
 
 class LevelDevilHost extends StatefulWidget {
   const LevelDevilHost({
@@ -27,20 +28,16 @@ class _LevelDevilHostState extends State<LevelDevilHost> {
 
   @override
   Widget build(BuildContext context) {
-    // Map seed 1-100 directly to Season and Mechanics (5 seasons x 20 stages)
-    int stage = widget.config.seed;
-    if (stage < 1) stage = 1;
-    if (stage > 100) stage = ((stage - 1) % 100) + 1;
-
-    final seasonIndex = (stage - 1) ~/ 20; // 0 to 4
-    final mechanicOffset = seasonIndex * 4;
-    final localRound = ((stage - 1) % 20) + 1; // 1 to 20
+    // The config seed is the existing global stage number. Keep the stage
+    // identity exactly as defined by the game design: 1..175.
+    final stageId = widget.config.seed.clamp(1, TrollStagePlan.totalStages);
+    final plan = TrollStagePlan.fromStageId(stageId);
 
     return TrollGame(
-      startRound: localRound,
+      startRound: plan.localStage,
       maxRounds: 1, // Single stage in host mode
-      levelsPerMechanic: 5,
-      mechanicOffset: mechanicOffset,
+      levelsPerMechanic: plan.levelsPerMechanic,
+      mechanicOffset: plan.mechanicOffset,
       onWin: (int score) {
         final duration = DateTime.now().difference(_startTime);
         widget.onComplete(
