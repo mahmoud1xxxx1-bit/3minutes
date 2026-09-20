@@ -7,9 +7,14 @@ import '../../domain/mini_game_contract.dart';
 import '../../domain/path_rush_plan.dart';
 import '../mini_game_copy.dart';
 import '../shared/minigame_environment.dart';
+import 'package:game/features/minigames/presentation/shared/hearts_display.dart';
 
 class PathRushGame extends StatefulWidget {
-  const PathRushGame({super.key, required this.config, required this.onComplete});
+  const PathRushGame({
+    super.key,
+    required this.config,
+    required this.onComplete,
+  });
 
   final MiniGameConfig config;
   final ValueChanged<MiniGameResult> onComplete;
@@ -24,8 +29,10 @@ class _PathRushGameState extends State<PathRushGame>
   late final Stopwatch _watch;
   late final AnimationController _runner;
   int _roundIndex = 0;
-  int _correct = 0;
-  int _mistakes = 0;
+  
+  int _totalScore = 0;
+  int _roundHearts = 1;
+  
   int? _selectedLane;
   int? _selectedTarget;
   bool? _lastCorrect;
@@ -72,11 +79,10 @@ class _PathRushGameState extends State<PathRushGame>
     setState(() {
       _lastCorrect = ok;
       if (ok) {
-        _correct++;
-        MinigameEnvironment.of(context).updateScore(_correct * 100);
+        _totalScore += 500;
         MinigameEnvironment.of(context).playSuccess(Offset.zero);
       } else {
-        _mistakes++;
+        _roundHearts = 0;
         MinigameEnvironment.of(context).playError(Offset.zero);
       }
     });
@@ -88,11 +94,12 @@ class _PathRushGameState extends State<PathRushGame>
     }
     setState(() {
       _roundIndex++;
+      _locked = false;
       _selectedLane = null;
       _selectedTarget = null;
       _lastCorrect = null;
-      _locked = false;
-      _runner.value = 0;
+      _roundHearts = 1;
+      _runner.reset();
     });
   }
 
@@ -100,13 +107,12 @@ class _PathRushGameState extends State<PathRushGame>
     if (_done) return;
     _done = true;
     _watch.stop();
-    final accuracy = _correct / PathRushPlan.roundCount;
     widget.onComplete(
       MiniGameResult(
         completed: true,
-        score: _correct * 1000,
-        accuracy: accuracy,
-        mistakes: _mistakes,
+        score: _totalScore,
+        accuracy: 1.0,
+        mistakes: 0,
         duration: _watch.elapsed,
       ),
     );
@@ -114,7 +120,9 @@ class _PathRushGameState extends State<PathRushGame>
 
   @override
   Widget build(BuildContext context) {
-    MinigameEnvironment.of(context).updateTimeProgress((_watch.elapsedMilliseconds / 30000).clamp(0.0, 1.0));
+    MinigameEnvironment.of(
+      context,
+    ).updateTimeProgress((_watch.elapsedMilliseconds / 30000).clamp(0.0, 1.0));
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(28),
@@ -127,12 +135,20 @@ class _PathRushGameState extends State<PathRushGame>
       ),
       child: Stack(
         children: [
-          Positioned(
-            top: 10,
-            left: 0,
-            right: 0,
-            child: Center(child: _CharacterCard(animal: _round.animal)),
-          ),
+            Positioned(
+              top: 10,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Column(
+                  children: [
+                    HeartsDisplay(maxHearts: 1, currentHearts: _roundHearts),
+                    const SizedBox(height: 10),
+                    _CharacterCard(animal: _round.animal),
+                  ],
+                ),
+              ),
+            ),
           Positioned(
             top: 75,
             left: 20,
@@ -141,10 +157,24 @@ class _PathRushGameState extends State<PathRushGame>
               textDirection: TextDirection.ltr,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _StartButton(number: 4, selected: _selectedLane == 0, enabled: !_locked, onTap: () => _choose(4)),
-                _StartButton(number: 3, selected: _selectedLane == 1, enabled: !_locked, onTap: () => _choose(3)),
-                _StartButton(number: 2, selected: _selectedLane == 2, enabled: !_locked, onTap: () => _choose(2)),
-                _StartButton(number: 1, selected: _selectedLane == 3, enabled: !_locked, onTap: () => _choose(1)),
+                _StartButton(
+                  number: 3,
+                  selected: _selectedLane == 0,
+                  enabled: !_locked,
+                  onTap: () => _choose(3),
+                ),
+                _StartButton(
+                  number: 2,
+                  selected: _selectedLane == 1,
+                  enabled: !_locked,
+                  onTap: () => _choose(2),
+                ),
+                _StartButton(
+                  number: 1,
+                  selected: _selectedLane == 2,
+                  enabled: !_locked,
+                  onTap: () => _choose(1),
+                ),
               ],
             ),
           ),
@@ -171,7 +201,7 @@ class _PathRushGameState extends State<PathRushGame>
             child: Row(
               textDirection: TextDirection.ltr,
               children: [
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < 3; i++)
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -197,21 +227,30 @@ class _PathPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: const Color(0xFF19DCE8).withValues(alpha: .10),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: const Color(0xFF52F2F2).withValues(alpha: .25)),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(color: Color(0xFF52F2F2), fontSize: 11, fontWeight: FontWeight.w900),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: const Color(0xFF19DCE8).withValues(alpha: .10),
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(color: const Color(0xFF52F2F2).withValues(alpha: .25)),
+    ),
+    child: Text(
+      label,
+      style: const TextStyle(
+        color: Color(0xFF52F2F2),
+        fontSize: 11,
+        fontWeight: FontWeight.w900,
+      ),
+    ),
+  );
 }
 
 class _StartButton extends StatelessWidget {
-  const _StartButton({required this.number, required this.selected, required this.enabled, required this.onTap});
+  const _StartButton({
+    required this.number,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
   final int number;
   final bool selected;
   final bool enabled;
@@ -219,47 +258,87 @@ class _StartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: enabled ? onTap : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 46,
-          height: 46,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const RadialGradient(center: Alignment(-.3, -.3), colors: [Color(0xFF4A3B22), Color(0xFF181323)]),
-            border: Border.all(color: const Color(0xFFFFCD68).withValues(alpha: .65), width: 2),
-            boxShadow: selected ? const [BoxShadow(color: Color(0x77FFCD68), blurRadius: 24)] : const [],
-          ),
-          child: Text('$number', style: const TextStyle(color: Color(0xFFFFCD68), fontSize: 18, fontWeight: FontWeight.w900)),
+    onTap: enabled ? onTap : null,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 46,
+      height: 46,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const RadialGradient(
+          center: Alignment(-.3, -.3),
+          colors: [Color(0xFF4A3B22), Color(0xFF181323)],
         ),
-      );
+        border: Border.all(
+          color: const Color(0xFFFFCD68).withValues(alpha: .65),
+          width: 2,
+        ),
+        boxShadow: selected
+            ? const [BoxShadow(color: Color(0x77FFCD68), blurRadius: 24)]
+            : const [],
+      ),
+      child: Text(
+        '$number',
+        style: const TextStyle(
+          color: Color(0xFFFFCD68),
+          fontSize: 18,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ),
+  );
 }
 
 class _TargetCard extends StatelessWidget {
-  const _TargetCard({required this.target, required this.good, required this.bad});
+  const _TargetCard({
+    required this.target,
+    required this.good,
+    required this.bad,
+  });
   final (String, String) target;
   final bool good;
   final bool bad;
 
   @override
   Widget build(BuildContext context) => AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF102044), Color(0xFF0A1730)]),
-          border: Border.all(color: good ? const Color(0xFF4DDA9A) : bad ? const Color(0xFFFF667E) : const Color(0xFF294D77)),
-          boxShadow: good ? const [BoxShadow(color: Color(0x444DDA9A), blurRadius: 20)] : bad ? const [BoxShadow(color: Color(0x44FF667E), blurRadius: 20)] : const [],
+    duration: const Duration(milliseconds: 150),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(20),
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF102044), Color(0xFF0A1730)],
+      ),
+      border: Border.all(
+        color: good
+            ? const Color(0xFF4DDA9A)
+            : bad
+            ? const Color(0xFFFF667E)
+            : const Color(0xFF294D77),
+      ),
+      boxShadow: good
+          ? const [BoxShadow(color: Color(0x444DDA9A), blurRadius: 20)]
+          : bad
+          ? const [BoxShadow(color: Color(0x44FF667E), blurRadius: 20)]
+          : const [],
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(target.$2, style: const TextStyle(fontSize: 24)),
+        const SizedBox(height: 4),
+        Text(
+          target.$1,
+          style: const TextStyle(
+            color: Color(0xFF8293B2),
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(target.$2, style: const TextStyle(fontSize: 24)),
-            const SizedBox(height: 4),
-            Text(target.$1, style: const TextStyle(color: Color(0xFF8293B2), fontSize: 10, fontWeight: FontWeight.w900)),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 }
 
 class _CharacterCard extends StatelessWidget {
@@ -268,33 +347,53 @@ class _CharacterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(color: const Color(0xE8071226), borderRadius: BorderRadius.circular(22), border: Border.all(color: const Color(0xFF2B4D73))),
-        child: Row(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    decoration: BoxDecoration(
+      color: const Color(0xE8071226),
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: const Color(0xFF2B4D73)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF17365B), Color(0xFF0D1D35)],
+            ),
+          ),
+          child: CustomPaint(painter: _AnimalPainter(animal.id)),
+        ),
+        const SizedBox(width: 9),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), gradient: const LinearGradient(colors: [Color(0xFF17365B), Color(0xFF0D1D35)])),
-              child: CustomPaint(painter: _AnimalPainter(animal.id)),
+            const Text(
+              'الشخصية',
+              style: TextStyle(color: Color(0xFF8293B2), fontSize: 9),
             ),
-            const SizedBox(width: 9),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('الشخصية', style: TextStyle(color: Color(0xFF8293B2), fontSize: 9)),
-                Text(animal.arName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
-              ],
+            Text(
+              animal.arName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ],
         ),
-      );
+      ],
+    ),
+  );
 }
 
 Path _curve(List<PathPoint> points, Size size) {
-  Offset scale(PathPoint point) => Offset(point.x / 430 * size.width, point.y / 280 * size.height);
+  Offset scale(PathPoint point) =>
+      Offset(point.x / 430 * size.width, point.y / 280 * size.height);
   final first = scale(points.first);
   final path = Path()..moveTo(first.dx, first.dy);
   for (var i = 0; i < points.length - 1; i++) {
@@ -310,7 +409,13 @@ Path _curve(List<PathPoint> points, Size size) {
 }
 
 class _MazePainter extends CustomPainter {
-  const _MazePainter({required this.round, required this.selectedLane, required this.progress, required this.reveal, required this.correct});
+  const _MazePainter({
+    required this.round,
+    required this.selectedLane,
+    required this.progress,
+    required this.reveal,
+    required this.correct,
+  });
   final PathRushRound round;
   final int? selectedLane;
   final double progress;
@@ -321,24 +426,72 @@ class _MazePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paths = round.paths.map((points) => _curve(points, size)).toList();
     for (final path in paths) {
-      canvas.drawPath(path, Paint()..color = const Color(0xCC020612)..style = PaintingStyle.stroke..strokeWidth = 11..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
-      canvas.drawPath(path, Paint()..color = const Color(0xFFF1DDA5)..style = PaintingStyle.stroke..strokeWidth = 5.5..strokeCap = StrokeCap.round..strokeJoin = StrokeJoin.round);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = const Color(0xCC020612)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 11
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = const Color(0xFFF1DDA5)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5.5
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      );
     }
     final lane = selectedLane;
     if (lane == null) return;
     final path = paths[lane];
-    final color = reveal && !correct ? const Color(0xFFFF334F) : const Color(0xFF19DCE8);
+    final color = reveal && !correct
+        ? const Color(0xFFFF334F)
+        : const Color(0xFF19DCE8);
     if (reveal) {
-      canvas.drawPath(path, Paint()..color = color.withValues(alpha: .35)..style = PaintingStyle.stroke..strokeWidth = 15..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)..strokeCap = StrokeCap.round);
-      canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 7..strokeCap = StrokeCap.round);
-      canvas.drawPath(path, Paint()..color = correct ? const Color(0xFFEFFFFF) : const Color(0xFFFFD9DE)..style = PaintingStyle.stroke..strokeWidth = 2.3..strokeCap = StrokeCap.round);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = color.withValues(alpha: .35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 15
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = correct ? const Color(0xFFEFFFFF) : const Color(0xFFFFD9DE)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.3
+          ..strokeCap = StrokeCap.round,
+      );
     }
     final metrics = path.computeMetrics().toList();
     if (metrics.isEmpty) return;
     final metric = metrics.first;
-    final tangent = metric.getTangentForOffset(metric.length * progress.clamp(0.0, 1.0));
+    final tangent = metric.getTangentForOffset(
+      metric.length * progress.clamp(0.0, 1.0),
+    );
     if (tangent != null) {
-      canvas.drawCircle(tangent.position, 11, Paint()..color = color.withValues(alpha: .35)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+      canvas.drawCircle(
+        tangent.position,
+        11,
+        Paint()
+          ..color = color.withValues(alpha: .35)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      );
       canvas.drawCircle(tangent.position, 8, Paint()..color = Colors.white);
       canvas.drawCircle(tangent.position, 6, Paint()..color = color);
     }
@@ -346,7 +499,11 @@ class _MazePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _MazePainter oldDelegate) =>
-      oldDelegate.round != round || oldDelegate.selectedLane != selectedLane || oldDelegate.progress != progress || oldDelegate.reveal != reveal || oldDelegate.correct != correct;
+      oldDelegate.round != round ||
+      oldDelegate.selectedLane != selectedLane ||
+      oldDelegate.progress != progress ||
+      oldDelegate.reveal != reveal ||
+      oldDelegate.correct != correct;
 }
 
 class _AnimalPainter extends CustomPainter {
@@ -381,16 +538,42 @@ class _AnimalPainter extends CustomPainter {
         canvas.drawCircle(const Offset(24, 31), 3, dark);
         canvas.drawCircle(const Offset(40, 31), 3, dark);
       case 'lion':
-        canvas.drawCircle(const Offset(32, 32), 28, Paint()..color = const Color(0xFFC77926));
-        canvas.drawCircle(const Offset(32, 34), 21, Paint()..color = const Color(0xFFE8B55C));
+        canvas.drawCircle(
+          const Offset(32, 32),
+          28,
+          Paint()..color = const Color(0xFFC77926),
+        );
+        canvas.drawCircle(
+          const Offset(32, 34),
+          21,
+          Paint()..color = const Color(0xFFE8B55C),
+        );
         canvas.drawCircle(const Offset(24, 31), 3, dark);
         canvas.drawCircle(const Offset(40, 31), 3, dark);
       case 'panda':
-        canvas.drawCircle(const Offset(18, 18), 10, Paint()..color = const Color(0xFF111827));
-        canvas.drawCircle(const Offset(46, 18), 10, Paint()..color = const Color(0xFF111827));
-        canvas.drawCircle(const Offset(32, 35), 23, Paint()..color = const Color(0xFFF4F4F5));
-        canvas.drawOval(const Rect.fromLTWH(16, 23, 14, 18), Paint()..color = const Color(0xFF111827));
-        canvas.drawOval(const Rect.fromLTWH(34, 23, 14, 18), Paint()..color = const Color(0xFF111827));
+        canvas.drawCircle(
+          const Offset(18, 18),
+          10,
+          Paint()..color = const Color(0xFF111827),
+        );
+        canvas.drawCircle(
+          const Offset(46, 18),
+          10,
+          Paint()..color = const Color(0xFF111827),
+        );
+        canvas.drawCircle(
+          const Offset(32, 35),
+          23,
+          Paint()..color = const Color(0xFFF4F4F5),
+        );
+        canvas.drawOval(
+          const Rect.fromLTWH(16, 23, 14, 18),
+          Paint()..color = const Color(0xFF111827),
+        );
+        canvas.drawOval(
+          const Rect.fromLTWH(34, 23, 14, 18),
+          Paint()..color = const Color(0xFF111827),
+        );
       case 'cat':
         final fur = Paint()..color = const Color(0xFFD89B5C);
         final shape = Path()
@@ -410,16 +593,26 @@ class _AnimalPainter extends CustomPainter {
         canvas.drawCircle(const Offset(40, 32), 3, dark);
       default:
         final fur = Paint()..color = const Color(0xFFC99563);
-        canvas.drawOval(const Rect.fromLTWH(5, 12, 20, 38), Paint()..color = const Color(0xFF7B5134));
-        canvas.drawOval(const Rect.fromLTWH(39, 12, 20, 38), Paint()..color = const Color(0xFF7B5134));
+        canvas.drawOval(
+          const Rect.fromLTWH(5, 12, 20, 38),
+          Paint()..color = const Color(0xFF7B5134),
+        );
+        canvas.drawOval(
+          const Rect.fromLTWH(39, 12, 20, 38),
+          Paint()..color = const Color(0xFF7B5134),
+        );
         canvas.drawCircle(const Offset(32, 34), 22, fur);
         canvas.drawCircle(const Offset(24, 31), 3, dark);
         canvas.drawCircle(const Offset(40, 31), 3, dark);
-        canvas.drawOval(const Rect.fromLTWH(27, 37, 10, 8), Paint()..color = const Color(0xFF2B211C));
+        canvas.drawOval(
+          const Rect.fromLTWH(27, 37, 10, 8),
+          Paint()..color = const Color(0xFF2B211C),
+        );
     }
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant _AnimalPainter oldDelegate) => oldDelegate.id != id;
+  bool shouldRepaint(covariant _AnimalPainter oldDelegate) =>
+      oldDelegate.id != id;
 }

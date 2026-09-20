@@ -31,10 +31,13 @@ import 'features/social/data/firestore_social_backend.dart';
 import 'features/social/data/room_backend.dart';
 import 'features/social/data/social_backend.dart';
 import 'l10n/app_localizations.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await FirebaseAppCheck.instance.activate(
     providerAndroid: kReleaseMode
         ? const AndroidPlayIntegrityProvider()

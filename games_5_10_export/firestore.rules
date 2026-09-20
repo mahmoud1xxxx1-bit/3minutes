@@ -1,0 +1,720 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      // Player documents currently contain public game identity/progression only.
+      // Writes to progression fields remain server-authoritative.
+      allow read: if signedIn();
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'gameName',
+          'avatarId',
+          'level',
+          'xp',
+          'rankPoints',
+          'stars',
+          'wins',
+          'losses',
+          'gamesPlayed',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.level == 1
+        && request.resource.data.xp == 0
+        && request.resource.data.rankPoints == 0
+        && request.resource.data.stars == 0
+        && request.resource.data.wins == 0
+        && request.resource.data.losses == 0
+        && request.resource.data.gamesPlayed == 0;
+
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'gameName',
+          'avatarId',
+          'updatedAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    // Spark-era ranked queue. Secure Blaze authority uses Cloud Functions.
+    match /matchmaking/{uid} {
+      allow read: if signedIn();
+
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'gameName',
+          'avatarId',
+          'status',
+          'matchId',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.matchId == null;
+
+      allow update: if (
+          signedIn()
+          && resource.data.status == 'waiting'
+          && request.resource.data.status == 'matched'
+          && request.resource.data.matchId is string
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.gameName == resource.data.gameName
+          && request.resource.data.avatarId == resource.data.avatarId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status',
+            'matchId',
+            'updatedAt'
+          ])
+        ) || (
+          isOwner(uid)
+          && resource.data.status == 'matched'
+          && request.resource.data.status == 'matched'
+          && request.resource.data.matchId is string
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.gameName == resource.data.gameName
+          && request.resource.data.avatarId == resource.data.avatarId
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'matchId',
+            'updatedAt'
+          ])
+        );
+
+      allow delete: if isOwner(uid);
+    }
+
+    match /matches/{matchId} {
+      function participant() {
+        return signedIn()
+          && (request.auth.uid == resource.data.playerAId
+            || request.auth.uid == resource.data.playerBId);
+      }
+
+      function validProgress(progress) {
+        return progress.keys().hasOnly([
+          'completedGames',
+          'totalScore',
+          'accuracyTotal',
+          'mistakes',
+          'elapsedMs',
+          'completedAt'
+        ])
+        && progress.completedGames is int
+        && progress.completedGames >= 0
+        && progress.completedGames <= 8
+        && progress.totalScore is int
+        && progress.totalScore >= 0
+        && progress.accuracyTotal is number
+        && progress.accuracyTotal >= 0
+        && progress.accuracyTotal <= 8
+        && progress.mistakes is int
+        && progress.mistakes >= 0
+        && progress.elapsedMs is int
+        && progress.elapsedMs >= 0
+        && (progress.completedAt == null || progress.completedAt is timestamp);
+      }
+
+      function progressMovesForward(before, after) {
+        return validProgress(after)
+          && after.completedGames >= before.completedGames
+          && after.completedGames <= before.completedGames + 1
+          && after.totalScore >= before.totalScore
+          && after.accuracyTotal >= before.accuracyTotal
+          && after.mistakes >= before.mistakes
+          && after.elapsedMs >= before.elapsedMs
+          && (
+            (before.completedAt != null && after.completedAt == before.completedAt)
+            || (before.completedAt == null
+              && ((after.completedGames < 8 && after.completedAt == null)
+                || (after.completedGames == 8 && after.completedAt is timestamp)))
+          );
+      }
+
+      function coreIdentityUnchanged() {
+        return request.resource.data.playerAId == resource.data.playerAId
+          && request.resource.data.playerAName == resource.data.playerAName
+          && request.resource.data.playerAAvatarId == resource.data.playerAAvatarId
+          && request.resource.data.playerBId == resource.data.playerBId
+          && request.resource.data.playerBName == resource.data.playerBName
+          && request.resource.data.playerBAvatarId == resource.data.playerBAvatarId
+          && request.resource.data.seed == resource.data.seed
+          && request.resource.data.gameCount == resource.data.gameCount
+          && request.resource.data.registryVersion == resource.data.registryVersion
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      allow read: if participant();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'playerAId',
+          'playerAName',
+          'playerAAvatarId',
+          'playerBId',
+          'playerBName',
+          'playerBAvatarId',
+          'seed',
+          'gameCount',
+          'registryVersion',
+          'status',
+          'readyA',
+          'readyB',
+          'progressA',
+          'progressB',
+          'rematchA',
+          'rematchB',
+          'rematchMatchId',
+          'cancelledBy',
+          'countdownStartedAt',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.playerAId != request.resource.data.playerBId
+        && (request.auth.uid == request.resource.data.playerAId
+          || request.auth.uid == request.resource.data.playerBId)
+        && request.resource.data.status == 'waitingReady'
+        && request.resource.data.readyA == false
+        && request.resource.data.readyB == false
+        && request.resource.data.rematchA == false
+        && request.resource.data.rematchB == false
+        && request.resource.data.rematchMatchId == null
+        && request.resource.data.cancelledBy == null
+        && request.resource.data.countdownStartedAt == null
+        && request.resource.data.gameCount == 8
+        && validProgress(request.resource.data.progressA)
+        && validProgress(request.resource.data.progressB)
+        && request.resource.data.progressA.completedGames == 0
+        && request.resource.data.progressB.completedGames == 0;
+
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'readyA',
+          'readyB',
+          'status',
+          'countdownStartedAt',
+          'updatedAt'
+        ])
+        && request.resource.data.progressA == resource.data.progressA
+        && request.resource.data.progressB == resource.data.progressB
+        && request.resource.data.rematchA == resource.data.rematchA
+        && request.resource.data.rematchB == resource.data.rematchB
+        && request.resource.data.rematchMatchId == resource.data.rematchMatchId
+        && request.resource.data.cancelledBy == resource.data.cancelledBy
+        && (
+          (request.auth.uid == resource.data.playerAId
+            && request.resource.data.readyB == resource.data.readyB
+            && request.resource.data.readyA == true)
+          ||
+          (request.auth.uid == resource.data.playerBId
+            && request.resource.data.readyA == resource.data.readyA
+            && request.resource.data.readyB == true)
+        )
+        && (
+          request.resource.data.status == resource.data.status
+          || (
+            resource.data.status == 'waitingReady'
+            && request.resource.data.status == 'countdown'
+            && request.resource.data.readyA == true
+            && request.resource.data.readyB == true
+          )
+        );
+
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'progressA',
+          'progressB',
+          'updatedAt'
+        ])
+        && request.resource.data.readyA == resource.data.readyA
+        && request.resource.data.readyB == resource.data.readyB
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.countdownStartedAt == resource.data.countdownStartedAt
+        && request.resource.data.rematchA == resource.data.rematchA
+        && request.resource.data.rematchB == resource.data.rematchB
+        && request.resource.data.rematchMatchId == resource.data.rematchMatchId
+        && request.resource.data.cancelledBy == resource.data.cancelledBy
+        && (
+          (request.auth.uid == resource.data.playerAId
+            && request.resource.data.progressB == resource.data.progressB
+            && progressMovesForward(resource.data.progressA, request.resource.data.progressA))
+          ||
+          (request.auth.uid == resource.data.playerBId
+            && request.resource.data.progressA == resource.data.progressA
+            && progressMovesForward(resource.data.progressB, request.resource.data.progressB))
+        );
+
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && resource.data.status == 'waitingReady'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.cancelledBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'cancelledBy',
+          'updatedAt'
+        ]);
+
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && resource.data.status != 'cancelled'
+        && request.resource.data.status == 'finished'
+        && request.resource.data.progressA == resource.data.progressA
+        && request.resource.data.progressB == resource.data.progressB
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'updatedAt'
+        ]);
+
+      allow update: if participant()
+        && coreIdentityUnchanged()
+        && resource.data.status != 'cancelled'
+        && resource.data.rematchMatchId == null
+        && request.resource.data.readyA == resource.data.readyA
+        && request.resource.data.readyB == resource.data.readyB
+        && request.resource.data.progressA == resource.data.progressA
+        && request.resource.data.progressB == resource.data.progressB
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.countdownStartedAt == resource.data.countdownStartedAt
+        && request.resource.data.cancelledBy == resource.data.cancelledBy
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'rematchA',
+          'rematchB',
+          'rematchMatchId',
+          'updatedAt'
+        ])
+        && (
+          (request.auth.uid == resource.data.playerAId
+            && request.resource.data.rematchB == resource.data.rematchB
+            && request.resource.data.rematchA is bool)
+          ||
+          (request.auth.uid == resource.data.playerBId
+            && request.resource.data.rematchA == resource.data.rematchA
+            && request.resource.data.rematchB is bool)
+        )
+        && (
+          request.resource.data.rematchMatchId == null
+          || (
+            request.resource.data.rematchMatchId is string
+            && request.resource.data.rematchA == true
+            && request.resource.data.rematchB == true
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // Social identity lookup. Codes are globally readable to signed-in players,
+    // but only the code owner may claim/update their own code.
+    match /friendCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code == code;
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      function memberBefore() {
+        return signedIn() && request.auth.uid in resource.data.memberUids;
+      }
+
+      function memberAfter() {
+        return signedIn() && request.auth.uid in request.resource.data.memberUids;
+      }
+
+      allow read: if memberBefore();
+
+      allow create: if signedIn()
+        && request.resource.data.requesterUid == request.auth.uid
+        && request.resource.data.recipientUid is string
+        && request.resource.data.recipientUid != request.auth.uid
+        && request.auth.uid in request.resource.data.memberUids
+        && request.resource.data.recipientUid in request.resource.data.memberUids
+        && request.resource.data.memberUids.size() == 2
+        && (
+          request.resource.data.status == 'pending'
+          || request.resource.data.status == 'blocked'
+        );
+
+      allow update: if memberBefore()
+        && memberAfter()
+        && request.resource.data.requesterUid == resource.data.requesterUid
+        && request.resource.data.recipientUid == resource.data.recipientUid
+        && request.resource.data.memberUids == resource.data.memberUids
+        && (
+          (
+            resource.data.status == 'pending'
+            && request.auth.uid == resource.data.recipientUid
+            && request.resource.data.status == 'accepted'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'updatedAt'
+            ])
+          )
+          || (
+            request.resource.data.status == 'blocked'
+            && request.resource.data.blockedByUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'blockedByUid',
+              'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if memberBefore();
+    }
+
+    // Recent players are written by trusted settlement/social authority only.
+    match /recentPlayers/{uid}/players/{otherUid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /roomCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.roomId is string
+        && request.resource.data.expiresAt is timestamp;
+      allow update, delete: if false;
+    }
+
+    match /privateRooms/{roomId} {
+      function roomMemberBefore() {
+        return signedIn() && request.auth.uid in resource.data.participantUids;
+      }
+
+      function roomMemberAfter() {
+        return signedIn() && request.auth.uid in request.resource.data.participantUids;
+      }
+
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.maxPlayers in [2, 4, 6]
+        && request.resource.data.participantUids == [request.auth.uid]
+        && request.resource.data.readyUids.size() == 0
+        && request.resource.data.status == 'lobby';
+
+      // A signed-in player may join only an open room and may add only themself.
+      allow update: if signedIn()
+        && resource.data.status == 'lobby'
+        && !(request.auth.uid in resource.data.participantUids)
+        && request.auth.uid in request.resource.data.participantUids
+        && request.resource.data.participantUids.size() == resource.data.participantUids.size() + 1
+        && request.resource.data.participantUids.size() <= resource.data.maxPlayers
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'participantUids'
+        ]);
+
+      // Room members can only change lobby state; ranked/economy fields do not
+      // exist in private rooms.
+      allow update: if roomMemberBefore()
+        && roomMemberAfter()
+        && request.resource.data.hostUid == resource.data.hostUid
+        && request.resource.data.maxPlayers == resource.data.maxPlayers
+        && request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.expiresAt == resource.data.expiresAt
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'readyUids'
+          ])
+          || (
+            request.auth.uid == resource.data.hostUid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status',
+              'countdownStartedAt'
+            ])
+          )
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'participantUids',
+            'readyUids'
+          ])
+        );
+
+      // Host may cancel by changing only status. Host departure uses this path.
+      allow update: if roomMemberBefore()
+        && request.auth.uid == resource.data.hostUid
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status'
+        ]);
+
+      allow delete: if false;
+    }
+
+    match /parties/{partyId} {
+      function partyMember() {
+        return signedIn() && request.auth.uid in resource.data.memberUids;
+      }
+
+      function partyInvited() {
+        return signedIn() && request.auth.uid in resource.data.pendingInviteUids;
+      }
+
+      allow read: if partyMember() || partyInvited();
+
+      allow create: if signedIn()
+        && request.resource.data.leaderUid == request.auth.uid
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.pendingInviteUids.size() == 0;
+
+      // Casual Party state has no RP, Coins, Stars or ranked authority. Leader
+      // manages invites/members/active room; invitees can accept or decline only
+      // while they are explicitly present in pendingInviteUids.
+      allow update: if partyMember()
+        && (
+          request.auth.uid == resource.data.leaderUid
+          || (
+            request.resource.data.leaderUid == resource.data.leaderUid
+            && request.resource.data.memberUids == resource.data.memberUids
+          )
+        )
+        && request.resource.data.memberUids.size() >= 1
+        && request.resource.data.memberUids.size() <= 6
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'leaderUid',
+          'memberUids',
+          'pendingInviteUids',
+          'activeRoomId',
+          'updatedAt'
+        ]);
+
+      allow update: if partyInvited()
+        && request.resource.data.leaderUid == resource.data.leaderUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'memberUids',
+          'pendingInviteUids',
+          'updatedAt'
+        ])
+        && request.resource.data.memberUids.size() <= 6;
+
+      allow delete: if partyMember() && resource.data.memberUids.size() == 1;
+    }
+
+    match /socialMatches/{matchId} {
+      function socialMemberBefore() {
+        return signedIn() && request.auth.uid in resource.data.participantOrder;
+      }
+
+      function socialBefore() {
+        return resource.data.participants[request.auth.uid];
+      }
+
+      function socialAfter() {
+        return request.resource.data.participants[request.auth.uid];
+      }
+
+      function validSocialProgress(progress) {
+        return progress is map
+          && progress.keys().hasOnly([
+            'completedGames',
+            'totalScore',
+            'accuracyTotal',
+            'mistakes',
+            'elapsedMs',
+            'completedAt'
+          ])
+          && progress.completedGames is int
+          && progress.completedGames >= 0
+          && progress.completedGames <= 8
+          && progress.totalScore is int
+          && progress.totalScore >= 0
+          && progress.accuracyTotal is number
+          && progress.accuracyTotal >= 0
+          && progress.accuracyTotal <= 8
+          && progress.mistakes is int
+          && progress.mistakes >= 0
+          && progress.elapsedMs is int
+          && progress.elapsedMs >= 0
+          && progress.elapsedMs <= 180000
+          && (progress.completedAt == null || progress.completedAt is timestamp);
+      }
+
+      function socialProgressMovesForward() {
+        return validSocialProgress(socialBefore().progress)
+          && validSocialProgress(socialAfter().progress)
+          && socialAfter().progress.completedGames == socialBefore().progress.completedGames + 1
+          && socialAfter().progress.totalScore >= socialBefore().progress.totalScore
+          && socialAfter().progress.accuracyTotal >= socialBefore().progress.accuracyTotal
+          && socialAfter().progress.mistakes >= socialBefore().progress.mistakes
+          && socialAfter().progress.elapsedMs >= socialBefore().progress.elapsedMs
+          && socialAfter().progress.elapsedMs <= 180000;
+      }
+
+      function cosmeticEmoteEntitled() {
+        return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid))
+            .data.cosmeticLoadout.equippedEmoteId == 'emote_gg';
+      }
+
+      allow read: if socialMemberBefore();
+
+      allow create: if signedIn()
+        && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.maxPlayers in [2, 4, 6]
+        && request.resource.data.gameCount == 8
+        && request.resource.data.participantOrder.size() == request.resource.data.maxPlayers
+        && request.auth.uid in request.resource.data.participantOrder
+        && request.resource.data.participants[request.auth.uid] is map;
+
+      // Spark fallback: a participant may change only their own connection state.
+      allow update: if socialMemberBefore()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
+        && request.resource.data.participants.diff(resource.data.participants)
+          .affectedKeys().hasOnly([request.auth.uid])
+        && socialAfter().diff(socialBefore()).affectedKeys().hasOnly(['connectionState'])
+        && socialAfter().connectionState in ['connected', 'reconnecting', 'disconnected'];
+
+      // Spark fallback: progress advances exactly one game and cannot alter
+      // identity, loadout/emote state, readiness, or another participant.
+      allow update: if socialMemberBefore()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
+        && request.resource.data.participants.diff(resource.data.participants)
+          .affectedKeys().hasOnly([request.auth.uid])
+        && socialAfter().diff(socialBefore()).affectedKeys().hasOnly([
+          'progress',
+          'finishedAt'
+        ])
+        && socialProgressMovesForward()
+        && (
+          (socialAfter().progress.completedGames < 8
+            && socialAfter().finishedAt == socialBefore().finishedAt)
+          || (socialAfter().progress.completedGames == 8
+            && socialAfter().finishedAt is timestamp)
+        );
+
+      // Spark fallback for the single shop emote. Ownership/equipment is read
+      // from the server-written public loadout; the client cannot forge it in
+      // /users because cosmeticLoadout is excluded from all client update paths.
+      allow update: if socialMemberBefore()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants'])
+        && request.resource.data.participants.diff(resource.data.participants)
+          .affectedKeys().hasOnly([request.auth.uid])
+        && socialAfter().diff(socialBefore()).affectedKeys().hasOnly([
+          'latestEmoteId',
+          'latestEmoteAt'
+        ])
+        && cosmeticEmoteEntitled()
+        && socialAfter().latestEmoteId == 'emote_gg'
+        && socialAfter().latestEmoteAt is timestamp
+        && socialAfter().latestEmoteAt <= request.time
+        && socialAfter().latestEmoteAt >= request.time - duration.value(10, 's')
+        && (
+          socialBefore().latestEmoteAt == null
+          || socialBefore().latestEmoteAt + duration.value(2, 's') <= request.time
+        );
+
+      allow delete: if false;
+    }
+
+    // Server-populated competition read models.
+    match /seasons/{seasonId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Season history is private account history. Only trusted server authority
+    // writes it; a player may read only their own completed-season records.
+    match /seasonHistory/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+
+      match /seasons/{seasonId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    match /leaderboards/{seasonId}/entries/{uid} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Economy is private and server-authoritative.
+    match /inventories/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+
+      match /items/{cosmeticId} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    // Progression state is owner-readable and server-writable only.
+    match /playerAchievements/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /playerMissions/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /seasonPass/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    match /achievements/{achievementId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /missions/{missionId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Authoritative settlements, ledgers and receipts are server-only.
+    match /rankedSettlements/{matchId} {
+      allow read, write: if false;
+    }
+
+    match /coinTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /prestigeStarTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /purchaseReceipts/{receiptId} {
+      allow read, write: if false;
+    }
+
+    match /rankedEvidence/{matchId}/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

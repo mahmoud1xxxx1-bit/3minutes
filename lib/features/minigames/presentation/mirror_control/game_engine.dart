@@ -227,6 +227,10 @@ class GameEngine {
 
     if (chaserStunTimer == 0 && (playerPos - chaserPos).distance < playerRadius + chaserRadius) {
       mistakes++;
+      if (mistakes >= 2) {
+        isCompleted = true;
+        return;
+      }
       chaserStunTimer = stunDuration + recoveryDuration;
     }
 

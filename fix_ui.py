@@ -1,68 +1,13 @@
-import os
-import re
+﻿import re
 
-path = "lib/features/minigames/presentation/mirror_control/mirror_control_minigame.dart"
-with open(path, 'r', encoding='utf-8') as f:
+with open("lib/features/minigames/presentation/path_rush/path_rush_game.dart", "r", encoding="utf-8") as f:
     content = f.read()
 
-# Add import
-if "import '../mini_game_copy.dart';" not in content:
-    content = content.replace("import 'game_engine.dart';", "import 'game_engine.dart';\nimport '../mini_game_copy.dart';")
+# Remove number 4 button and fix layout
+content = re.sub(r'_StartButton\(number: 4, selected: _selectedLane == 0, enabled: !_locked, onTap: \(\) => _choose\(4\)\),\s*', '', content)
 
-old_build = """    Widget build(BuildContext context) {
-      if (!_assetsLoaded) return const Center(child: CircularProgressIndicator());
-      return GestureDetector(
-        onPanStart: (d) => _dragVector = Offset.zero,
-        onPanUpdate: (d) {
-          // Safe scaling calculation
-          final scaleX = context.size!.width / GameEngine.fieldSize;
-          final scaleY = context.size!.height / GameEngine.fieldSize;
-          final scale = math.min(scaleX, scaleY);
-          _dragVector += Offset(-d.delta.dx, -d.delta.dy) / scale;
-        },
-        onPanEnd: (d) => _dragVector = Offset.zero,
-        child: CustomPaint(painter: getPainter(), size: Size.infinite),
-      );
-    }"""
+# Fix loop condition
+content = re.sub(r'for \(var i = 0; i < 4; i\+\+\)', 'for (var i = 0; i < 3; i++)', content)
 
-new_build = """    Widget build(BuildContext context) {
-      if (!_assetsLoaded) return const Center(child: CircularProgressIndicator());
-      final copy = MiniGameCopy.fromContext(context);
-      final colors = Theme.of(context).colorScheme;
-      
-      return Column(children: [
-        Text(copy.isArabic ? 'اهرب من الشبح للوصول للباب' : 'Escape the ghost to reach the door', 
-             textAlign: TextAlign.center, 
-             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 6),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(color: colors.primary.withValues(alpha: .10), borderRadius: BorderRadius.circular(999), border: Border.all(color: colors.primary.withValues(alpha: .25))),
-            child: Text('${copy.findDifferencesMistakes}: ${engine.mistakes}', style: TextStyle(color: colors.primary, fontSize: 11, fontWeight: FontWeight.w900)),
-          ),
-        ]),
-        const SizedBox(height: 12),
-        Expanded(
-          child: GestureDetector(
-            onPanStart: (d) => _dragVector = Offset.zero,
-            onPanUpdate: (d) {
-              final scaleX = context.size!.width / GameEngine.fieldSize;
-              final scaleY = context.size!.height / GameEngine.fieldSize;
-              final scale = math.min(scaleX, scaleY);
-              _dragVector += Offset(-d.delta.dx, -d.delta.dy) / scale;
-            },
-            onPanEnd: (d) => _dragVector = Offset.zero,
-            child: CustomPaint(painter: getPainter(), size: Size.infinite),
-          ),
-        ),
-      ]);
-    }"""
-
-if old_build in content:
-    content = content.replace(old_build, new_build)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print("Fixed UI wrapper successfully.")
-else:
-    print("WARNING: Could not find old build method in mirror_control_minigame.dart")
+with open("lib/features/minigames/presentation/path_rush/path_rush_game.dart", "w", encoding="utf-8") as f:
+    f.write(content)

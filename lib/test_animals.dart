@@ -1,0 +1,30 @@
+import 'package:flutter/material.dart';
+import 'features/minigames/presentation/onet_connect/onet_connect_game.dart';
+import 'features/minigames/domain/mini_game_contract.dart';
+
+void main() {
+  runApp(const MaterialApp(
+    debugShowCheckedModeBanner: false,
+    home: OnetGameWrapper(),
+  ));
+}
+
+class OnetGameWrapper extends StatelessWidget {
+  const OnetGameWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D5D30),
+      body: OnetConnectGame(
+        config: const MiniGameConfig(
+          seed: 42,
+          difficulty: 1,
+        ),
+        onComplete: (MiniGameResult result) {
+          debugPrint('Game completed');
+        },
+      ),
+    );
+  }
+}

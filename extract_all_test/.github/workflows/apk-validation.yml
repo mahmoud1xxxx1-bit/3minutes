@@ -1,0 +1,117 @@
+name: APK Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.ci-apk-trigger'
+
+jobs:
+  validate-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package.json
+
+      - name: Install Cloud Functions dependencies
+        run: npm install --prefix functions --no-audit --no-fund
+
+      - name: Build and test Cloud Functions
+        run: npm test --prefix functions
+
+      - name: Set up Java 21 for Firebase emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Validate Firestore rules and security
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --only firestore --project demo-3minutes "npm run --prefix functions test:rules"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Restore stable debug signing key
+        id: debug-key-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.android/debug.keystore
+          key: 3minutes-ci-debug-keystore-v1
+
+      - name: Create stable debug signing key
+        if: steps.debug-key-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey \
+            -keypass android \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=3 Minutes CI Debug,O=3 Minutes,C=SA"
+
+      - name: Verify debug signing fingerprints
+        run: |
+          keytool -list -v \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -alias androiddebugkey | tee /tmp/signing.txt
+          grep -F 'SHA1: 9D:0C:AE:8A:CE:E4:97:46:EE:C8:1F:16:E6:B1:F1:7A:33:65:B9:EA' /tmp/signing.txt
+          grep -F 'SHA256: 4B:A2:BA:D2:AD:8F:B2:70:C0:F7:BA:B6:11:07:BA:6F:EE:33:2A:09:20:C9:50:39:CB:0E:83:BA:5D:FF:85:30' /tmp/signing.txt
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build Android debug APK
+        env:
+          CI_DEBUG_KEYSTORE: /home/runner/.android/debug.keystore
+        run: flutter build apk --debug
+
+      - name: Verify generated Google OAuth resources
+        run: |
+          VALUES_FILE=$(find build android -type f -name values.xml -path '*google-services*' -o -type f -name values.xml -path '*GoogleServices*' | head -1)
+          if [ -z "$VALUES_FILE" ]; then
+            VALUES_FILE=$(grep -rl 'default_web_client_id' build android | head -1 || true)
+          fi
+          if [ -z "$VALUES_FILE" ]; then
+            echo 'Generated Google Services resource containing default_web_client_id not found'
+            exit 1
+          fi
+          echo "Using $VALUES_FILE"
+          grep -F '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com' "$VALUES_FILE"
+
+      - name: Verify APK certificate
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-debug.apk | tee /tmp/apkcert.txt
+          grep -Fi '4ba2bad2ad8fb270c0f7bab61107ba6fee332a0920c95039cb0e83ba5dff8530' /tmp/apkcert.txt
+          grep -Fi '9d0cae8acee49746eec81f16e6b1f17a3365b9ea' /tmp/apkcert.txt
+
+      - name: Upload validated debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3minutes-final-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

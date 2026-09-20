@@ -11,8 +11,11 @@ import 'ninja_slice/ninja_slice_game.dart';
 import 'onet_connect/onet_connect_game.dart';
 import 'path_rush/path_rush_game.dart';
 import 'traffic_loop/traffic_loop_game.dart';
+import 'hidden_pigeon/hidden_pigeon_game.dart';
+import 'shared/minigame_environment.dart';
+import 'shared/unified_game_scaffold.dart';
 
-class MiniGameHost extends StatelessWidget {
+class MiniGameHost extends StatefulWidget {
   const MiniGameHost({
     super.key,
     required this.game,
@@ -24,6 +27,25 @@ class MiniGameHost extends StatelessWidget {
   final MiniGameConfig config;
   final ValueChanged<MiniGameResult> onComplete;
 
+  @override
+  State<MiniGameHost> createState() => _MiniGameHostState();
+}
+
+class _MiniGameHostState extends State<MiniGameHost> {
+  late MinigameEnvironmentController _envController;
+
+  @override
+  void initState() {
+    super.initState();
+    _envController = MinigameEnvironmentController();
+  }
+
+  @override
+  void dispose() {
+    _envController.dispose();
+    super.dispose();
+  }
+
   void _handleComplete(MiniGameResult originalResult) {
     // CAP THE SCORE AT 1000 AS REQUESTED BY THE USER
     final int clampedScore = originalResult.score > 1000 ? 1000 : (originalResult.score < 0 ? 0 : originalResult.score);
@@ -34,74 +56,61 @@ class MiniGameHost extends StatelessWidget {
       mistakes: originalResult.mistakes,
       duration: originalResult.duration,
     );
-    onComplete(finalResult);
+    widget.onComplete(finalResult);
   }
 
   @override
   Widget build(BuildContext context) {
-    switch (game.id) {
+    Widget gameWidget;
+    switch (widget.game.id) {
       case 'find_differences':
-        return FindDifferencesGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = FindDifferencesGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'follow_the_cup':
-        return FollowTheCupGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = FollowTheCupGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'key_escape':
-        return KeyEscapeGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = KeyEscapeGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'level_devil':
-        return LevelDevilHost(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = LevelDevilHost(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'mirror_control':
-        return MirrorControlMiniGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = MirrorControlMiniGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'mole_strike':
-        return MoleStrikeGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = MoleStrikeGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'ninja_slice':
-        return NinjaSliceGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = NinjaSliceGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'onet_connect':
-        return OnetConnectGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = OnetConnectGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'path_rush':
-        return PathRushGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = PathRushGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
       case 'traffic_loop':
-        return TrafficLoopGame(
-          key: ValueKey('${game.id}-${config.seed}'),
-          config: config,
-          onComplete: _handleComplete,
-        );
+        gameWidget = TrafficLoopGame(key: ValueKey('-'), config: widget.config, onComplete: _handleComplete);
+        break;
+      case 'hidden_pigeon':
+        gameWidget = HiddenPigeonGame(config: widget.config, onComplete: _handleComplete);
+        break;
+      default:
+        gameWidget = const Center(child: Text('Game not found'));
     }
 
-    return const Center(child: Text('Game not found'));
+    return MinigameEnvironment(
+      controller: _envController,
+      child: UnifiedGameScaffold(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          switchInCurve: Curves.easeOutBack,
+          switchOutCurve: Curves.easeIn,
+          transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: FadeTransition(opacity: animation, child: child)),
+          child: gameWidget,
+        ),
+      ),
+    );
   }
 }

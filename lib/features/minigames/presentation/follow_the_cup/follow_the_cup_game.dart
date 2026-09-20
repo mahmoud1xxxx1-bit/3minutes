@@ -5,6 +5,8 @@ import 'package:flutter/scheduler.dart';
 
 import '../../domain/mini_game_contract.dart';
 import '../../../../core/random/deterministic_rng.dart';
+import 'package:game/features/minigames/presentation/shared/hearts_display.dart';
+import '../../domain/follow_the_cup_plan.dart';
 
 enum GamePhase { intro, reveal, hide, shuffle, guess, result }
 
@@ -63,25 +65,24 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
   GamePhase _phase = GamePhase.intro;
 
   int _round = 1;
-  int _cupCount = 3;
+  int _cupCount = 4; // Use 4 cups always as per the new plan
   late int _ballCupIndex; 
   
   late List<int> _currentPositions;
   late List<int> _targetPositions;
   
-  final List<List<int>> _swapQueue = [];
+  List<CupSwap> _swapQueue = [];
   final List<Particle> _particles = [];
   
   int? _guessedCup; 
   bool _won = false;
   
-  int _correctGuesses = 0;
-  int _mistakes = 0;
+  int _roundHearts = 1;
+  int _totalScore = 0;
 
   @override
   void initState() {
     super.initState();
-    // Initialize RNG with the deterministic seed to ensure perfectly fair multiplayer
     _rng = DeterministicRng(widget.config.seed);
     _watch = Stopwatch()..start();
     
@@ -111,28 +112,21 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
   }
 
   void _onTick(Duration elapsed) {
-    MinigameEnvironment.of(context).updateTimeProgress((_watch.elapsedMilliseconds / 30000).clamp(0.0, 1.0));
-    if (_lastTime == Duration.zero) _lastTime = elapsed;
-    double dt = (elapsed - _lastTime).inMicroseconds / 1000000.0;
-    _lastTime = elapsed;
-    
-    if (_particles.isNotEmpty) {
-      setState(() {
-        for (var p in _particles) {
-          p.update(dt);
-        }
-        _particles.removeWhere((p) => p.life <= 0);
-      });
+    if (_phase == GamePhase.result) {
+      double dt = 1/60; // Approximate
+      for (var p in _particles) p.update(dt);
+      _particles.removeWhere((p) => p.life <= 0);
+      setState(() {});
     }
   }
 
   void _startRound() {
+    _roundHearts = 1;
     _runSequence();
   }
 
   Future<void> _runSequence() async {
-    if (_round == 1) _cupCount = 3;
-    else _cupCount = 4;
+    _cupCount = 4;
     
     _ballCupIndex = _rng.nextInt(_cupCount);
     _currentPositions = List.generate(_cupCount, (i) => i);
@@ -152,66 +146,40 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
     await Future.delayed(const Duration(milliseconds: 1000));
     
     if (!mounted) return;
-    setState(() => _phase = GamePhase.hide);
     await _revealController.reverse();
+    setState(() => _phase = GamePhase.hide);
     await Future.delayed(const Duration(milliseconds: 300));
     
     if (!mounted) return;
-    _generateSwaps();
     setState(() => _phase = GamePhase.shuffle);
+    
+    final plan = FollowTheCupPlan.fromSeed(seed: widget.config.seed + _round, difficulty: widget.config.difficulty);
+    _swapQueue = List.from(plan.rounds[0].swaps); // We use the first round plan logic per sequence
+    
     _playNextSwap();
   }
 
-  void _generateSwaps() {
-    int swapCount = _round == 1 ? 12 : (_round == 2 ? 18 : 25);
-    int lastSlot1 = -1, lastSlot2 = -1;
+  void _playNextSwap() {
+    if (!mounted || _phase != GamePhase.shuffle) return;
     
-    for (int i = 0; i < swapCount; i++) {
-      int slot1 = _rng.nextInt(_cupCount);
-      int slot2 = _rng.nextInt(_cupCount);
-      while (slot1 == slot2 || (slot1 == lastSlot1 && slot2 == lastSlot2)) {
-        slot1 = _rng.nextInt(_cupCount);
-        slot2 = _rng.nextInt(_cupCount);
-      }
-      
-      _swapQueue.add([slot1, slot2]);
-      
-      lastSlot1 = slot1;
-      lastSlot2 = slot2;
-    }
-  }
-
-  Future<void> _playNextSwap() async {
-    if (!mounted) return;
     if (_swapQueue.isEmpty) {
       setState(() => _phase = GamePhase.guess);
       return;
     }
     
     final swap = _swapQueue.removeAt(0);
-    int slotA = swap[0];
-    int slotB = swap[1];
-    
-    int cupA = _currentPositions.indexWhere((s) => s == slotA);
-    int cupB = _currentPositions.indexWhere((s) => s == slotB);
-    
     _targetPositions = List.from(_currentPositions);
-    _targetPositions[cupA] = slotB;
-    _targetPositions[cupB] = slotA;
     
-    _swapController.reset();
+    int indexA = _targetPositions.indexWhere((val) => val == swap.a);
+    int indexB = _targetPositions.indexWhere((val) => val == swap.b);
     
-    // Extremely fast swaps on higher rounds
-    int baseDuration = _round == 1 ? 300 : (_round == 2 ? 180 : 120);
-    int durationMs = baseDuration + _rng.nextInt(50);
-    _swapController.duration = Duration(milliseconds: durationMs);
+    _targetPositions[indexA] = swap.b;
+    _targetPositions[indexB] = swap.a;
     
-    await _swapController.animateTo(1.0, curve: Curves.easeInOut);
-    
-    if (!mounted) return;
-    _currentPositions = List.from(_targetPositions);
-    
-    _playNextSwap();
+    _swapController.forward(from: 0.0).then((_) {
+      _currentPositions = List.from(_targetPositions);
+      _playNextSwap();
+    });
   }
 
   void _onTapUp(TapUpDetails details, Size size) {
@@ -236,10 +204,14 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
         _guessedCup = clickedCup;
         _won = (clickedCup == _ballCupIndex);
         _phase = GamePhase.result;
-        MinigameEnvironment.of(context).updateScore(_correctGuesses);
-        if (_won) { MinigameEnvironment.of(context).playSuccess(details.globalPosition); } else { MinigameEnvironment.of(context).playError(details.globalPosition); }
-        if (_won) _correctGuesses++;
-        else _mistakes++;
+        
+        if (_won) { 
+          _totalScore += 500;
+          MinigameEnvironment.of(context).playSuccess(details.globalPosition); 
+        } else { 
+          _roundHearts = 0;
+          MinigameEnvironment.of(context).playError(details.globalPosition); 
+        }
         
         _spawnParticles(size, clickedSlot!);
       });
@@ -249,11 +221,10 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
         Future.delayed(const Duration(milliseconds: 2000), () {
            if (!mounted) return;
            _revealController.reset();
-           if (_round < 3) {
+           if (_round < 2) { // 2 rounds total
              _round++;
              _startRound();
            } else {
-             // Game Over - Return result to host
              _finishGame();
            }
         });
@@ -263,11 +234,8 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
   
   void _finishGame() {
     _watch.stop();
-    // Pass logic: must guess at least 2 out of 3 correctly
-    bool passed = _correctGuesses >= 2; 
-    
     widget.onComplete(MiniGameResult(
-      completed: passed, score: _correctGuesses, accuracy: 1.0, mistakes: 0, duration: _watch.elapsed,
+      completed: true, score: _totalScore, accuracy: 1.0, mistakes: 0, duration: _watch.elapsed,
     ));
   }
   
@@ -337,15 +305,21 @@ class _FollowTheCupGameState extends State<FollowTheCupGame> with TickerProvider
                 top: 50,
                 left: 0,
                 right: 0,
-                child: Text(
-                  _getPhaseText(context),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 3))]
-                  ),
+                child: Column(
+                  children: [
+                    HeartsDisplay(maxHearts: 1, currentHearts: _roundHearts),
+                    const SizedBox(height: 10),
+                    Text(
+                      _getPhaseText(context),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        shadows: [Shadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 3))]
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

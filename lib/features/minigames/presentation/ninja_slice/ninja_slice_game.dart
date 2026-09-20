@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import '../../domain/mini_game_contract.dart';
@@ -288,9 +288,9 @@ class _NinjaSliceGameState extends State<NinjaSliceGame> with SingleTickerProvid
       ItemType type = ItemType.values[_rnd.nextInt(4)]; 
       
       // Bomb probability drastically scaled up to deceive the player
-      double bombChance = 0.10 + (difficultyMultiplier * 0.05); // Much higher plate ratio
+      double bombChance = 0.05 + (difficultyMultiplier * 0.05); // Much higher plate ratio
       
-      if (_rnd.nextDouble() < bombChance.clamp(0.0, 0.40)) {
+      if (_rnd.nextDouble() < bombChance.clamp(0.0, 0.85)) {
         type = ItemType.glassPlate;
       } else if (score > 50 && _rnd.nextDouble() < 0.05) {
         type = ItemType.freeze;
@@ -303,7 +303,7 @@ class _NinjaSliceGameState extends State<NinjaSliceGame> with SingleTickerProvid
       activeItems.add(GameObject(startX, startY, vx, vy, type, type == ItemType.glassPlate ? 90.0 : 80.0));
       
       // Deception trick: if we spawn a fruit, maybe spawn a plate extremely close to it immediately!
-      if (type != ItemType.glassPlate && _rnd.nextDouble() < 0.5) {
+      if (type != ItemType.glassPlate && _rnd.nextDouble() < 0.05) {
          activeItems.add(GameObject(startX + (_rnd.nextBool() ? 40 : -40), startY + 20, vx + (_rnd.nextBool() ? 20 : -20), vy, ItemType.glassPlate, 90.0));
       }
     }
@@ -435,12 +435,12 @@ class _NinjaSliceGameState extends State<NinjaSliceGame> with SingleTickerProvid
 
   String _getEmoji(ItemType type) {
     switch (type) {
-      case ItemType.apple: return 'ðŸŽ';
-      case ItemType.watermelon: return 'ðŸ‰';
-      case ItemType.banana: return 'ðŸŒ';
-      case ItemType.coconut: return 'ðŸ¥¥';
-      case ItemType.freeze: return 'ðŸ§Š';
-      case ItemType.frenzy: return 'ðŸŒŸ';
+      case ItemType.apple: return '??';
+      case ItemType.watermelon: return '??';
+      case ItemType.banana: return '??';
+      case ItemType.coconut: return '??';
+      case ItemType.freeze: return '??';
+      case ItemType.frenzy: return '??';
       default: return '';
     }
   }
@@ -677,5 +677,7 @@ class BackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+
 
 

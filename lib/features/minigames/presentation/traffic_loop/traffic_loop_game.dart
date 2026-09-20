@@ -6,17 +6,17 @@ import '../../domain/mini_game_contract.dart';
 import 'advanced_traffic_engine.dart';
 import 'dart:math';
 import '../shared/minigame_environment.dart';
+import 'package:game/features/minigames/presentation/shared/hearts_display.dart';
 
 class TrafficLoopGame extends StatefulWidget {
   const TrafficLoopGame({
     super.key,
     required this.config,
     required this.onComplete,
-    this.trackId = 1,
   });
+
   final MiniGameConfig config;
-  final void Function(MiniGameResult) onComplete;
-  final int trackId;
+  final ValueChanged<MiniGameResult> onComplete;
 
   @override
   State<TrafficLoopGame> createState() => _TrafficLoopGameState();
@@ -28,10 +28,9 @@ class _TrafficLoopGameState extends State<TrafficLoopGame>
   late FlawlessTrafficEngine _engine;
   Duration _lastTime = Duration.zero;
 
-  final int _maxRounds = 3;
+  final int _maxRounds = 2; // Reduced to 2 rounds
   int _currentRound = 1;
-  int _totalCorrect = 0;
-  int _totalMistakes = 0;
+  int _totalScore = 0;
 
   late DateTime _startTime;
   bool _finished = false;
@@ -45,17 +44,12 @@ class _TrafficLoopGameState extends State<TrafficLoopGame>
   }
 
   void _initEngine() {
-    _lastCorrect = 0;
     _lastMistakes = 0;
-    int goal = _currentRound == 1
-        ? 10
-        : _currentRound == 2
-        ? 15
-        : 20;
+    int goal = _currentRound == 1 ? 15 : 20; // Harder rounds
     _engine = FlawlessTrafficEngine(
       goal: goal,
       seed: widget.config.seed ^ _currentRound,
-      trackId: widget.trackId,
+      trackId: 1,
       round: _currentRound,
     );
   }
@@ -64,7 +58,6 @@ class _TrafficLoopGameState extends State<TrafficLoopGame>
   double _transitionTimer = 0.0;
   bool _didSwap = false;
 
-  int _lastCorrect = 0;
   int _lastMistakes = 0;
 
   void _onTick(Duration elapsed) {
@@ -87,23 +80,20 @@ class _TrafficLoopGameState extends State<TrafficLoopGame>
       if (!_isTransitioning) {
         _engine.update(dt);
 
-        if (_engine.correct > _lastCorrect) {
-          MinigameEnvironment.of(
-            context,
-          ).updateScore(_totalCorrect + _engine.correct);
-          MinigameEnvironment.of(context).playSuccess(Offset.zero);
-          _lastCorrect = _engine.correct;
-        }
         if (_engine.mistakes > _lastMistakes) {
           MinigameEnvironment.of(context).playError(Offset.zero);
           _lastMistakes = _engine.mistakes;
+          
+          if (_engine.mistakes >= 2) {
+            _isTransitioning = true;
+            _transitionTimer = 0.0;
+          }
         }
 
-        if (_engine.isRoundComplete) {
+        if (!_isTransitioning && _engine.isRoundComplete) {
           _isTransitioning = true;
           _transitionTimer = 0.0;
-          _totalCorrect += _engine.correct;
-          _totalMistakes += _engine.mistakes;
+          _totalScore += (2 - _engine.mistakes) * 250;
         }
       } else {
         if (_transitionTimer < 1.0) {
@@ -132,20 +122,13 @@ class _TrafficLoopGameState extends State<TrafficLoopGame>
   void _finishGame() {
     _finished = true;
     _ticker.stop();
-    final duration = DateTime.now().difference(_startTime);
-    final accuracy = _totalMistakes == 0
-        ? 1.0
-        : (_totalCorrect / (_totalCorrect + _totalMistakes));
-
-    int score = (accuracy * 1000).toInt();
-
     widget.onComplete(
       MiniGameResult(
         completed: true,
-        score: score,
-        accuracy: accuracy,
-        mistakes: _totalMistakes,
-        duration: duration,
+        score: _totalScore,
+        accuracy: 1.0,
+        mistakes: 0,
+        duration: DateTime.now().difference(_startTime),
       ),
     );
   }
@@ -208,6 +191,27 @@ class _TrafficLoopGameState extends State<TrafficLoopGame>
                   ),
                 ),
               ),
+            Positioned(
+              top: 20,
+              left: 20,
+              child: HeartsDisplay(maxHearts: 2, currentHearts: 2 - _engine.mistakes),
+            ),
+            Positioned(
+              top: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C202B),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF32384A)),
+                ),
+                child: Text(
+                  'Round $_currentRound / 2',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+              ),
+            ),
             if (_engine.comboTimer > 0)
               Positioned(
                 top: 100,

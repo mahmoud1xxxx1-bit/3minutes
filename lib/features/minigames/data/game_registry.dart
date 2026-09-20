@@ -1,10 +1,10 @@
-﻿import '../../../core/random/deterministic_rng.dart';
+import '../../../core/random/deterministic_rng.dart';
 import '../domain/mini_game_contract.dart';
 
 class GameRegistry {
   const GameRegistry._();
 
-  static const int version = 10;
+  static const int version = 11;
 
   static const List<MiniGameDescriptor> games = [
     MiniGameDescriptor(id: 'find_differences', title: 'Find Differences', category: MiniGameCategory.precision),
@@ -17,6 +17,7 @@ class GameRegistry {
     MiniGameDescriptor(id: 'onet_connect', title: 'Onet Connect', category: MiniGameCategory.logic),
     MiniGameDescriptor(id: 'path_rush', title: 'Path Rush', category: MiniGameCategory.logic),
     MiniGameDescriptor(id: 'traffic_loop', title: 'Traffic Loop', category: MiniGameCategory.logic),
+    MiniGameDescriptor(id: 'hidden_pigeon', title: 'Hidden Pigeon', category: MiniGameCategory.precision),
   ];
 
   static List<MiniGameDescriptor> sequence({required int seed, required int count}) {

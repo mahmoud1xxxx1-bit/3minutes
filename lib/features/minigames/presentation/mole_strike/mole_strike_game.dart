@@ -74,7 +74,7 @@ class MoleStrikeGame extends StatefulWidget {
 class _MoleStrikeGameState extends State<MoleStrikeGame>
     with TickerProviderStateMixin {
   final List<GlobalKey<_MoleSlotState>> _slotKeys = List.generate(
-    16,
+    12,
     (i) => GlobalKey<_MoleSlotState>(),
   );
   Timer? _gameLoop;
@@ -106,7 +106,7 @@ class _MoleStrikeGameState extends State<MoleStrikeGame>
   void _startGame() {
     _gameLoop = Timer.periodic(const Duration(milliseconds: 650), (timer) {
       if (!mounted || _isDone) return;
-      int r = _rng.nextInt(16);
+      int r = _rng.nextInt(12);
       bool isGolden = _rng.nextDouble() < 0.1;
       bool isDecoy = _rng.nextDouble() < 0.15;
       bool isArmored = (!isDecoy && !isGolden) && _rng.nextDouble() < 0.3;
@@ -265,12 +265,12 @@ class _MoleStrikeGameState extends State<MoleStrikeGame>
                       physics: const NeverScrollableScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
+                            crossAxisCount: 3,
                             crossAxisSpacing: 10,
-                            mainAxisSpacing: 30,
+                            mainAxisSpacing: 10,
                             childAspectRatio: 1.0,
                           ),
-                      itemCount: 16,
+                      itemCount: 12,
                       itemBuilder: (context, index) {
                         return MoleSlot(
                           key: _slotKeys[index],
@@ -624,7 +624,7 @@ class _HoleBackPainter extends CustomPainter {
       abyssPaint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
     }
     canvas.drawOval(
-      Rect.fromLTWH(8, 12, size.width - 16, size.height - 24),
+      Rect.fromLTWH(8, 12, size.width - 12, size.height - 24),
       abyssPaint,
     );
 
@@ -633,7 +633,7 @@ class _HoleBackPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
     canvas.drawOval(
-      Rect.fromLTWH(8, 12, size.width - 16, size.height - 24),
+      Rect.fromLTWH(8, 12, size.width - 12, size.height - 24),
       innerDepth,
     );
   }
@@ -744,13 +744,13 @@ class _SquirrelPainter extends CustomPainter {
     canvas.translate(25, 25);
     canvas.rotate(-0.5);
     canvas.drawOval(const Rect.fromLTWH(-15, -15, 30, 40), furPaint);
-    canvas.drawOval(const Rect.fromLTWH(-8, -8, 16, 25), pinkPaint);
+    canvas.drawOval(const Rect.fromLTWH(-8, -8, 12, 25), pinkPaint);
     canvas.restore();
     canvas.save();
     canvas.translate(75, 25);
     canvas.rotate(0.5);
     canvas.drawOval(const Rect.fromLTWH(-15, -15, 30, 40), furPaint);
-    canvas.drawOval(const Rect.fromLTWH(-8, -8, 16, 25), pinkPaint);
+    canvas.drawOval(const Rect.fromLTWH(-8, -8, 12, 25), pinkPaint);
     canvas.restore();
 
     canvas.drawOval(const Rect.fromLTWH(20, 30, 60, 65), furPaint);
@@ -898,3 +898,5 @@ class _ParticlePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ParticlePainter oldDelegate) => true;
 }
+
+

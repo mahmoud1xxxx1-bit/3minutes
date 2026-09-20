@@ -27,7 +27,7 @@ class FollowTheCupPlan {
   });
 
   static const int familyCount = 48;
-  static const int roundCount = 5;
+  static const int roundCount = 2;
 
   final int familyIndex;
   final int cupCount;
@@ -40,17 +40,19 @@ class FollowTheCupPlan {
     final family = random.nextInt(familyCount);
     final routeType = family % 8;
     final tempoType = family ~/ 8;
-    final hard = difficulty == 1;
-    final expert = difficulty >= 2;
-    final cups = hard || expert ? 4 : 3;
-    final baseMove = expert ? 325 : hard ? 405 : 500;
-    final basePause = expert ? 50 : hard ? 70 : 90;
+    
+    // Always use 4 cups to keep it challenging as requested
+    final cups = 4;
+    
+    // Use expert/hard settings for challenging rounds
+    final baseMove = 405;
+    final basePause = 70;
     const tempoMove = <double>[1.00, .94, 1.05, .90, .98, .86];
     const tempoPause = <double>[1.00, .82, 1.08, .72, .92, .66];
     final moveMs = (baseMove * tempoMove[tempoType]).round();
     final pauseMs = (basePause * tempoPause[tempoType]).round();
-    final minMoves = expert ? 7 : hard ? 5 : 3;
-    final maxMoves = expert ? 8 : hard ? 6 : 4;
+    final minMoves = 6;
+    final maxMoves = 8;
     final rounds = <CupRoundPlan>[];
 
     for (var round = 0; round < roundCount; round++) {
@@ -138,7 +140,7 @@ class FollowTheCupPlan {
 
   void validate() {
     if (familyIndex < 0 || familyIndex >= familyCount) throw StateError('invalid family');
-    if (rounds.length != roundCount) throw StateError('Follow the Cup must have 5 rounds');
+    if (rounds.length != roundCount) throw StateError('Follow the Cup must have 2 rounds');
     if (cupCount != 3 && cupCount != 4) throw StateError('invalid cup count');
     for (final round in rounds) {
       if (round.startCup < 0 || round.startCup >= cupCount) throw StateError('invalid target cup');

@@ -1,10 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/scheduler.dart';
-import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'dart:math' as math;
+
+import '../../domain/mini_game_contract.dart';
+import '../shared/minigame_environment.dart';
+import 'package:game/features/minigames/presentation/shared/hearts_display.dart';
 import 'game_engine.dart';
-import '../mini_game_copy.dart';
 import 'painter_a1_forest.dart';
 import 'painter_a2_ocean.dart';
 import 'painter_a3_heist.dart';
@@ -111,21 +114,9 @@ import 'painter_a103.dart';
 import 'painter_a104.dart';
 import 'painter_a105.dart';
 
-
-import '../../domain/mini_game_contract.dart';
-import '../shared/minigame_environment.dart';
-
-
-
-
-
 class MirrorControlMiniGame extends StatefulWidget {
-  const MirrorControlMiniGame({
-    Key? key,
-    required this.config,
-    required this.onComplete,
-  }) : super(key: key);
-
+  const MirrorControlMiniGame({super.key, required this.config, required this.onComplete});
+  
   final MiniGameConfig config;
   final ValueChanged<MiniGameResult> onComplete;
 
@@ -148,11 +139,9 @@ class _MirrorControlMiniGameState extends State<MirrorControlMiniGame> with Sing
   @override
   void initState() {
     super.initState();
-    // Deterministic Stage Selection
     stageIndex = (widget.config.seed % 105) + 1;
     themeId = 'a$stageIndex';
     
-    // Deterministic Engine Initialization
     engine = GameEngine(seed: widget.config.seed);
     _loadAssets();
 
@@ -165,62 +154,75 @@ class _MirrorControlMiniGameState extends State<MirrorControlMiniGame> with Sing
       }
       final dt = (elapsed - _lastTime).inMicroseconds / 1000000.0;
       _lastTime = elapsed;
-      Offset inputVector = _dragVector;
-      if (inputVector.distance > 0.1) inputVector = inputVector / inputVector.distance;
-      
-      int oldTargets = engine.currentTargetIndex;
-      int oldMistakes = engine.mistakes;
 
-      engine.update(dt, inputVector);
+      setState(() {
+        int oldTargets = engine.currentTargetIndex;
+        int oldMistakes = engine.mistakes;
 
-      if (mounted) {
-        if (engine.currentTargetIndex > oldTargets) {
-          MinigameEnvironment.of(context).updateScore(engine.currentTargetIndex * 100);
-          MinigameEnvironment.of(context).playSuccess(Offset.zero);
+        Offset inputVector = Offset.zero;
+        if (_dragVector.distance > 0.1) {
+          inputVector = _dragVector;
+          double maxSpeed = 300.0;
+          if (inputVector.distance > maxSpeed) {
+             inputVector = (inputVector / inputVector.distance) * maxSpeed;
+          }
         }
-        if (engine.mistakes > oldMistakes) {
-          MinigameEnvironment.of(context).playError(Offset.zero);
+
+        engine.update(dt, inputVector);
+
+        if (mounted) {
+          if (engine.currentTargetIndex > oldTargets) {
+            MinigameEnvironment.of(context).playSuccess(Offset.zero);
+          }
+          if (engine.mistakes > oldMistakes) {
+            MinigameEnvironment.of(context).playError(Offset.zero);
+            if (engine.mistakes >= 2) {
+              engine.isCompleted = true;
+            }
+          }
+          MinigameEnvironment.of(context).updateTimeProgress((engine.time / 30.0).clamp(0.0, 1.0));
         }
-        // Mirror Control usually has a 30s par time for visual
-        MinigameEnvironment.of(context).updateTimeProgress((engine.time / 30.0).clamp(0.0, 1.0));
-      }
-      
-      if (engine.isCompleted && !_hasCompleted) {
-        _hasCompleted = true;
-        _hasCompleted = true;
         
-        // Calculate Contract Result
-        int mistakes = engine.mistakes;
-        int durationMs = engine.time.toInt() * 1000;
-        
-        int score = math.max(0, 100 - (mistakes * 5) - ((durationMs ~/ 1000) ~/ 2));
-        double accuracy = math.max(0.0, 1.0 - (mistakes / 10.0));
-        
-        widget.onComplete(MiniGameResult(
-          completed: true,
-          score: score,
-          accuracy: accuracy,
-          mistakes: mistakes,
-          duration: Duration(milliseconds: durationMs),
-        ));
-      }
-      setState(() {});
-    });
-    _ticker.start();
+        if (engine.isCompleted && !_hasCompleted) {
+          _hasCompleted = true;
+          
+          int score = engine.mistakes >= 2 ? 0 : (2 - engine.mistakes) * 500;
+          int durationMs = engine.time.toInt() * 1000;
+          
+          widget.onComplete(MiniGameResult(
+            completed: true,
+            score: score,
+            accuracy: 1.0,
+            mistakes: 0,
+            duration: Duration(milliseconds: durationMs),
+          ));
+        }
+      });
+    })..start();
   }
 
   Future<void> _loadAssets() async {
     _images['player'] = await _loadImage('assets/mirror_control/player.png');
     _images['enemy'] = await _loadImage('assets/mirror_control/enemy.png');
     _images['target'] = await _loadImage('assets/mirror_control/target.png');
-    if (mounted) setState(() { _assetsLoaded = true; });
+
+    if (themeId == 'a1') {
+      _images['trees'] = await _loadImage('assets/textures/forest_tree.png');
+    }
+    
+    if (mounted) {
+      setState(() {
+        _assetsLoaded = true;
+      });
+    }
   }
 
   Future<ui.Image> _loadImage(String assetPath) async {
     final data = await rootBundle.load(assetPath);
-    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-    final frame = await codec.getNextFrame();
-    return frame.image;
+    final list = Uint8List.view(data.buffer);
+    final codec = await ui.instantiateImageCodec(list);
+    final frameInfo = await codec.getNextFrame();
+    return frameInfo.image;
   }
 
   @override
@@ -233,7 +235,7 @@ class _MirrorControlMiniGameState extends State<MirrorControlMiniGame> with Sing
     return _getPainterForTheme(themeId);
   }
   
-    CustomPainter _getPainterForTheme(String theme) {
+  CustomPainter _getPainterForTheme(String theme) {
     if (theme == 'a1') return GamePainterA1Forest(engine: engine, images: _images);
     if (theme == 'a2') return GamePainterA2Ocean(engine: engine, images: _images);
     if (theme == 'a3') return GamePainterA3Heist(engine: engine, images: _images);
@@ -348,16 +350,25 @@ class _MirrorControlMiniGameState extends State<MirrorControlMiniGame> with Sing
     
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
-      child: GestureDetector(
-        onPanStart: (d) => _dragVector = Offset.zero,
-        onPanUpdate: (d) {
-          final scaleX = context.size!.width / GameEngine.fieldSize;
-          final scaleY = context.size!.height / GameEngine.fieldSize;
-          final scale = math.min(scaleX, scaleY);
-          _dragVector += Offset(-d.delta.dx, -d.delta.dy) / scale;
-        },
-        onPanEnd: (d) => _dragVector = Offset.zero,
-        child: CustomPaint(painter: getPainter(), size: Size.infinite),
+      child: Stack(
+        children: [
+          GestureDetector(
+            onPanStart: (d) => _dragVector = Offset.zero,
+            onPanUpdate: (d) {
+              final scaleX = context.size!.width / GameEngine.fieldSize;
+              final scaleY = context.size!.height / GameEngine.fieldSize;
+              final scale = math.min(scaleX, scaleY);
+              _dragVector += Offset(-d.delta.dx, -d.delta.dy) / scale;
+            },
+            onPanEnd: (d) => _dragVector = Offset.zero,
+            child: CustomPaint(painter: getPainter(), size: Size.infinite),
+          ),
+          Positioned(
+            top: 20,
+            left: 20,
+            child: HeartsDisplay(maxHearts: 2, currentHearts: math.max(0, 2 - engine.mistakes)),
+          ),
+        ],
       ),
     );
   }

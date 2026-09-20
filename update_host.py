@@ -1,24 +1,19 @@
-import os
-import re
+﻿import re
 
-path = "lib/features/minigames/presentation/mini_game_host.dart"
-with open(path, 'r', encoding='utf-8') as f:
+with open("lib/features/minigames/presentation/mini_game_host.dart", "r", encoding="utf-8") as f:
     content = f.read()
 
-# Update imports
-content = content.replace("import 'follow_the_cup_game.dart';", "import 'follow_the_cup/follow_the_cup_game.dart';")
-content = content.replace("import 'mole_strike_game.dart';", "import 'mole_strike/mole_strike_game.dart';")
-content = content.replace("import 'path_rush_game.dart';", "import 'path_rush/path_rush_game.dart';")
-content = content.replace("import 'legacy_mini_game_host.dart' as legacy;\n", "")
+if "import 'hidden_pigeon/hidden_pigeon_game.dart';" not in content:
+    content = content.replace(
+        "import 'traffic_loop/traffic_loop_game.dart';",
+        "import 'traffic_loop/traffic_loop_game.dart';\nimport 'hidden_pigeon/hidden_pigeon_game.dart';"
+    )
 
-# Remove legacy fallback
-old_fallback = """    return legacy.MiniGameHost(
-      game: game,
-      config: config,
-      onComplete: onComplete,
-    );"""
-new_fallback = """    return const Center(child: Text('Game not found'));"""
-content = content.replace(old_fallback, new_fallback)
+content = re.sub(
+    r"case 'traffic_loop':\n\s*child = FlawlessTrafficEngine\(config: config, onComplete: _handleComplete\);\n\s*break;",
+    "case 'traffic_loop':\n        child = FlawlessTrafficEngine(config: config, onComplete: _handleComplete);\n        break;\n      case 'hidden_pigeon':\n        child = HiddenPigeonGame(config: config, onComplete: _handleComplete);\n        break;",
+    content
+)
 
-with open(path, 'w', encoding='utf-8') as f:
+with open("lib/features/minigames/presentation/mini_game_host.dart", "w", encoding="utf-8") as f:
     f.write(content)
