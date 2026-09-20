@@ -29,11 +29,14 @@ class TrollGame extends StatefulWidget {
 class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMixin {
   late TrollEngine _engine;
   late Ticker _ticker;
+  late FocusNode _focusNode;
   Duration _lastTime = Duration.zero;
+  bool _paused = false;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     _engine = TrollEngine(
       round: widget.startRound,
       maxRounds: widget.maxRounds,
@@ -69,7 +72,24 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   @override
   void dispose() {
     _ticker.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  void _togglePause() {
+    if (_engine.allComplete) return;
+    setState(() {
+      _paused = !_paused;
+      _lastTime = Duration.zero;
+    });
+    if (_paused) {
+      _ticker.stop();
+      HapticFeedback.mediumImpact();
+    } else {
+      _ticker.start();
+      HapticFeedback.lightImpact();
+      _focusNode.requestFocus();
+    }
   }
 
   void _onKeyEvent(KeyEvent event) {
@@ -86,7 +106,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return KeyboardListener(
-      focusNode: FocusNode()..requestFocus(),
+      focusNode: _focusNode..requestFocus(),
       onKeyEvent: _onKeyEvent,
       child: Scaffold(
         backgroundColor: const Color(0xFF07080A),
@@ -116,69 +136,205 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
               ],
             ),
             
-            // Arcade-Style Mobile Virtual Joypad
+            // Mobile-first HUD
             Positioned(
-              left: 0, right: 0, bottom: 24,
+              top: 0,
+              left: 0,
+              right: 0,
               child: SafeArea(
+                bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // D-Pad (Left/Right)
-                      Row(
-                        children: [
-                          _buildJoypadButton(
-                            icon: Icons.arrow_back_ios_new_rounded,
-                            onDown: () => _engine.movingLeft = true,
-                            onUp: () => _engine.movingLeft = false,
-                          ),
-                          const SizedBox(width: 16),
-                          _buildJoypadButton(
-                            icon: Icons.arrow_forward_ios_rounded,
-                            onDown: () => _engine.movingRight = true,
-                            onUp: () => _engine.movingRight = false,
-                          ),
-                        ],
+                      _hudPill(
+                        icon: Icons.favorite_rounded,
+                        color: const Color(0xFFFF5478),
+                        text: '${_engine.roundHearts}',
                       ),
-                      // Action Button (Jump)
-                      Row(
-                        children: [
-                          _buildJoypadButton(
-                            icon: Icons.arrow_upward_rounded,
-                            onDown: () {
-                              HapticFeedback.lightImpact();
-                              _engine.jumping = true;
-                            },
-                            onUp: () {},
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Center(
+                          child: _hudPill(
+                            icon: Icons.bolt_rounded,
+                            color: const Color(0xFF5CF5FF),
+                            text: 'STAGE ${_engine.round}',
                           ),
-                        ],
+                        ),
+                      ),
+                      _hudButton(
+                        icon: _paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                        onTap: _togglePause,
                       ),
                     ],
                   ),
                 ),
               ),
             ),
+
+            // Mobile virtual controls
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 18,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Row(
+                        children: [
+                          _buildJoypadButton(
+                            icon: Icons.chevron_left_rounded,
+                            onDown: () {
+                              HapticFeedback.selectionClick();
+                              _engine.movingLeft = true;
+                            },
+                            onUp: () => _engine.movingLeft = false,
+                          ),
+                          const SizedBox(width: 10),
+                          _buildJoypadButton(
+                            icon: Icons.chevron_right_rounded,
+                            onDown: () {
+                              HapticFeedback.selectionClick();
+                              _engine.movingRight = true;
+                            },
+                            onUp: () => _engine.movingRight = false,
+                          ),
+                        ],
+                      ),
+                      _buildJoypadButton(
+                        icon: Icons.keyboard_arrow_up_rounded,
+                        onDown: () {
+                          HapticFeedback.lightImpact();
+                          _engine.jumping = true;
+                        },
+                        onUp: () {},
+                        primary: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            if (_paused)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: const Color(0xCC02040A),
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.all(28),
+                      padding: const EdgeInsets.all(26),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0B1530),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: const Color(0x335CF5FF)),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x6619DCE8), blurRadius: 32),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.pause_circle_filled_rounded, color: Color(0xFF5CF5FF), size: 58),
+                          const SizedBox(height: 14),
+                          const Text('PAUSED', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                          const SizedBox(height: 8),
+                          const Text('Take a breath. Your stage is waiting.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60)),
+                          const SizedBox(height: 22),
+                          FilledButton.icon(
+                            onPressed: _togglePause,
+                            icon: const Icon(Icons.play_arrow_rounded),
+                            label: const Text('RESUME'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildJoypadButton({required IconData icon, required VoidCallback onDown, required VoidCallback onUp}) {
+  Widget _hudPill({required IconData icon, required Color color, required String text}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xD90A1124),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 17),
+          const SizedBox(width: 6),
+          Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _hudButton({required IconData icon, required VoidCallback onTap}) {
+    return Material(
+      color: const Color(0xD90A1124),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: Colors.white, size: 22),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJoypadButton({
+    required IconData icon,
+    required VoidCallback onDown,
+    required VoidCallback onUp,
+    bool primary = false,
+  }) {
     return Listener(
       onPointerDown: (_) => onDown(),
       onPointerUp: (_) => onUp(),
       onPointerCancel: (_) => onUp(),
-      child: Container(
-        width: 72,
-        height: 72,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 90),
+        width: primary ? 82 : 72,
+        height: primary ? 82 : 72,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          gradient: primary
+              ? const LinearGradient(
+                  colors: [Color(0xFF5CF5FF), Color(0xFF7A5CFF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: primary ? null : const Color(0xCC0A1124),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.15), width: 1.5),
+          border: Border.all(
+            color: primary ? const Color(0x885CF5FF) : const Color(0x33FFFFFF),
+            width: 1.5,
+          ),
+          boxShadow: primary
+              ? const [BoxShadow(color: Color(0x445CF5FF), blurRadius: 22)]
+              : null,
         ),
-        child: Icon(icon, color: Colors.white.withOpacity(0.5), size: 36),
+        child: Icon(
+          icon,
+          color: primary ? const Color(0xFF04101D) : Colors.white70,
+          size: primary ? 40 : 36,
+        ),
       ),
     );
   }
