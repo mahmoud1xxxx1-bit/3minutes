@@ -85,7 +85,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
         if (!won) {
           // A life is consumed for every actual death. Navigation is never
           // performed here; the player must choose from the result overlay.
-          await widget.onFail?.call();
+          widget.onFail?.call();
         }
       }
       return;
