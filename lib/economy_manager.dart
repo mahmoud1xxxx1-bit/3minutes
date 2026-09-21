@@ -78,7 +78,12 @@ class EconomyManager {
       (prefs.getInt('ld_gems') ?? 0) + 500,
     );
 
-    await _ensureVipDailyMail(prefs);
+    // Daily VIP mailbox rewards begin with the next daily cycle; activation
+    // itself is already compensated by the immediate 500-Gem bonus.
+    await prefs.setString(
+      'ld_vip_last_daily_date',
+      DateTime.now().toIso8601String().substring(0, 10),
+    );
   }
 
   static Future<void> deductLife() async {
