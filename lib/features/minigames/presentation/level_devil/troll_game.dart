@@ -328,7 +328,6 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
       ),
     );
   }
-}
 
   Widget _buildGearControl() {
     return Listener(
@@ -379,6 +378,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
       ),
     );
   }
+}
 
 class _SeasonOneGearPainter extends CustomPainter {
   @override
@@ -395,11 +395,11 @@ class _SeasonOneGearPainter extends CustomPainter {
     final rOuter = 39.0;
     final rInner = 31.0;
     for (int i = 0; i < teeth * 2; i++) {
-      final a = -math.pi / 2 + i * math.pi / teeth;
+      final a = -pi / 2 + i * pi / teeth;
       final r = i.isEven ? rOuter : rInner;
       final p = Offset(
-        center.dx + math.cos(a) * r,
-        center.dy + math.sin(a) * r,
+        center.dx + cos(a) * r,
+        center.dy + sin(a) * r,
       );
       if (i == 0) {
         gear.moveTo(p.dx, p.dy);
