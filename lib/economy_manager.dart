@@ -14,14 +14,18 @@ class EconomyManager {
     return true;
   }
 
+  // Normal refill cadence: the first life takes 3 minutes, then each
+  // following life takes one minute longer, until the normal 10-life cap.
   static int _refillMinutesForNextLife(int lives) =>
-      (normalMaxLives - lives).clamp(1, normalMaxLives) + 2;
+      (lives + 3).clamp(3, 12);
 
   static Future<void> _ensureVipDailyMail(SharedPreferences prefs) async {
     if (!_isVipActive(prefs)) return;
+
     final today = DateTime.now().toIso8601String().substring(0, 10);
     final lastDailyDate = prefs.getString('ld_vip_last_daily_date') ?? '';
     if (lastDailyDate == today) return;
+
     final mails = prefs.getStringList('ld_mailbox') ?? [];
     mails.insert(0, jsonEncode({
       'id': 'vip_daily_$today',
@@ -40,37 +44,67 @@ class EconomyManager {
       'lives': vipMaxLives,
       'claimed': false,
     }));
-    if (mails.length > 100) mails.removeRange(100, mails.length);
+
+    if (mails.length > 100) {
+      mails.removeRange(100, mails.length);
+    }
+
     await prefs.setStringList('ld_mailbox', mails);
     await prefs.setString('ld_vip_last_daily_date', today);
   }
 
   static Future<void> activateWeeklyVip() async {
     final prefs = await SharedPreferences.getInstance();
-    final expiry = DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch;
+
+    final alreadyActive = _isVipActive(prefs);
+    if (alreadyActive) return;
+
+    final expiry = DateTime.now()
+        .add(const Duration(days: 7))
+        .millisecondsSinceEpoch;
+
     await prefs.setBool('ld_vip', true);
     await prefs.setInt('ld_vip_expiry', expiry);
     await prefs.setInt('ld_lives', vipMaxLives);
     await prefs.remove('ld_zero_timestamp');
     await prefs.remove('ld_refill_started_at');
     await prefs.remove('ld_refill_minutes');
-    await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + 500);
+
+    // The 500-Gem activation bonus is granted once when VIP is activated.
+    await prefs.setInt(
+      'ld_gems',
+      (prefs.getInt('ld_gems') ?? 0) + 500,
+    );
+
     await _ensureVipDailyMail(prefs);
   }
 
   static Future<void> deductLife() async {
     final prefs = await SharedPreferences.getInstance();
-    final maxLives = _isVipActive(prefs) ? vipMaxLives : normalMaxLives;
+    final isVip = _isVipActive(prefs);
+    final maxLives = isVip ? vipMaxLives : normalMaxLives;
     var lives = prefs.getInt('ld_lives') ?? maxLives;
+
+    // Keep the stored value consistent with the currently active cap.
+    if (lives > maxLives) {
+      lives = maxLives;
+      await prefs.setInt('ld_lives', lives);
+    }
+
     if (lives <= 0) return;
+
     lives--;
     await prefs.setInt('ld_lives', lives);
+
     if (lives == 0) {
-      if (_isVipActive(prefs)) {
+      if (isVip) {
         await prefs.remove('ld_refill_started_at');
         await prefs.remove('ld_refill_minutes');
       } else {
-        await prefs.setInt('ld_refill_started_at', DateTime.now().millisecondsSinceEpoch);
+        await prefs.setInt(
+          'ld_refill_started_at',
+          DateTime.now().millisecondsSinceEpoch,
+        );
         await prefs.setInt('ld_refill_minutes', 3);
       }
     }
@@ -79,44 +113,61 @@ class EconomyManager {
   static Future<Map<String, dynamic>> checkEconomy() async {
     final prefs = await SharedPreferences.getInstance();
     await _ensureVipDailyMail(prefs);
+
     final isVip = _isVipActive(prefs);
     final maxLives = isVip ? vipMaxLives : normalMaxLives;
     var lives = prefs.getInt('ld_lives') ?? maxLives;
+
+    // A normal account cannot keep the VIP-only 30-life capacity after VIP
+    // has expired. Preserve the normal cap for the active economy state.
+    if (!isVip && lives > normalMaxLives) {
+      lives = normalMaxLives;
+      await prefs.setInt('ld_lives', lives);
+    }
+
     int? targetTime;
 
     if (!isVip && lives < normalMaxLives) {
       var startedAt = prefs.getInt('ld_refill_started_at');
       var refillMinutes = prefs.getInt('ld_refill_minutes');
+
       if (startedAt == null || refillMinutes == null) {
         startedAt = DateTime.now().millisecondsSinceEpoch;
         refillMinutes = _refillMinutesForNextLife(lives);
         await prefs.setInt('ld_refill_started_at', startedAt);
         await prefs.setInt('ld_refill_minutes', refillMinutes);
       }
-      final elapsed = DateTime.now().millisecondsSinceEpoch - startedAt;
-      if ((elapsed ~/ 60000) >= refillMinutes) {
-        lives = (lives + 1).clamp(0, normalMaxLives);
-        await prefs.setInt('ld_lives', lives);
-        if (lives < normalMaxLives) {
-          final nextMinutes = _refillMinutesForNextLife(lives);
-          final cycleStart = startedAt + (refillMinutes * 60000);
-          await prefs.setInt('ld_refill_started_at', cycleStart);
-          await prefs.setInt('ld_refill_minutes', nextMinutes);
-        } else {
-          await prefs.remove('ld_refill_started_at');
-          await prefs.remove('ld_refill_minutes');
-        }
+
+      // Catch up every elapsed refill while the app was closed, rather than
+      // granting only one life per check.
+      var now = DateTime.now().millisecondsSinceEpoch;
+      while (lives < normalMaxLives &&
+          now - startedAt >= refillMinutes * 60000) {
+        startedAt += refillMinutes * 60000;
+        lives++;
+        if (lives >= normalMaxLives) break;
+        refillMinutes = _refillMinutesForNextLife(lives);
       }
-      if (lives < normalMaxLives) {
-        final currentStart = prefs.getInt('ld_refill_started_at')!;
-        final currentMinutes = prefs.getInt('ld_refill_minutes')!;
-        targetTime = currentStart + (currentMinutes * 60000);
+
+      await prefs.setInt('ld_lives', lives);
+
+      if (lives >= normalMaxLives) {
+        await prefs.remove('ld_refill_started_at');
+        await prefs.remove('ld_refill_minutes');
+      } else {
+        await prefs.setInt('ld_refill_started_at', startedAt);
+        await prefs.setInt('ld_refill_minutes', refillMinutes);
+        targetTime = startedAt + refillMinutes * 60000;
       }
     }
 
     final mails = prefs.getStringList('ld_mailbox') ?? [];
-    final unreadCount = mails.where((m) {
-      try { return jsonDecode(m)['claimed'] != true; } catch (_) { return true; }
+    final unreadCount = mails.where((raw) {
+      try {
+        return jsonDecode(raw)['claimed'] != true;
+      } catch (_) {
+        return true;
+      }
     }).length;
 
     return {
@@ -130,42 +181,96 @@ class EconomyManager {
     };
   }
 
-  static Future<bool> claimVipLifeMail(int index) async {
+  static Future<bool> claimVipLifeMailById(String mailId) async {
     final prefs = await SharedPreferences.getInstance();
     if (!_isVipActive(prefs)) return false;
+
     final mails = prefs.getStringList('ld_mailbox') ?? [];
-    if (index < 0 || index >= mails.length) return false;
+    final index = mails.indexWhere((raw) {
+      try {
+        return jsonDecode(raw)['id'] == mailId;
+      } catch (_) {
+        return false;
+      }
+    });
+    if (index < 0) return false;
+
     final mail = jsonDecode(mails[index]) as Map<String, dynamic>;
     if (mail['type'] != 'vip_lives' || mail['claimed'] == true) return false;
+
     final lives = prefs.getInt('ld_lives') ?? vipMaxLives;
     if (lives > 0) return false;
+
     await prefs.setInt('ld_lives', vipMaxLives);
     await prefs.remove('ld_refill_started_at');
     await prefs.remove('ld_refill_minutes');
+
     mail['claimed'] = true;
     mails[index] = jsonEncode(mail);
     await prefs.setStringList('ld_mailbox', mails);
     return true;
   }
 
+  // Kept for compatibility with existing callers while the mailbox UI is
+  // migrated to ID-based claims.
+  static Future<bool> claimVipLifeMail(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    final mails = prefs.getStringList('ld_mailbox') ?? [];
+    if (index < 0 || index >= mails.length) return false;
+
+    try {
+      final id = (jsonDecode(mails[index]) as Map<String, dynamic>)['id'];
+      if (id is! String || id.isEmpty) return false;
+      return claimVipLifeMailById(id);
+    } catch (_) {
+      return false;
+    }
+  }
+
   static Future<Map<String, dynamic>> processWin(int round) async {
     final prefs = await SharedPreferences.getInstance();
-    List<String> completed = prefs.getStringList('ld_completed_rounds') ?? [];
+    final completed =
+        prefs.getStringList('ld_completed_rounds') ?? <String>[];
     final roundStr = round.toString();
     final isFirst = !completed.contains(roundStr);
     final diff = (round - 1) % 3;
+
     int gems = 0;
     int gold = 0;
+
     if (isFirst) {
-      gems = diff == 0 ? 1 : diff == 1 ? 3 : 5;
+      gems = diff == 0
+          ? 1
+          : diff == 1
+              ? 3
+              : 5;
       completed.add(roundStr);
       await prefs.setStringList('ld_completed_rounds', completed);
     } else {
-      gold = diff == 0 ? 100 : diff == 1 ? 250 : 500;
+      gold = diff == 0
+          ? 100
+          : diff == 1
+              ? 250
+              : 500;
     }
-    if (gems > 0) await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + gems);
-    if (gold > 0) await prefs.setInt('ld_gold', (prefs.getInt('ld_gold') ?? 0) + gold);
-    return {'gems': gems, 'gold': gold, 'isFirst': isFirst};
+
+    if (gems > 0) {
+      await prefs.setInt(
+        'ld_gems',
+        (prefs.getInt('ld_gems') ?? 0) + gems,
+      );
+    }
+    if (gold > 0) {
+      await prefs.setInt(
+        'ld_gold',
+        (prefs.getInt('ld_gold') ?? 0) + gold,
+      );
+    }
+
+    return {
+      'gems': gems,
+      'gold': gold,
+      'isFirst': isFirst,
+    };
   }
 }
-
