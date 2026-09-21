@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'design_tokens.dart';
+import 'lvllo_art_backdrop.dart';
 
 class CosmicBackground extends StatelessWidget {
   const CosmicBackground({
@@ -15,42 +16,10 @@ class CosmicBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: GameColors.cosmicBackgroundGradient,
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (showOrbs) ...[
-            const PositionedDirectional(
-              top: -90,
-              start: -70,
-              child: _CosmicOrb(
-                size: 220,
-                colors: [Color(0x337957F5), Color(0x0019DCE8)],
-              ),
-            ),
-            const PositionedDirectional(
-              top: 170,
-              end: -110,
-              child: _CosmicOrb(
-                size: 260,
-                colors: [Color(0x2519DCE8), Color(0x00D454E8)],
-              ),
-            ),
-            const PositionedDirectional(
-              bottom: -130,
-              start: 90,
-              child: _CosmicOrb(
-                size: 280,
-                colors: [Color(0x1CD454E8), Color(0x00050A18)],
-              ),
-            ),
-          ],
-          child,
-        ],
-      ),
+    return LvlloArtBackdrop(
+      showDevil: false,
+      showGrid: true,
+      child: child,
     );
   }
 }
