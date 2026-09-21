@@ -22,13 +22,8 @@ Future<void> main() async {
   runApp(const LvlloApp());
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    // The native activity deliberately registers plugins after the first
-    // Flutter frame. Give that registration one event-loop turn to complete
-    // before invoking any plugin-backed Dart APIs.
-    Future<void>.delayed(const Duration(milliseconds: 300), () {
-      unawaited(_initializeNonCriticalServices());
-      unawaited(GameOrientation.enterPortrait());
-    });
+    unawaited(_initializeNonCriticalServices());
+    unawaited(GameOrientation.enterPortrait());
   });
 }
 
@@ -58,13 +53,7 @@ class _LvlloAppState extends State<LvlloApp> {
     // Do not start Firebase/plugin work from initState. The first frame must
     // be independent of Firebase, Google Play Services, or network state.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Firebase is intentionally started after the first frame and after the
-      // native side has had a chance to register generated plugins.
-      Future<void>.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          unawaited(_initServices());
-        }
-      });
+      unawaited(_initServices());
     });
   }
 
