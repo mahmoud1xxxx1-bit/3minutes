@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/navigation/game_orientation.dart';
 import 'core/theme/cosmic_background.dart';
 import 'core/theme/design_tokens.dart';
 import 'features/minigames/presentation/level_devil/firebase/level_devil_auth.dart';
@@ -17,10 +18,7 @@ Future<void> main() async {
   // The game must always render a real screen first.
   runApp(const LvlloApp());
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+  await GameOrientation.enterPortrait();
 }
 
 class LvlloApp extends StatefulWidget {
