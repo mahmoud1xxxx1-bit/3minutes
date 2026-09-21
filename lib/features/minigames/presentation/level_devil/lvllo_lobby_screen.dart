@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/theme/cosmic_background.dart';
 import '../../../../core/theme/design_tokens.dart';
 import '../../../../global_game_ui.dart';
+import '../../../../core/theme/game_bottom_nav.dart';
 import '../../../../store_screen.dart';
 import 'level_devil_hub_screen.dart';
 
@@ -18,11 +19,14 @@ class _LvlloLobbyScreenState extends State<LvlloLobbyScreen> {
   @override void initState() { super.initState(); _refresh(); }
 
   Future<void> _refresh() async {
-    final d = await EconomyManager.checkEconomy();
+    final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
     setState(() {
-      lives = d['lives'] as int; maxLives = d['maxLives'] as int;
-      gems = d['gems'] as int; gold = d['gold'] as int; mail = d['unreadMail'] as int;
+      lives = prefs.getInt('ld_lives') ?? 10;
+      maxLives = prefs.getBool('ld_vip') == true ? 30 : 10;
+      gems = prefs.getInt('ld_gems') ?? 0;
+      gold = prefs.getInt('ld_gold') ?? 0;
+      mail = prefs.getInt('ld_unread_mail') ?? 0;
     });
   }
 
