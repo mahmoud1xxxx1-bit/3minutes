@@ -378,7 +378,7 @@ class _MailboxPanelState extends State<_MailboxPanel> {
           if (claimed) const Icon(Icons.check_circle_rounded, color: GameColors.success, size: 20),
         ]),
         const SizedBox(height: 8),
-        Text('${mail['message'] ?? 'A reward is waiting for you.'}', style: const TextStyle(color: GameColors.textSoft, fontSize: 11, height: 1.35)),
+        Text('${mail['body'] ?? mail['message'] ?? 'A reward is waiting for you.'}', style: const TextStyle(color: GameColors.textSoft, fontSize: 11, height: 1.35)),
         const SizedBox(height: 12),
         Wrap(spacing: 7, children: [
           if (mail['type'] == 'vip_lives') _rewardChip(Icons.favorite_rounded, '+${mail['lives'] ?? 30} LIVES', GameColors.danger),
