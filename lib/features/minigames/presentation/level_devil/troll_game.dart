@@ -120,11 +120,10 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
               children: [
                 Expanded(
                   child: SizedBox.expand(
-                      child: ClipRect(
-                        child: CustomPaint(
-                          painter: _TrollPainter(_engine),
-                          size: Size.infinite,
-                        ),
+                    child: ClipRect(
+                      child: CustomPaint(
+                        painter: _TrollPainter(_engine),
+                        size: Size.infinite,
                       ),
                     ),
                   ),
