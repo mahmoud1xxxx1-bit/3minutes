@@ -63,6 +63,7 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
           // gameplay route while the result overlay is visible.
           onWin: (_) {},
           onFailAsync: () => EconomyManager.deductLife(),
+          onMainMenu: widget.onMainMenu,
         ),
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
