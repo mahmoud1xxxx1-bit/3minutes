@@ -66,12 +66,11 @@ jobs:
         continue-on-error: true
         run: flutter test
 
-      - name: Build Android debug APK
-        if: always()
+      - name: Build Android release APK
         run: flutter build apk --release -t lib/main_lvllo_app.dart
 
       - name: Verify generated Google OAuth resources
-        if: always()
+        if: success()
         run: |
           VALUES_FILE=$(find build android -type f -name values.xml -path '*google-services*' -o -type f -name values.xml -path '*GoogleServices*' | head -1)
           if [ -z "$VALUES_FILE" ]; then
@@ -86,7 +85,7 @@ jobs:
           grep -F '492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com' "$VALUES_FILE"
 
       - name: Verify APK certificate
-        if: always()
+        if: success()
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee /tmp/apkcert.txt
@@ -102,7 +101,7 @@ jobs:
           retention-days: 7
 
       - name: Commit and push APK
-        if: always()
+        if: success()
         run: |
           mkdir -p releases
           cp build/app/outputs/flutter-apk/app-release.apk releases/LVL_LOOL_1.0.0.apk
