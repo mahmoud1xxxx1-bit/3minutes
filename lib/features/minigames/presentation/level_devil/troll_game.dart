@@ -41,6 +41,80 @@ class TrollGame extends StatefulWidget {
   State<TrollGame> createState() => _TrollGameState();
 }
 
+enum _SeasonVisual { cosmic, inferno, wilds, circuit, frozen, rift }
+
+_SeasonVisual _seasonForStage(int stageId) {
+  if (stageId <= 20) return _SeasonVisual.cosmic;
+  if (stageId <= 40) return _SeasonVisual.inferno;
+  if (stageId <= 60) return _SeasonVisual.wilds;
+  if (stageId <= 80) return _SeasonVisual.circuit;
+  if (stageId <= 100) return _SeasonVisual.frozen;
+  return _SeasonVisual.rift;
+}
+
+class _SeasonPalette {
+  const _SeasonPalette({
+    required this.top,
+    required this.bottom,
+    required this.mid,
+    required this.rim,
+    required this.platform,
+    required this.platformDark,
+    required this.accent,
+    required this.motif,
+  });
+
+  final Color top;
+  final Color bottom;
+  final Color mid;
+  final Color rim;
+  final Color platform;
+  final Color platformDark;
+  final Color accent;
+  final Color motif;
+}
+
+_SeasonPalette _paletteForSeason(_SeasonVisual season) {
+  switch (season) {
+    case _SeasonVisual.cosmic:
+      return const _SeasonPalette(
+        top: Color(0xFF111B57), bottom: Color(0xFF0B112A), mid: Color(0xFF18235D),
+        rim: Color(0xFF39D9F6), platform: Color(0xFF20283A), platformDark: Color(0xFF151B2A),
+        accent: Color(0xFF5CF5FF), motif: Color(0xFF438FD0),
+      );
+    case _SeasonVisual.inferno:
+      return const _SeasonPalette(
+        top: Color(0xFF301414), bottom: Color(0xFF100B0B), mid: Color(0xFF542019),
+        rim: Color(0xFFFF7043), platform: Color(0xFF2A2220), platformDark: Color(0xFF191514),
+        accent: Color(0xFFFF8A4C), motif: Color(0xFFC94B32),
+      );
+    case _SeasonVisual.wilds:
+      return const _SeasonPalette(
+        top: Color(0xFF122D25), bottom: Color(0xFF081412), mid: Color(0xFF1D4938),
+        rim: Color(0xFF72C47A), platform: Color(0xFF28302A), platformDark: Color(0xFF181F1B),
+        accent: Color(0xFF9BE28E), motif: Color(0xFF4B8060),
+      );
+    case _SeasonVisual.circuit:
+      return const _SeasonPalette(
+        top: Color(0xFF19152F), bottom: Color(0xFF0A0913), mid: Color(0xFF29234A),
+        rim: Color(0xFFC66BFF), platform: Color(0xFF252331), platformDark: Color(0xFF15141E),
+        accent: Color(0xFFD77BFF), motif: Color(0xFF7351A8),
+      );
+    case _SeasonVisual.frozen:
+      return const _SeasonPalette(
+        top: Color(0xFF132D46), bottom: Color(0xFF09131F), mid: Color(0xFF1C4661),
+        rim: Color(0xFF7DDAFF), platform: Color(0xFF29343C), platformDark: Color(0xFF182127),
+        accent: Color(0xFF9BE7FF), motif: Color(0xFF6FAFC8),
+      );
+    case _SeasonVisual.rift:
+      return const _SeasonPalette(
+        top: Color(0xFF15151C), bottom: Color(0xFF07070B), mid: Color(0xFF23232E),
+        rim: Color(0xFFC7A6FF), platform: Color(0xFF28272F), platformDark: Color(0xFF17161C),
+        accent: Color(0xFFE2C8FF), motif: Color(0xFF6E637C),
+      );
+  }
+}
+
 class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMixin {
   late TrollEngine _engine;
   late Ticker _ticker;
@@ -619,7 +693,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
         width: 154,
         height: 86,
         child: CustomPaint(
-          painter: _SeasonOneGearPainter(),
+          painter: _SeasonGearPainter(_paletteForSeason(_seasonForStage(widget.stageId)).rim),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -663,13 +737,15 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   }
 }
 
-class _SeasonOneGearPainter extends CustomPainter {
+class _SeasonGearPainter extends CustomPainter {
+  const _SeasonGearPainter(this.accent);
+  final Color accent;
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final outer = Paint()..color = const Color(0xE50A1124);
     final border = Paint()
-      ..color = const Color(0x6648DFF5)
+      ..color = accent.withValues(alpha: 0.40)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -707,7 +783,7 @@ class _SeasonOneGearPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SeasonOneGearPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SeasonGearPainter oldDelegate) => oldDelegate.accent != accent;
 }
 
 class _LifeHud extends StatefulWidget {
@@ -797,7 +873,8 @@ class _TrollPainter extends CustomPainter {
           paint.color = e.color;
         }
 
-        if (engine.round <= 20) {
+        final season = _seasonForStage(widget.stageId);
+        if (season == _SeasonVisual.cosmic) {
           // Season 1 approved visual: dark stone platform with a thin cyan rim.
           paint.color = const Color(0xFF20283A);
           canvas.drawRRect(
@@ -814,12 +891,22 @@ class _TrollPainter extends CustomPainter {
           paint.color = const Color(0xFF39D9F6).withValues(alpha: 0.72);
           canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 2), paint);
         } else {
+          final palette = _paletteForSeason(_seasonForStage(widget.stageId));
+          paint.color = palette.platform;
           canvas.drawRRect(
             RRect.fromRectAndRadius(e.rect.toRect(), const Radius.circular(4)),
-            paint
+            paint,
           );
-          paint.color = Colors.white.withValues(alpha: 0.05);
-          canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 4), paint);
+          paint.color = palette.platformDark;
+          canvas.drawRect(
+            Rect.fromLTWH(e.rect.x, e.rect.y + 3, e.rect.w, e.rect.h - 3),
+            paint,
+          );
+          paint.color = palette.rim.withValues(alpha: 0.82);
+          canvas.drawRect(
+            Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 2),
+            paint,
+          );
         }
 
       } else if (e.type == TrollEntityType.spike) {
@@ -982,172 +1069,136 @@ class _TrollPainter extends CustomPainter {
   }
 
   void _drawBackground(Canvas canvas) {
-    if (engine.round <= 20) {
+    final season = _seasonForStage(widget.stageId);
+    if (season == _SeasonVisual.cosmic) {
       _drawSeasonOneBackground(canvas);
       return;
     }
-    final Rect bgRect = Rect.fromLTWH(0, 0, engine.logicalWidth, engine.logicalHeight);
-    
-    Color gradStart, gradEnd, moonColor, backMount, frontMount;
 
-    if (engine.round >= 58) {
-      // C20: Absolute Chaos
-      gradStart = const Color(0xFF220000); gradEnd = const Color(0xFF000000); moonColor = const Color(0xFFFF0000); backMount = const Color(0xFF110000); frontMount = const Color(0xFF050000);
-    } else if (engine.round >= 55) {
-      // C19: Mirror Mode
-      gradStart = const Color(0xFF333333); gradEnd = const Color(0xFF111111); moonColor = const Color(0xFFFFFFFF); backMount = const Color(0xFF222222); frontMount = const Color(0xFF0A0A0A);
-    } else if (engine.round >= 52) {
-      // C18: Blinking
-      gradStart = const Color(0xFF000022); gradEnd = const Color(0xFF000000); moonColor = const Color(0xFF0000FF); backMount = const Color(0xFF000011); frontMount = const Color(0xFF000005);
-    } else if (engine.round >= 49) {
-      // C17: Slippery Ice
-      gradStart = const Color(0xFFCCFFFF); gradEnd = const Color(0xFF88CCFF); moonColor = const Color(0xFFFFFFFF); backMount = const Color(0xFF66AADD); frontMount = const Color(0xFF4488BB);
-    } else if (engine.round >= 46) {
-      // C16: Wind
-      gradStart = const Color(0xFF88AA88); gradEnd = const Color(0xFF446644); moonColor = const Color(0xFFAAFFCC); backMount = const Color(0xFF335533); frontMount = const Color(0xFF112211);
-    } else if (engine.round >= 43) {
-      // C15: Dash
-      gradStart = const Color(0xFF550055); gradEnd = const Color(0xFF220022); moonColor = const Color(0xFFFF00FF); backMount = const Color(0xFF330033); frontMount = const Color(0xFF110011);
-    } else if (engine.round >= 40) {
-      // C14: Tiny
-      gradStart = const Color(0xFF005500); gradEnd = const Color(0xFF002200); moonColor = const Color(0xFF00FF00); backMount = const Color(0xFF003300); frontMount = const Color(0xFF001100);
-    } else if (engine.round >= 37) {
-      // C13: Flappy
-      gradStart = const Color(0xFF005555); gradEnd = const Color(0xFF002222); moonColor = const Color(0xFF00FFFF); backMount = const Color(0xFF003333); frontMount = const Color(0xFF001111);
-    } else if (engine.round >= 34) {
-      // C12: Low Gravity
-      gradStart = const Color(0xFF555555); gradEnd = const Color(0xFF222222); moonColor = const Color(0xFFCCCCCC); backMount = const Color(0xFF333333); frontMount = const Color(0xFF111111);
-    } else if (engine.round >= 31) {
-      // C11: Lava
-      gradStart = const Color(0xFF440000); gradEnd = const Color(0xFF220000); moonColor = const Color(0xFFFF5500); backMount = const Color(0xFF330000); frontMount = const Color(0xFF110000);
-    } else if (engine.round >= 28) {
+    final palette = _paletteForSeason(season);
+    final w = engine.logicalWidth;
+    final h = engine.logicalHeight;
+    final rect = Rect.fromLTWH(0, 0, w, h);
 
-      // C10: Void Purple
-      gradStart = const Color(0xFF330033);
-      gradEnd = const Color(0xFF000000);
-      moonColor = const Color(0xFFFF00FF);
-      backMount = const Color(0xFF1A001A);
-      frontMount = const Color(0xFF0D000D);
-    } else if (engine.round >= 25) {
-      // C9: Industrial Orange
-      gradStart = const Color(0xFF442200);
-      gradEnd = const Color(0xFF110500);
-      moonColor = const Color(0xFFFF6600);
-      backMount = const Color(0xFF331100);
-      frontMount = const Color(0xFF1A0800);
-    } else if (engine.round >= 22) {
-      // C8: Pitch Black / Blood Red
-      gradStart = const Color(0xFF110000);
-      gradEnd = const Color(0xFF000000);
-      moonColor = const Color(0xFFFF0000);
-      backMount = const Color(0xFF0A0000);
-      frontMount = const Color(0xFF050000);
-    } else if (engine.round >= 19) {
-      // C7: Teal / Ocean
-      gradStart = const Color(0xFF003344);
-      gradEnd = const Color(0xFF001122);
-      moonColor = const Color(0xFF00FFCC);
-      backMount = const Color(0xFF002233);
-      frontMount = const Color(0xFF000A11);
-    } else if (engine.round >= 16) {
-      // C6: Golden / Amber
-      gradStart = const Color(0xFF553311);
-      gradEnd = const Color(0xFF221100);
-      moonColor = const Color(0xFFFFCC00);
-      backMount = const Color(0xFF331A00);
-      frontMount = const Color(0xFF1A0D00);
-    } else if (engine.round >= 13) {
-      // C5: Ice Blue
-      gradStart = const Color(0xFF004466);
-      gradEnd = const Color(0xFF001133);
-      moonColor = const Color(0xFFBBE4FF);
-      backMount = const Color(0xFF003355);
-      frontMount = const Color(0xFF001122);
-    } else if (engine.round >= 10) {
-      // C4: Glitch Purple
-      gradStart = const Color(0xFF4A148C);
-      gradEnd = const Color(0xFF1A0033);
-      moonColor = const Color(0xFFFF00FF);
-      backMount = const Color(0xFF2A0D45);
-      frontMount = const Color(0xFF110422);
-    } else if (engine.round >= 7) {
-      // C3: Hacker Green
-      gradStart = const Color(0xFF004411);
-      gradEnd = const Color(0xFF001A00);
-      moonColor = const Color(0xFF00FF44);
-      backMount = const Color(0xFF003311);
-      frontMount = const Color(0xFF001A05);
-    } else if (engine.round >= 4) {
-      // C2: Crimson Red
-      gradStart = const Color(0xFF7A1C2C);
-      gradEnd = const Color(0xFF3A0D16);
-      moonColor = const Color(0xFFFF1133);
-      backMount = const Color(0xFF4A0F1B);
-      frontMount = const Color(0xFF1F060A);
-    } else {
-      // C1: Twilight Blue
-      gradStart = const Color(0xFF3B3B6D);
-      gradEnd = const Color(0xFF1A1A3A);
-      moonColor = const Color(0xFF00E5FF);
-      backMount = const Color(0xFF1D2645);
-      frontMount = const Color(0xFF0E1428);
-    }
-
-    Paint bgPaint = Paint()
+    final bg = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [gradStart, gradEnd],
-      ).createShader(bgRect);
-    canvas.drawRect(bgRect, bgPaint);
+        colors: [palette.top, palette.mid, palette.bottom],
+      ).createShader(rect);
+    canvas.drawRect(rect, bg);
 
-    // Parallax values
-    double moonX = 400 - (engine.cameraX * 0.05);
-    double backMountainOffset = -(engine.cameraX * 0.2) % 800;
-    double frontMountainOffset = -(engine.cameraX * 0.5) % 800;
-    
-    Paint paint = Paint();
-
-    // Glowing Moon
-    paint.color = moonColor.withOpacity(0.3);
-    paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
-    canvas.drawCircle(Offset(moonX, 300), 100, paint);
-    paint.color = moonColor.withOpacity(0.6);
-    paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
-    canvas.drawCircle(Offset(moonX, 300), 60, paint);
-    paint.maskFilter = null;
-
-    // Back Mountains (drawn twice for seamless tiling)
-    paint.color = backMount;
-    for (int i = 0; i < 2; i++) {
-      double startX = backMountainOffset + (i * 800);
-      var path = Path()
-        ..moveTo(startX, 600)
-        ..lineTo(startX, 300)
-        ..lineTo(startX + 200, 150)
-        ..lineTo(startX + 450, 400)
-        ..lineTo(startX + 600, 200)
-        ..lineTo(startX + 800, 350)
-        ..lineTo(startX + 800, 600)
-        ..close();
-      canvas.drawPath(path, paint);
+    // Same restrained visual language as Season 1: one simple motif,
+    // shallow parallax layers, sparse detail, no visual clutter.
+    final grid = Paint()
+      ..color = palette.rim.withValues(alpha: 0.055)
+      ..strokeWidth = 1;
+    for (double x = 0; x <= w; x += 48) {
+      canvas.drawLine(Offset(x, 0), Offset(x, h), grid);
+    }
+    for (double y = 0; y <= h; y += 48) {
+      canvas.drawLine(Offset(0, y), Offset(w, y), grid);
     }
 
-    // Front Mountains (drawn twice for seamless tiling)
-    paint.color = frontMount;
-    for (int i = 0; i < 2; i++) {
-      double startX = frontMountainOffset + (i * 800);
-      var path = Path()
-        ..moveTo(startX, 600)
-        ..lineTo(startX, 450)
-        ..lineTo(startX + 300, 250)
-        ..lineTo(startX + 550, 450)
-        ..lineTo(startX + 800, 300)
-        ..lineTo(startX + 800, 600)
-        ..close();
-      canvas.drawPath(path, paint);
+    final motifX = 420 - engine.cameraX * 0.05;
+    final motifY = 245.0;
+    final glow = Paint()
+      ..shader = RadialGradient(
+        colors: [palette.motif.withValues(alpha: 0.30), palette.motif.withValues(alpha: 0.0)],
+      ).createShader(Rect.fromCircle(center: Offset(motifX, motifY), radius: 125));
+    canvas.drawCircle(Offset(motifX, motifY), 125, glow);
+
+    final motif = Paint()..color = palette.motif.withValues(alpha: 0.58);
+    final shade = Paint()..color = palette.bottom.withValues(alpha: 0.42);
+
+    switch (season) {
+      case _SeasonVisual.inferno:
+        canvas.drawCircle(Offset(motifX, motifY), 58, motif);
+        canvas.drawCircle(Offset(motifX + 20, motifY - 12), 49, shade);
+        break;
+      case _SeasonVisual.wilds:
+        final tree = Path()
+          ..moveTo(motifX, 155)..lineTo(motifX - 75, 305)..lineTo(motifX + 75, 305)..close();
+        canvas.drawPath(tree, motif);
+        break;
+      case _SeasonVisual.circuit:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromCenter(center: Offset(motifX, motifY), width: 125, height: 82),
+            const Radius.circular(10),
+          ),
+          motif,
+        );
+        break;
+      case _SeasonVisual.frozen:
+        final ice = Path()
+          ..moveTo(motifX, 145)..lineTo(motifX + 62, 300)..lineTo(motifX, 270)
+          ..lineTo(motifX - 62, 300)..close();
+        canvas.drawPath(ice, motif);
+        break;
+      case _SeasonVisual.rift:
+        final rift = Path()
+          ..moveTo(motifX - 12, 125)..lineTo(motifX + 8, 205)
+          ..lineTo(motifX - 14, 255)..lineTo(motifX + 18, 335);
+        final rp = Paint()
+          ..color = palette.motif.withValues(alpha: 0.72)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 7;
+        canvas.drawPath(rift, rp);
+        break;
+      case _SeasonVisual.cosmic:
+        break;
     }
+
+    final backOffset = -(engine.cameraX * 0.16) % 800;
+    final frontOffset = -(engine.cameraX * 0.34) % 800;
+
+    final back = Paint()..color = palette.mid.withValues(alpha: 0.82);
+    final front = Paint()..color = palette.bottom.withValues(alpha: 0.94);
+
+    for (int i = 0; i < 2; i++) {
+      final sx = backOffset + i * 800;
+      final p = Path()
+        ..moveTo(sx, 510)
+        ..lineTo(sx + 150, 405)
+        ..lineTo(sx + 285, 325)
+        ..lineTo(sx + 430, 410)
+        ..lineTo(sx + 570, 350)
+        ..lineTo(sx + 800, 455)
+        ..lineTo(sx + 800, 540)
+        ..close();
+      canvas.drawPath(p, back);
+    }
+
+    for (int i = 0; i < 2; i++) {
+      final sx = frontOffset + i * 800;
+      final p = Path()
+        ..moveTo(sx, 560)
+        ..lineTo(sx + 180, 455)
+        ..lineTo(sx + 340, 385)
+        ..lineTo(sx + 500, 485)
+        ..lineTo(sx + 640, 410)
+        ..lineTo(sx + 800, 510)
+        ..lineTo(sx + 800, 580)
+        ..close();
+      canvas.drawPath(p, front);
+    }
+
+    final edge = Paint()
+      ..color = palette.rim.withValues(alpha: 0.42)
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(80 - engine.cameraX * 0.16, 470),
+      Offset(190 - engine.cameraX * 0.16, 380),
+      edge,
+    );
+    canvas.drawLine(
+      Offset(560 - engine.cameraX * 0.16, 350),
+      Offset(650 - engine.cameraX * 0.16, 420),
+      edge,
+    );
   }
+
 
   void _drawSeasonOneBackground(Canvas canvas) {
     final w = engine.logicalWidth;
