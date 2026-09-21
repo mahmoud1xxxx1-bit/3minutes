@@ -48,7 +48,6 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   Duration _lastTime = Duration.zero;
   bool _paused = false;
   _TrollResult? _result;
-  int _deathCount = 0;
   int _rewardGold = 0;
   int _rewardGems = 0;
   bool _rewardFirstClear = false;
@@ -83,37 +82,35 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
       _ticker.stop();
       if (_result == null && mounted) {
         final won = _engine.completedAsWin;
-        if (!won) {
-          _deathCount++;
-        }
-
         Map<String, dynamic>? reward;
+        var noLivesRemaining = false;
         if (won) {
           // Settle the economy from the immutable global stage id, not the
           // local mechanic round. This keeps Season 6 rewards correct.
           reward = await EconomyManager.processWin(widget.stageId);
+        } else {
+          // Every actual death consumes one life. Attempts are NOT capped at
+          // two: the player may retry while lives remain.
+          if (widget.onFailAsync != null) {
+            await widget.onFailAsync!();
+          } else {
+            widget.onFail?.call();
+          }
+          final economy = await EconomyManager.checkEconomy();
+          noLivesRemaining = (economy['lives'] as int? ?? 0) <= 0;
         }
 
         if (!mounted) return;
         setState(() {
           _result = won
               ? _TrollResult.victory
-              : (_deathCount >= 2 ? _TrollResult.failed : _TrollResult.dead);
+              : (noLivesRemaining ? _TrollResult.failed : _TrollResult.dead);
           if (reward != null) {
             _rewardGold = reward['gold'] as int? ?? 0;
             _rewardGems = reward['gems'] as int? ?? 0;
             _rewardFirstClear = reward['isFirst'] == true;
           }
         });
-        if (!won) {
-          // A life is consumed for every actual death. Navigation is never
-          // performed here; the player must choose from the result overlay.
-          if (widget.onFailAsync != null) {
-            await widget.onFailAsync!();
-          } else {
-            widget.onFail?.call();
-          }
-        }
       }
       return;
     }
@@ -314,7 +311,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
     final subtitle = isVictory
         ? 'Stage ${widget.stageId} complete.'
         : isFinalFailure
-            ? 'This run has used both attempts.'
+            ? 'No lives remaining. Recover a life to retry this stage.'
             : 'The layout is unchanged. Try the same stage again.';
     final accent = isVictory ? const Color(0xFF5CF5FF) : const Color(0xFFFF5478);
 
@@ -490,7 +487,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   Future<void> _retryStage() async {
     if (!mounted) return;
 
-    if (_result == _TrollResult.dead && _deathCount >= 1) {
+    if (_result == _TrollResult.dead) {
       final economy = await EconomyManager.checkEconomy();
       if ((economy['lives'] as int? ?? 0) <= 0) {
         if (!mounted) return;
