@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/design_tokens.dart';
-import 'services/rewarded_ads_service.dart';
-import 'economy_manager.dart';
+import 'rewarded_ads_service.dart';
+import '../economy_manager.dart';
 
 Future<void> showLifeRecoveryDialog(BuildContext context) async {
   await showModalBottomSheet<void>(
