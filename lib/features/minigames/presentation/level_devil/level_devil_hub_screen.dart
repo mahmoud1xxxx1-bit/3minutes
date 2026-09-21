@@ -57,9 +57,7 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
           // Result overlays own navigation. These callbacks must never pop the
           // gameplay route while the result overlay is visible.
           onWin: (_) {},
-          onFail: () async {
-            await EconomyManager.deductLife();
-          },
+          onFailAsync: () => EconomyManager.deductLife(),
         ),
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
