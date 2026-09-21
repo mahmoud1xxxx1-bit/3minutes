@@ -3,6 +3,7 @@ import 'l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'global_game_ui.dart';
+import 'economy_manager.dart';
 
 class StoreScreen extends StatefulWidget {
   const StoreScreen({super.key});
@@ -52,10 +53,7 @@ class _StoreScreenState extends State<StoreScreen> {
       confirmText: 'SUBSCRIBE (\$10)',
       onConfirm: () async {
         await Future.delayed(const Duration(milliseconds: 500));
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('ld_vip', true);
-        await prefs.setInt('ld_gems', _gems + 500);
-        await prefs.setInt('ld_lives', 30); 
+        await EconomyManager.activateWeeklyVip(); 
         _loadEconomy();
         if (mounted) GamePopups.showSuccess(context, title: 'VIP ACTIVATED!', message: 'Enjoy your exclusive perks.');
       }
