@@ -40,6 +40,8 @@ void main() {
   test('VIP life mailbox only claims at zero lives', () async {
     final prefs = await SharedPreferences.getInstance();
     await EconomyManager.activateWeeklyVip();
+    await prefs.setString('ld_vip_last_daily_date', '2000-01-01');
+    await EconomyManager.checkEconomy();
     final mails = prefs.getStringList('ld_mailbox')!;
     final vipLife = mails.firstWhere((raw) => raw.contains('"type":"vip_lives"'));
     final id = RegExp(r'"id":"([^"]+)"').firstMatch(vipLife)!.group(1)!;
