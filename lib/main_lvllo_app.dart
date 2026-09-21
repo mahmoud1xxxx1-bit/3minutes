@@ -13,28 +13,46 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  var firebaseReady = false;
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    firebaseReady = true;
-  } catch (error) {
-    debugPrint('LVL LOOL Firebase initialization failed: $error');
-  }
+  // Never block the first frame on Firebase or any remote/plugin startup.
+  // The game must always render a real screen first.
+  runApp(const LvlloApp());
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
-
-  runApp(LvlloApp(firebaseReady: firebaseReady));
 }
 
-class LvlloApp extends StatelessWidget {
-  const LvlloApp({super.key, required this.firebaseReady});
+class LvlloApp extends StatefulWidget {
+  const LvlloApp({super.key});
 
-  final bool firebaseReady;
+  @override
+  State<LvlloApp> createState() => _LvlloAppState();
+}
+
+class _LvlloAppState extends State<LvlloApp> {
+  bool _firebaseReady = false;
+  bool _firebaseFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initServices();
+  }
+
+  Future<void> _initServices() async {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      ).timeout(const Duration(seconds: 6));
+      if (!mounted) return;
+      setState(() => _firebaseReady = true);
+    } catch (error) {
+      debugPrint('LVL LOOL Firebase unavailable: $error');
+      if (!mounted) return;
+      setState(() => _firebaseFailed = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,20 +60,32 @@ class LvlloApp extends StatelessWidget {
       title: 'LVL LOOL',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: _EntryGate(firebaseReady: firebaseReady),
+      home: _EntryGate(
+        firebaseReady: _firebaseReady,
+        firebaseFailed: _firebaseFailed,
+      ),
     );
   }
 }
 
 class _EntryGate extends StatelessWidget {
-  const _EntryGate({required this.firebaseReady});
+  const _EntryGate({
+    required this.firebaseReady,
+    required this.firebaseFailed,
+  });
 
   final bool firebaseReady;
+  final bool firebaseFailed;
 
   @override
   Widget build(BuildContext context) {
-    if (!firebaseReady) {
+    if (firebaseFailed) {
+      // Offline-first fallback: the player can enter the game immediately.
       return const LvlloLobbyScreen();
+    }
+
+    if (!firebaseReady) {
+      return const _Splash();
     }
 
     return StreamBuilder<User?>(
