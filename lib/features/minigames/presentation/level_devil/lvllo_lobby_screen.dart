@@ -9,6 +9,7 @@ import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/theme/game_bottom_nav.dart';
 import '../../../../store_screen.dart';
 import 'level_devil_hub_screen.dart';
+import '../../../../economy_manager.dart';
 
 class LvlloLobbyScreen extends StatefulWidget {
   const LvlloLobbyScreen({super.key});
@@ -32,14 +33,14 @@ class _LvlloLobbyScreenState extends State<LvlloLobbyScreen> {
   }
 
   Future<void> _refresh() async {
-    final prefs = await SharedPreferences.getInstance();
+    final state = await EconomyManager.checkEconomy();
     if (!mounted) return;
     setState(() {
-      _lives = prefs.getInt('ld_lives') ?? 10;
-      _maxLives = prefs.getBool('ld_vip') == true ? 30 : 10;
-      _gems = prefs.getInt('ld_gems') ?? 0;
-      _gold = prefs.getInt('ld_gold') ?? 0;
-      _mail = prefs.getInt('ld_unread_mail') ?? 0;
+      _lives = state['lives'] as int? ?? 10;
+      _maxLives = state['maxLives'] as int? ?? 10;
+      _gems = state['gems'] as int? ?? 0;
+      _gold = state['gold'] as int? ?? 0;
+      _mail = state['unreadMail'] as int? ?? 0;
     });
   }
 
