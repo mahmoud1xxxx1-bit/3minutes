@@ -1219,6 +1219,96 @@ class TrollEngine {
       return pool;
     }
 
+
+    // Season 6 mashup builder: every Season 6 group combines mechanics already
+    // present in Seasons 1-5. It never introduces a new stage identity.
+    void runMashup({
+      bool spotlight = false,
+      bool wrap = false,
+      bool freeze = false,
+      bool inverted = false,
+      bool bouncy = false,
+      bool ghost = false,
+      bool conveyor = false,
+      bool chase = false,
+      bool lava = false,
+      bool lowGravity = false,
+      bool flappy = false,
+      bool tiny = false,
+      bool dash = false,
+      bool wind = false,
+      bool ice = false,
+      bool blink = false,
+      bool mirror = false,
+      Map<String, int>? easy,
+      Map<String, int>? medium,
+      Map<String, int>? hard,
+    }) {
+      isSpotlightLevel = spotlight;
+      isWrapLevel = wrap;
+      isTimeFreezeLevel = freeze;
+      isGravityInverted = inverted;
+      isBouncyLevel = bouncy;
+      isGhostLevel = ghost;
+      isConveyorLevel = conveyor;
+      isChasedLevel = chase;
+      isLavaLevel = lava;
+      isLowGravityLevel = lowGravity;
+      isFlappyLevel = flappy;
+      isTinyLevel = tiny;
+      isDashLevel = dash;
+      isWindLevel = wind;
+      isIceLevel = ice;
+      isBlinkLevel = blink;
+      isMirrorLevel = mirror;
+
+      if (chase) {
+        chaseWallX = -200;
+        chaseWallSpeed = 210 + diff * 15;
+      }
+
+      // Geometry for the environmental mechanics is intentionally kept simple
+      // and deterministic so the same stage seed always produces the same run.
+      if (conveyor) {
+        for (int c = 10; c < mapCols; c++) {
+          final goRight = c % 14 < 7;
+          grid[13][c] = goRight ? '>' : '<';
+          grid[14][c] = goRight ? '>' : '<';
+        }
+      }
+
+      if (inverted) {
+        for (int c = 0; c < mapCols; c++) {
+          grid[2][c] = 'X';
+          grid[3][c] = 'X';
+          grid[13][c] = '.';
+          grid[14][c] = '.';
+        }
+        grid[12][2] = 'P';
+      }
+
+      if (flappy || lava) {
+        for (int c = 8; c < mapCols; c++) {
+          grid[13][c] = '.';
+          grid[14][c] = '.';
+        }
+        if (lava) lavaY = 700;
+      }
+
+      runRecipe(recipe(diff == 1
+          ? (easy ?? {'Spike': 4, 'FFloor': 3, 'ASpike': 3})
+          : diff == 2
+              ? (medium ?? {'Spike': 4, 'FFloor': 4, 'ESpike': 3, 'ASpike': 3})
+              : (hard ?? {'Spike': 5, 'FFloor': 4, 'ESpike': 4, 'ASpike': 3, 'Thwomp': 2})));
+    }
+
+    void addInvisibleBlocks(int col, int width) {
+      for (int c = col; c < col + width && c < mapCols; c++) {
+        grid[10][c] = 'b';
+        if (c + 1 < mapCols) grid[11][c] = 'b';
+      }
+    }
+
     final int diff = _getDifficulty(id);
     // ignore: unused_local_variable
     final int mechId = _getMechanicId(id);
@@ -1575,7 +1665,7 @@ class TrollEngine {
       }
       addRunningDoor(kDoorClearance, 0);
 
-    } else {
+    } else if (mechId == 20) {
       // ── mechId == 20: Absolute Chaos ─────────────────────────────────────
       isBouncyLevel = true;
       isGhostLevel  = diff >= 2;
@@ -1590,6 +1680,165 @@ class TrollEngine {
               : {'ASpike': 2, 'Thwomp': 3, 'ESpike': 3, 'FSolid': 2, 'Chain': 2, 'FDoor': 3,
                  'MThwomp': 2, 'Timed': 2, 'TSpy': 2, '2Spike': 2, 'JDrop': 2, 'RevCtrl': 1}));
     }
+
+
+    } else if (mechId == 21) {
+      // S6 Group 1 — Invisible Blocks (source-defined group)
+      final hiddenWidth = diff == 1 ? 3 : diff == 2 ? 4 : 5;
+      currentCol = 18;
+      for (int i = 0; i < (diff == 1 ? 5 : diff == 2 ? 6 : 8); i++) {
+        addInvisibleBlocks(currentCol, hiddenWidth);
+        if (diff >= 2 && i.isEven) grid[12][currentCol + hiddenWidth] = 's';
+        currentCol += hiddenWidth + 5;
+      }
+      runRecipe(recipe(diff == 1
+          ? {'Spike': 9, 'FFloor': 1}
+          : diff == 2
+              ? {'Spike': 9, 'FFloor': 1, 'ESpike': 1}
+              : {'Spike': 10, 'FFloor': 2, 'ESpike': 1}));
+
+    } else if (mechId == 22) {
+      // S6 Group 2 — Shifting Floors (source-defined group)
+      runRecipe(recipe(diff == 1
+          ? {'Spike': 8, 'FFloor': 3}
+          : diff == 2
+              ? {'Spike': 8, 'FFloor': 4, 'ASpike': 1}
+              : {'Spike': 9, 'FFloor': 5, 'ASpike': 2}));
+
+    } else if (mechId == 23) {
+      // S6 Group 3 — Runaway Door (source-defined group)
+      final moveDistance = diff == 1 ? 3 : diff == 2 ? 5 : 8;
+      runRecipe(recipe(diff == 1
+          ? {'Spike': 11}
+          : diff == 2
+              ? {'Spike': 11, 'FFloor': 2}
+              : {'Spike': 12, 'FFloor': 3, 'InvDoor': 1}));
+      addRunningDoor(kDoorClearance, moveDistance);
+
+    } else if (mechId == 24) {
+      // S6 Group 4 — Friendly Spike (source-defined group)
+      // FriendSpike is represented as a non-lethal visual spike marker while
+      // the documented spike counts remain part of the stage recipe.
+      final friendCount = diff == 1 ? 3 : diff == 2 ? 5 : 6;
+      currentCol = 18;
+      for (int i = 0; i < friendCount; i++) {
+        if (currentCol < mapCols) {
+          grid[11][currentCol] = 'h';
+          currentCol += 6;
+        }
+      }
+      runRecipe(recipe(diff == 1
+          ? {'Spike': 8}
+          : diff == 2
+              ? {'Spike': 8, 'FFloor': 1}
+              : {'Spike': 10, 'FFloor': 1}));
+
+    } else if (mechId == 25) {
+      runMashup(freeze: true, easy: {'Spike': 4, 'FFloor': 3, 'ASpike': 2},
+          medium: {'Spike': 4, 'FFloor': 3, 'ASpike': 3, 'TimeTog': 2},
+          hard: {'Spike': 5, 'FFloor': 4, 'ESpike': 3, 'TimeTog': 2});
+
+    } else if (mechId == 26) {
+      runMashup(bouncy: true, easy: {'JDrop': 4, 'Spike': 3, 'FFloor': 3},
+          medium: {'JDrop': 5, 'ESpike': 3, 'FFloor': 3, 'Thwomp': 2},
+          hard: {'JDrop': 5, 'ESpike': 4, 'Chain': 3, 'Thwomp': 3});
+
+    } else if (mechId == 27) {
+      runMashup(spotlight: true, conveyor: true, easy: {'SpotTog': 3, 'Spike': 3, 'Thwomp': 3},
+          medium: {'SpotTog': 4, 'ESpike': 3, 'FFloor': 2, 'Thwomp': 3},
+          hard: {'SpotTog': 4, 'ESpike': 4, 'TSpy': 3, 'Thwomp': 3});
+
+    } else if (mechId == 28) {
+      runMashup(wrap: true, lava: true, easy: {'Spike': 3, 'FFloor': 2, 'ASpike': 2},
+          medium: {'Spike': 4, 'FFloor': 3, 'ESpike': 2, 'ASpike': 2},
+          hard: {'Spike': 5, 'FFloor': 3, 'ESpike': 3, '2Spike': 2});
+
+    } else if (mechId == 29) {
+      runMashup(inverted: true, flappy: true, easy: {'ESpike': 4, 'FSolid': 2, 'Spike': 2},
+          medium: {'ESpike': 4, 'FSolid': 3, 'ASpike': 2, 'GFlip': 1},
+          hard: {'ESpike': 5, 'FSolid': 4, 'ASpike': 3, '2Spike': 2});
+
+    } else if (mechId == 30) {
+      runMashup(ghost: true, dash: true, easy: {'FFloor': 4, 'Spike': 3, 'ASpike': 2},
+          medium: {'FFloor': 4, 'ASpike': 3, 'ESpike': 3, 'FDoor': 1},
+          hard: {'FFloor': 5, 'ASpike': 4, 'ESpike': 3, 'FDoor': 2, 'Chain': 2});
+
+    } else if (mechId == 31) {
+      runMashup(wind: true, ice: true, easy: {'Spike': 4, 'JDrop': 3, 'Timed': 2},
+          medium: {'Spike': 4, 'ESpike': 3, 'JDrop': 3, 'Timed': 2},
+          hard: {'Spike': 5, 'ESpike': 4, 'JDrop': 3, 'Chain': 2, 'Timed': 2});
+
+    } else if (mechId == 32) {
+      runMashup(blink: true, mirror: true, easy: {'Spike': 3, 'TSpy': 3, 'FFloor': 3},
+          medium: {'Spike': 4, 'TSpy': 4, 'RevCtrl': 2, 'FFloor': 2},
+          hard: {'Spike': 4, 'TSpy': 5, 'RevCtrl': 3, 'FDoor': 2, 'ESpike': 2});
+
+    } else if (mechId == 33) {
+      runMashup(tiny: true, freeze: true, easy: {'Spike': 4, 'FFloor': 3, 'TimeTog': 2},
+          medium: {'Spike': 4, 'FFloor': 3, 'TimeTog': 3, 'ESpike': 2},
+          hard: {'Spike': 5, 'FFloor': 3, 'TimeTog': 3, 'Thwomp': 3, 'ESpike': 2});
+
+    } else if (mechId == 34) {
+      runMashup(lowGravity: true, conveyor: true, easy: {'FFloor': 3, 'ESpike': 3, 'Spike': 3},
+          medium: {'FFloor': 3, 'ESpike': 4, 'Thwomp': 3, 'ASpike': 2},
+          hard: {'FFloor': 3, 'ESpike': 4, 'Thwomp': 3, 'Timed': 3, '2Spike': 2});
+
+    } else if (mechId == 35) {
+      runMashup(chase: true, bouncy: true, easy: {'FSolid': 3, 'Thwomp': 3, 'ESpike': 3},
+          medium: {'FSolid': 4, 'Thwomp': 3, 'ESpike': 3, 'MThwomp': 2},
+          hard: {'FSolid': 4, 'Thwomp': 4, 'ESpike': 3, 'Chain': 2, 'MThwomp': 2});
+
+    } else if (mechId == 36) {
+      runMashup(lava: true, dash: true, easy: {'Spike': 4, 'FFloor': 2, 'JDrop': 2},
+          medium: {'Spike': 4, 'FFloor': 3, 'ESpike': 2, 'JDrop': 3},
+          hard: {'Spike': 5, 'FFloor': 3, 'ESpike': 3, 'JDrop': 3, 'MThwomp': 2});
+
+    } else if (mechId == 37) {
+      runMashup(flappy: true, wind: true, easy: {'Spike': 3, 'ASpike': 3, 'Thwomp': 2},
+          medium: {'Spike': 4, 'ASpike': 3, 'ESpike': 3, 'Thwomp': 2},
+          hard: {'Spike': 4, 'ASpike': 4, 'ESpike': 4, 'Thwomp': 3, 'TSpy': 2});
+
+    } else if (mechId == 38) {
+      runMashup(inverted: true, ghost: true, easy: {'ESpike': 4, 'FSolid': 3, 'FFloor': 2},
+          medium: {'ESpike': 4, 'FSolid': 3, 'FFloor': 3, 'ASpike': 2},
+          hard: {'ESpike': 5, 'FSolid': 4, 'FFloor': 3, '2Spike': 2, 'FDoor': 1});
+
+    } else if (mechId == 39) {
+      runMashup(spotlight: true, ice: true, easy: {'SpotTog': 3, 'Timed': 3, 'Spike': 3},
+          medium: {'SpotTog': 3, 'Timed': 4, 'ESpike': 3, 'FFloor': 2},
+          hard: {'SpotTog': 4, 'Timed': 4, 'ESpike': 4, 'Chain': 2, 'TSpy': 2});
+
+    } else if (mechId == 40) {
+      runMashup(wrap: true, mirror: true, easy: {'Spike': 4, 'FFloor': 3, 'RevCtrl': 2},
+          medium: {'Spike': 4, 'FFloor': 3, 'RevCtrl': 3, 'ESpike': 2},
+          hard: {'Spike': 5, 'FFloor': 3, 'RevCtrl': 4, 'ESpike': 3, '2Spike': 2});
+
+    } else if (mechId == 41) {
+      runMashup(tiny: true, dash: true, easy: {'Spike': 4, 'FFloor': 3, 'ASpike': 2},
+          medium: {'Spike': 4, 'FFloor': 4, 'ASpike': 3, 'ESpike': 2},
+          hard: {'Spike': 5, 'FFloor': 4, 'ASpike': 3, 'ESpike': 3, 'AggDoor': 1});
+
+    } else if (mechId == 42) {
+      runMashup(bouncy: true, wind: true, easy: {'Thwomp': 3, 'JDrop': 3, 'Spike': 3},
+          medium: {'Thwomp': 4, 'JDrop': 3, 'ESpike': 3, 'ASpike': 2},
+          hard: {'Thwomp': 4, 'JDrop': 4, 'ESpike': 4, 'MThwomp': 2, 'Chain': 2});
+
+    } else if (mechId == 43) {
+      runMashup(ghost: true, blink: true, easy: {'FFloor': 3, 'TSpy': 3, 'Spike': 3},
+          medium: {'FFloor': 4, 'TSpy': 4, 'ESpike': 3, 'ASpike': 2},
+          hard: {'FFloor': 4, 'TSpy': 5, 'ESpike': 4, 'FDoor': 2, 'Chain': 2});
+
+    } else if (mechId == 44) {
+      runMashup(freeze: true, mirror: true, easy: {'TimeTog': 3, 'RevCtrl': 2, 'Spike': 3},
+          medium: {'TimeTog': 4, 'RevCtrl': 3, 'ESpike': 3, 'FFloor': 2},
+          hard: {'TimeTog': 4, 'RevCtrl': 4, 'ESpike': 4, 'FDoor': 2, 'TSpy': 2});
+
+    } else if (mechId == 45) {
+      // S6 Group 25 — final mashup of established Season 1-5 mechanics.
+      runMashup(bouncy: true, ghost: true, wind: true, mirror: true, blink: true,
+          easy: {'Spike': 3, 'ASpike': 2, 'Thwomp': 2, 'FFloor': 2},
+          medium: {'Spike': 4, 'ASpike': 3, 'ESpike': 3, 'Thwomp': 3, 'RevCtrl': 2, 'TSpy': 2},
+          hard: {'Spike': 5, 'ASpike': 3, 'ESpike': 4, 'Thwomp': 4, 'Chain': 2, 'RevCtrl': 2, 'FDoor': 2});
 
 
     List<String> mapStrings = [];
