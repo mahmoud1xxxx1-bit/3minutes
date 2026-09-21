@@ -22,10 +22,12 @@ class TrollGame extends StatefulWidget {
     this.mechanicOffset = 0,
     this.stageSeedOverride,
     this.onFail,
+    this.onFailAsync,
     this.stageId = 1,
   });
   final void Function(int score) onWin;
   final VoidCallback? onFail;
+  final Future<void> Function()? onFailAsync;
   final int stageId;
   final int startRound;
   final int maxRounds;
@@ -62,7 +64,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   }
 
 
-  void _onTick(Duration elapsed) {
+  void _onTick(Duration elapsed) async {
     if (_lastTime == Duration.zero) {
       _lastTime = elapsed;
       return;
@@ -85,7 +87,11 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
         if (!won) {
           // A life is consumed for every actual death. Navigation is never
           // performed here; the player must choose from the result overlay.
-          widget.onFail?.call();
+          if (widget.onFailAsync != null) {
+            await widget.onFailAsync!();
+          } else {
+            widget.onFail?.call();
+          }
         }
       }
       return;
