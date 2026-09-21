@@ -271,7 +271,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                         child: Center(
                           child: _hudPill(
                             icon: Icons.bolt_rounded,
-                            color: _paletteForSeason(_seasonForStage(stageId)).accent,
+                            color: _paletteForSeason(_seasonForStage(widget.stageId)).accent,
                             text: 'STAGE ${_engine.round}',
                           ),
                         ),
@@ -874,7 +874,7 @@ class _TrollPainter extends CustomPainter {
           paint.color = e.color;
         }
 
-        final season = _seasonForStage(widget.stageId);
+        final season = _seasonForStage(stageId);
         if (season == _SeasonVisual.cosmic) {
           // Season 1 approved visual: dark stone platform with a thin cyan rim.
           paint.color = const Color(0xFF20283A);
@@ -892,7 +892,7 @@ class _TrollPainter extends CustomPainter {
           paint.color = const Color(0xFF39D9F6).withValues(alpha: 0.72);
           canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 2), paint);
         } else {
-          final palette = _paletteForSeason(_seasonForStage(widget.stageId));
+          final palette = _paletteForSeason(_seasonForStage(stageId));
           paint.color = palette.platform;
           canvas.drawRRect(
             RRect.fromRectAndRadius(e.rect.toRect(), const Radius.circular(4)),
@@ -911,7 +911,7 @@ class _TrollPainter extends CustomPainter {
         }
 
       } else if (e.type == TrollEntityType.spike) {
-        final seasonAccent = _paletteForSeason(_seasonForStage(widget.stageId)).accent;
+        final seasonAccent = _paletteForSeason(_seasonForStage(stageId)).accent;
         _drawSpike(canvas, e.rect, seasonAccent, e.isInverted);
       } else if (e.type == TrollEntityType.door) {
         // ── FakeDoor: drawn identically to real door ─────────────────────
@@ -1071,7 +1071,7 @@ class _TrollPainter extends CustomPainter {
   }
 
   void _drawBackground(Canvas canvas) {
-    final season = _seasonForStage(widget.stageId);
+    final season = _seasonForStage(stageId);
     if (season == _SeasonVisual.cosmic) {
       _drawSeasonOneBackground(canvas);
       return;
