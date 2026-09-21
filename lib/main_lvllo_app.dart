@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -14,13 +16,25 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
 
-  // Never block the first frame on Firebase or any remote/plugin startup.
-  // The game must always render a real screen first.
+  // Never block the first frame on ads, Firebase, or any remote/plugin startup.
+  // The game must render immediately even when Google Play Services or the
+  // network is unavailable (including emulators such as BlueStacks).
   runApp(const LvlloApp());
 
-  await GameOrientation.enterPortrait();
+  // Non-critical startup services are initialized after the first frame.
+  unawaited(_initializeNonCriticalServices());
+
+  // Orientation is local and safe to request after the app is mounted.
+  unawaited(GameOrientation.enterPortrait());
+}
+
+Future<void> _initializeNonCriticalServices() async {
+  try {
+    await MobileAds.instance.initialize();
+  } catch (error) {
+    debugPrint('LVL LOOL Ads unavailable: $error');
+  }
 }
 
 class LvlloApp extends StatefulWidget {
