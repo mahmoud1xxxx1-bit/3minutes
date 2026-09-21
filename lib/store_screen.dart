@@ -3,6 +3,8 @@ import 'l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'global_game_ui.dart';
+import 'core/theme/cosmic_background.dart';
+import 'core/theme/design_tokens.dart';
 import 'economy_manager.dart';
 
 class StoreScreen extends StatefulWidget {
@@ -140,16 +142,16 @@ class _StoreScreenState extends State<StoreScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black45,
+        color: GameColors.surfaceGlass,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: GameColors.surfaceStrong),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: iconColor, size: 18),
           const SizedBox(width: 6),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(value, style: const TextStyle(color: GameColors.textStrong, fontWeight: FontWeight.w900, fontSize: 12)),
         ],
       ),
     );
@@ -158,9 +160,9 @@ class _StoreScreenState extends State<StoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF07080A),
+      backgroundColor: GameColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F111A),
+        backgroundColor: GameColors.background.withOpacity(.96),
         elevation: 0,
         title: Text(L10n.get('store'), style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
         centerTitle: true,
@@ -184,8 +186,9 @@ class _StoreScreenState extends State<StoreScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: CosmicBackground(
+        child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 30),
         child: Column(
           children: [
             // 1. VIP Subscription Bundle
@@ -339,9 +342,9 @@ class _StoreScreenState extends State<StoreScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF161824),
+        color: GameColors.surfaceGlass,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: GameColors.surfaceStrong),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
@@ -382,7 +385,7 @@ class _StoreScreenState extends State<StoreScreen> {
             ElevatedButton(
               onPressed: onTap,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isRealMoney ? Colors.green : const Color(0xFF2C2F42),
+                backgroundColor: isRealMoney ? GameColors.success : GameColors.surfaceRaised,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
