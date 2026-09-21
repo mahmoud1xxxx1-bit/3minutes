@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'troll_engine.dart';
+import '../../../../core/navigation/game_orientation.dart';
 
 class TrollGame extends StatefulWidget {
   const TrollGame({
@@ -43,6 +44,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
       levelsPerMechanic: widget.levelsPerMechanic,
       mechanicOffset: widget.mechanicOffset,
     );
+    GameOrientation.enterGame();
     _ticker = createTicker(_onTick)..start();
   }
 
@@ -73,6 +75,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   void dispose() {
     _ticker.dispose();
     _focusNode.dispose();
+    GameOrientation.leaveGame();
     super.dispose();
   }
 
@@ -117,17 +120,11 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
               children: [
                 Expanded(
                   child: Center(
-                    child: AspectRatio(
-                      aspectRatio: 800 / 600,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Stack(
-                          children: [
-                            CustomPaint(
-                              painter: _TrollPainter(_engine),
-                              size: Size.infinite,
-                            ),
-                          ],
+                    child: SizedBox.expand(
+                      child: ClipRect(
+                        child: CustomPaint(
+                          painter: _TrollPainter(_engine),
+                          size: Size.infinite,
                         ),
                       ),
                     ),
@@ -412,7 +409,7 @@ class _TrollPainter extends CustomPainter {
     for (final trap in engine.traps.whereType<GravityFlipZoneTrap>()) {
       final zr = trap.zone;
       // Animated purple shimmer using time
-      final shimmer = (sin(engine.rng.nextDouble() * 3.14) * 0.15 + 0.15).clamp(0.0, 1.0);
+      final shimmer = ((sin(engine.stageSeed * 0.173) + 1) * 0.075 + 0.15).clamp(0.0, 1.0);
       paint.color = const Color(0xFF9900FF).withValues(alpha: 0.18 + shimmer * 0.12);
       canvas.drawRect(zr.toRect(), paint);
       // Border
