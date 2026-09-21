@@ -12,16 +12,29 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  var firebaseReady = false;
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    firebaseReady = true;
+  } catch (error) {
+    debugPrint('LVL LOOL Firebase initialization failed: $error');
+  }
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
-  runApp(const LvlloApp());
+
+  runApp(LvlloApp(firebaseReady: firebaseReady));
 }
 
 class LvlloApp extends StatelessWidget {
-  const LvlloApp({super.key});
+  const LvlloApp({super.key, required this.firebaseReady});
+
+  final bool firebaseReady;
 
   @override
   Widget build(BuildContext context) {
@@ -29,16 +42,22 @@ class LvlloApp extends StatelessWidget {
       title: 'LVL LOOL',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: const _EntryGate(),
+      home: _EntryGate(firebaseReady: firebaseReady),
     );
   }
 }
 
 class _EntryGate extends StatelessWidget {
-  const _EntryGate();
+  const _EntryGate({required this.firebaseReady});
+
+  final bool firebaseReady;
 
   @override
   Widget build(BuildContext context) {
+    if (!firebaseReady) {
+      return const LvlloLobbyScreen();
+    }
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
