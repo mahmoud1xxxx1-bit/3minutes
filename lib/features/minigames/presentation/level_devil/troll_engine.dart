@@ -1228,6 +1228,8 @@ class TrollEngine {
     }
 
 
+    final int diff = _getDifficulty(id);
+
     // Season 6 mashup builder: every Season 6 group combines mechanics already
     // present in Seasons 1-5. It never introduces a new stage identity.
     void runMashup({
@@ -1317,7 +1319,6 @@ class TrollEngine {
       }
     }
 
-    final int diff = _getDifficulty(id);
     // ignore: unused_local_variable
     final int mechId = _getMechanicId(id);
     // Map width scales with difficulty:
@@ -1884,7 +1885,7 @@ class TrollEngine {
           easy: {'Spike': 3, 'ASpike': 2, 'Thwomp': 2, 'FFloor': 2},
           medium: {'Spike': 4, 'ASpike': 3, 'ESpike': 3, 'Thwomp': 3, 'RevCtrl': 2, 'TSpy': 2},
           hard: {'Spike': 5, 'ASpike': 3, 'ESpike': 4, 'Thwomp': 4, 'Chain': 2, 'RevCtrl': 2, 'FDoor': 2});
-
+    }
 
     List<String> mapStrings = [];
     for (int r = 0; r < 15; r++) {
