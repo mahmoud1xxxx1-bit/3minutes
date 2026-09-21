@@ -23,11 +23,13 @@ class TrollGame extends StatefulWidget {
     this.stageSeedOverride,
     this.onFail,
     this.onFailAsync,
+    this.onMainMenu,
     this.stageId = 1,
   });
   final void Function(int score) onWin;
   final VoidCallback? onFail;
   final Future<void> Function()? onFailAsync;
+  final VoidCallback? onMainMenu;
   final int stageId;
   final int startRound;
   final int maxRounds;
@@ -530,6 +532,10 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
 
   void _goMainMenu() {
     if (!mounted) return;
+    if (widget.onMainMenu != null) {
+      widget.onMainMenu!();
+      return;
+    }
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
