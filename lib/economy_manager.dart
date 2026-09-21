@@ -183,10 +183,10 @@ class EconomyManager {
     int? targetTime;
 
     if (!isVip && lives < normalMaxLives) {
-      var startedAt = prefs.getInt('ld_refill_started_at');
-      var refillMinutes = prefs.getInt('ld_refill_minutes');
+      int startedAt = prefs.getInt('ld_refill_started_at') ?? 0;
+      int refillMinutes = prefs.getInt('ld_refill_minutes') ?? 0;
 
-      if (startedAt == null || refillMinutes == null) {
+      if (startedAt == 0 || refillMinutes == 0) {
         startedAt = DateTime.now().millisecondsSinceEpoch;
         refillMinutes = _refillMinutesForNextLife(lives);
         await prefs.setInt('ld_refill_started_at', startedAt);
