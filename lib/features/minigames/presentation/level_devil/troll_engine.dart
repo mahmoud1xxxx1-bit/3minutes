@@ -739,7 +739,7 @@ class TrollEngine {
   
   // Score Tracking
   int totalScore = 0;
-  int roundHearts = 2;
+  // A stage has one gameplay attempt; the persistent Lives system is global.\n  int roundHearts = 1;
   int roundIndex = 0;
   int errorCount = 0;
 
@@ -898,7 +898,7 @@ class TrollEngine {
         allComplete = true;
         completedAsWin = true;
       } else {
-        roundHearts = 2;
+        roundHearts = 1;
         round++;
         stageSeed = _seedForRound(round);
         rng = Random(stageSeed);
