@@ -1689,7 +1689,6 @@ class TrollEngine {
                  'MThwomp': 2, 'Timed': 2, 'TSpy': 2, '2Spike': 2, 'JDrop': 2, 'RevCtrl': 1}));
     }
 
-
     } else if (mechId == 21) {
       // S6 Group 1 — Invisible Blocks (source-defined group)
       final hiddenWidth = diff == 1 ? 3 : diff == 2 ? 4 : 5;
