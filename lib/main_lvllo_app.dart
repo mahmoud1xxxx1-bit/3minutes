@@ -329,3 +329,4 @@ class _LogoMark extends StatelessWidget {
           ),
         ),
       );
+}
