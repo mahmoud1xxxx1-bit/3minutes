@@ -245,7 +245,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                   child: SizedBox.expand(
                     child: ClipRect(
                       child: CustomPaint(
-                        painter: _TrollPainter(_engine),
+                        painter: _TrollPainter(_engine, widget.stageId),
                         size: Size.infinite,
                       ),
                     ),
@@ -271,7 +271,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                         child: Center(
                           child: _hudPill(
                             icon: Icons.bolt_rounded,
-                            color: _paletteForSeason(_seasonForStage(widget.stageId)).accent,
+                            color: _paletteForSeason(_seasonForStage(stageId)).accent,
                             text: 'STAGE ${_engine.round}',
                           ),
                         ),
@@ -821,8 +821,9 @@ class _LifeHudState extends State<_LifeHud> {
   }
 }
 class _TrollPainter extends CustomPainter {
-  _TrollPainter(this.engine);
+  _TrollPainter(this.engine, this.stageId);
   final TrollEngine engine;
+  final int stageId;
 
   @override
   void paint(Canvas canvas, Size size) {
