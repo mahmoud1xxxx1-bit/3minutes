@@ -1194,7 +1194,7 @@ class TrollEngine {
 
     // ── New generator: build trap sequence and execute ─────────────────────
     // ignore: unused_element
-    void runRecipe(List<String> pool, {int startCol = 15}) {
+    void runRecipe(List<String> pool, {int startCol = 15, bool addDoor = true}) {
       currentCol = startCol;
       pool.shuffle(rng);
       lastTrap = null;
@@ -1204,7 +1204,7 @@ class TrollEngine {
         currentCol += _gap(lastTrap, trapType) + 5; // gap + trap footprint
         lastTrap = trapType;
       }
-      addRunningDoor(kDoorClearance, 0);
+      if (addDoor) addRunningDoor(kDoorClearance, 0);
     }
 
     // Build recipe pool: [type × count, ...]
@@ -1712,7 +1712,7 @@ class TrollEngine {
           ? {'Spike': 11}
           : diff == 2
               ? {'Spike': 11, 'FFloor': 2}
-              : {'Spike': 12, 'FFloor': 3, 'InvDoor': 1}));
+              : {'Spike': 12, 'FFloor': 3}), addDoor: false);
       addRunningDoor(kDoorClearance, moveDistance);
 
     } else if (mechId == 24) {
