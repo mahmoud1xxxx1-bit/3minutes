@@ -1,5 +1,5 @@
 name: game
-description: "3 Minutes - lightweight two-player competitive mini-game platform."
+description: "3 Minutes diagnostic host."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -11,19 +11,6 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-  firebase_core: ^4.12.1
-  firebase_auth: ^6.5.6
-  firebase_app_check: ^0.4.1+4
-  cloud_firestore: ^6.7.1
-  cloud_functions: ^6.0.3
-  google_sign_in: ^7.2.0
-  in_app_purchase: ^3.3.0
-  in_app_purchase_android: ^0.5.0
-  flutter_svg: ^2.3.0
-  audioplayers: ^6.8.1
-  shared_preferences: ^2.5.5
-  google_mobile_ads: ^9.1.0
 
 dev_dependencies:
   flutter_test:
@@ -32,13 +19,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  generate: true
-  assets:
-    - assets/hidden_pigeon/
-    - assets/images/onet_full/
-    - assets/mirror_control/
-    - assets/thumbnails/
-    - assets/ranks/
-    - assets/avatars/
-    - assets/mirror_control/
-    - assets/thumbnails/
