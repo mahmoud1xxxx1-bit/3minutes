@@ -710,6 +710,8 @@ class TrollEngine {
   late int stageSeed;
 
   int round;
+  // One attempt per stage; persistent player Lives are handled by EconomyManager.
+  int roundHearts = 1;
   final int maxRounds;
   final int levelsPerMechanic;
   final int mechanicOffset;
