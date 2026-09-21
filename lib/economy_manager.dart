@@ -5,6 +5,8 @@ class EconomyManager {
   static const int normalMaxLives = 10;
   static const int vipMaxLives = 30;
   static const int rewardedLifeDailyLimit = 10;
+  static const String _rewardedDateKey = 'ld_rewarded_life_date';
+  static const String _rewardedCountKey = 'ld_rewarded_life_count';
 
   static bool _isVipActive(SharedPreferences prefs) {
     final vip = prefs.getBool('ld_vip') ?? false;
@@ -108,6 +110,28 @@ class EconomyManager {
         await prefs.setInt('ld_refill_minutes', 3);
       }
     }
+  }
+
+  static Future<bool> grantRewardedLife() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isVip = _isVipActive(prefs);
+    final maxLives = isVip ? vipMaxLives : normalMaxLives;
+    final lives = (prefs.getInt('ld_lives') ?? maxLives).clamp(0, maxLives);
+    if (lives >= maxLives) return false;
+
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    var used = prefs.getInt(_rewardedCountKey) ?? 0;
+    if (prefs.getString(_rewardedDateKey) != today) used = 0;
+    if (!isVip && used >= rewardedLifeDailyLimit) return false;
+
+    await prefs.setInt('ld_lives', lives + 1);
+    await prefs.setString(_rewardedDateKey, today);
+    await prefs.setInt(_rewardedCountKey, used + 1);
+    if (lives == 0 && !isVip) {
+      await prefs.setInt('ld_refill_started_at', DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt('ld_refill_minutes', 4);
+    }
+    return true;
   }
 
   static Future<Map<String, dynamic>> checkEconomy() async {
