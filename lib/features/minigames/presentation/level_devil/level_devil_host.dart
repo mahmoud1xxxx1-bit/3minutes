@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/mini_game_contract.dart';
 import 'troll_game.dart';
+import '../../../../economy_manager.dart';
 import 'troll_stage_plan.dart';
 
 class LevelDevilHost extends StatefulWidget {
@@ -54,7 +55,8 @@ class _LevelDevilHostState extends State<LevelDevilHost> {
           ),
         );
       },
-      onFail: () {
+      onFail: () async {
+        await EconomyManager.deductLife();
         final duration = DateTime.now().difference(_startTime);
         widget.onComplete(
           MiniGameResult(
