@@ -112,6 +112,32 @@ class EconomyManager {
     }
   }
 
+  static Future<bool> buyLivesWithGems(int quantity) async {
+    if (quantity <= 0) return false;
+    final prefs = await SharedPreferences.getInstance();
+    final isVip = _isVipActive(prefs);
+    final maxLives = isVip ? vipMaxLives : normalMaxLives;
+    final lives = (prefs.getInt('ld_lives') ?? maxLives).clamp(0, maxLives);
+    final gems = prefs.getInt('ld_gems') ?? 0;
+    final actual = quantity.clamp(0, maxLives - lives);
+    final cost = actual * 50;
+    if (actual <= 0 || gems < cost) return false;
+    await prefs.setInt('ld_gems', gems - cost);
+    await prefs.setInt('ld_lives', lives + actual);
+    return true;
+  }
+
+  static Future<bool> exchangeGoldForGems(int quantity) async {
+    if (quantity <= 0) return false;
+    final prefs = await SharedPreferences.getInstance();
+    final cost = quantity * 1000;
+    final gold = prefs.getInt('ld_gold') ?? 0;
+    if (gold < cost) return false;
+    await prefs.setInt('ld_gold', gold - cost);
+    await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + quantity * 10);
+    return true;
+  }
+
   static Future<bool> grantRewardedLife() async {
     final prefs = await SharedPreferences.getInstance();
     final isVip = _isVipActive(prefs);
