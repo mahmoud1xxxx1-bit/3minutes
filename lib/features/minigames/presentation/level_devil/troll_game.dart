@@ -167,51 +167,35 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
               ),
             ),
 
-            // Mobile virtual controls
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 18,
+            // Season 1 controls: compact gear-style directional control on the left.
+// Jump is intentionally gesture-based: tap/press anywhere on the right side.
+            Positioned.fill(
               child: SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Row(
-                        children: [
-                          _buildJoypadButton(
-                            icon: Icons.chevron_left_rounded,
-                            onDown: () {
-                              HapticFeedback.selectionClick();
-                              _engine.movingLeft = true;
-                            },
-                            onUp: () => _engine.movingLeft = false,
-                          ),
-                          const SizedBox(width: 10),
-                          _buildJoypadButton(
-                            icon: Icons.chevron_right_rounded,
-                            onDown: () {
-                              HapticFeedback.selectionClick();
-                              _engine.movingRight = true;
-                            },
-                            onUp: () => _engine.movingRight = false,
-                          ),
-                        ],
-                      ),
-                      _buildJoypadButton(
-                        icon: Icons.keyboard_arrow_up_rounded,
-                        onDown: () {
-                          HapticFeedback.lightImpact();
-                          _engine.jumping = true;
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 18,
+                      bottom: 14,
+                      child: _buildGearControl(),
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      width: MediaQuery.of(context).size.width * 0.48,
+                      height: MediaQuery.of(context).size.height * 0.58,
+                      child: Listener(
+                        behavior: HitTestBehavior.translucent,
+                        onPointerDown: (_) {
+                          if (!_paused && !_engine.allComplete) {
+                            HapticFeedback.lightImpact();
+                            _engine.jumping = true;
+                          }
                         },
-                        onUp: () {},
-                        primary: true,
+                        onPointerUp: (_) => _engine.jumping = false,
+                        onPointerCancel: (_) => _engine.jumping = false,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -346,6 +330,103 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   }
 }
 
+  Widget _buildGearControl() {
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 154,
+        height: 86,
+        child: CustomPaint(
+          painter: _SeasonOneGearPainter(),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) {
+                  HapticFeedback.selectionClick();
+                  _engine.movingLeft = true;
+                },
+                onPointerUp: (_) => _engine.movingLeft = false,
+                onPointerCancel: (_) => _engine.movingLeft = false,
+                child: const SizedBox(
+                  width: 58,
+                  height: 72,
+                  child: Center(
+                    child: Icon(Icons.chevron_left_rounded, color: Colors.white, size: 38),
+                  ),
+                ),
+              ),
+              Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) {
+                  HapticFeedback.selectionClick();
+                  _engine.movingRight = true;
+                },
+                onPointerUp: (_) => _engine.movingRight = false,
+                onPointerCancel: (_) => _engine.movingRight = false,
+                child: const SizedBox(
+                  width: 58,
+                  height: 72,
+                  child: Center(
+                    child: Icon(Icons.chevron_right_rounded, color: Colors.white, size: 38),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+class _SeasonOneGearPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final outer = Paint()..color = const Color(0xE50A1124);
+    final border = Paint()
+      ..color = const Color(0x6648DFF5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    final gear = Path();
+    const teeth = 10;
+    final rOuter = 39.0;
+    final rInner = 31.0;
+    for (int i = 0; i < teeth * 2; i++) {
+      final a = -math.pi / 2 + i * math.pi / teeth;
+      final r = i.isEven ? rOuter : rInner;
+      final p = Offset(
+        center.dx + math.cos(a) * r,
+        center.dy + math.sin(a) * r,
+      );
+      if (i == 0) {
+        gear.moveTo(p.dx, p.dy);
+      } else {
+        gear.lineTo(p.dx, p.dy);
+      }
+    }
+    gear.close();
+    canvas.drawPath(gear, outer);
+    canvas.drawPath(gear, border);
+
+    final hub = Paint()..color = const Color(0xFF101A32);
+    canvas.drawCircle(center, 13, hub);
+    canvas.drawCircle(
+      center,
+      13,
+      Paint()
+        ..color = const Color(0x443DDCF4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SeasonOneGearPainter oldDelegate) => false;
+}
+
 class _LifeHud extends StatefulWidget {
   const _LifeHud();
   @override State<_LifeHud> createState() => _LifeHudState();
@@ -433,12 +514,30 @@ class _TrollPainter extends CustomPainter {
           paint.color = e.color;
         }
 
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(e.rect.toRect(), const Radius.circular(4)),
-          paint
-        );
-        paint.color = Colors.white.withValues(alpha: 0.05);
-        canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 4), paint);
+        if (engine.round <= 20) {
+          // Season 1 approved visual: dark stone platform with a thin cyan rim.
+          paint.color = const Color(0xFF20283A);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(e.rect.toRect(), const Radius.circular(3)),
+            paint,
+          );
+          paint.color = const Color(0xFF4E5A72);
+          canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 3), paint);
+          paint.color = const Color(0xFF151B2A);
+          canvas.drawRect(
+            Rect.fromLTWH(e.rect.x, e.rect.y + 3, e.rect.w, e.rect.h - 3),
+            paint,
+          );
+          paint.color = const Color(0xFF39D9F6).withValues(alpha: 0.72);
+          canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 2), paint);
+        } else {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(e.rect.toRect(), const Radius.circular(4)),
+            paint
+          );
+          paint.color = Colors.white.withValues(alpha: 0.05);
+          canvas.drawRect(Rect.fromLTWH(e.rect.x, e.rect.y, e.rect.w, 4), paint);
+        }
 
       } else if (e.type == TrollEntityType.spike) {
         _drawSpike(canvas, e.rect, e.color, e.isInverted);
@@ -600,6 +699,10 @@ class _TrollPainter extends CustomPainter {
   }
 
   void _drawBackground(Canvas canvas) {
+    if (engine.round <= 20) {
+      _drawSeasonOneBackground(canvas);
+      return;
+    }
     final Rect bgRect = Rect.fromLTWH(0, 0, engine.logicalWidth, engine.logicalHeight);
     
     Color gradStart, gradEnd, moonColor, backMount, frontMount;
@@ -763,7 +866,142 @@ class _TrollPainter extends CustomPainter {
     }
   }
 
+  void _drawSeasonOneBackground(Canvas canvas) {
+    final w = engine.logicalWidth;
+    final h = engine.logicalHeight;
+    final rect = Rect.fromLTWH(0, 0, w, h);
+
+    // Approved Season 1 direction: deep indigo sky, large moon, angular
+    // mountains, restrained cyan/purple accents, no visual clutter.
+    final bg = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF111B57),
+          Color(0xFF18235D),
+          Color(0xFF0B112A),
+        ],
+      ).createShader(rect);
+    canvas.drawRect(rect, bg);
+
+    // Very subtle grid, matching the LVL LOOL visual language.
+    final grid = Paint()
+      ..color = const Color(0x142D4C92)
+      ..strokeWidth = 1;
+    for (double x = 0; x <= w; x += 40) {
+      canvas.drawLine(Offset(x, 0), Offset(x, h), grid);
+    }
+    for (double y = 0; y <= h; y += 40) {
+      canvas.drawLine(Offset(0, y), Offset(w, y), grid);
+    }
+
+    // Moon glow.
+    final moonX = 405 - (engine.cameraX * 0.05);
+    final moonCenter = Offset(moonX, 275);
+    final glow = Paint()
+      ..shader = RadialGradient(
+        colors: const [
+          Color(0x6638D8FF),
+          Color(0x2638D8FF),
+          Color(0x0038D8FF),
+        ],
+      ).createShader(Rect.fromCircle(center: moonCenter, radius: 145));
+    canvas.drawCircle(moonCenter, 145, glow);
+    final moon = Paint()..color = const Color(0xFF438FD0).withValues(alpha: 0.78);
+    canvas.drawCircle(moonCenter, 72, moon);
+    final moonShade = Paint()..color = const Color(0xFF24548C).withValues(alpha: 0.38);
+    canvas.drawCircle(Offset(moonX + 18, 260), 64, moonShade);
+
+    final backOffset = -(engine.cameraX * 0.18) % 800;
+    final frontOffset = -(engine.cameraX * 0.42) % 800;
+
+    // Back angular mountains.
+    final back = Paint()..color = const Color(0xFF1B2A58);
+    for (int i = 0; i < 2; i++) {
+      final sx = backOffset + i * 800;
+      final p = Path()
+        ..moveTo(sx, 500)
+        ..lineTo(sx + 105, 420)
+        ..lineTo(sx + 205, 315)
+        ..lineTo(sx + 315, 230)
+        ..lineTo(sx + 455, 345)
+        ..lineTo(sx + 610, 285)
+        ..lineTo(sx + 800, 410)
+        ..lineTo(sx + 800, 520)
+        ..close();
+      canvas.drawPath(p, back);
+    }
+
+    // Front dark mountain ridge.
+    final front = Paint()..color = const Color(0xFF101A38);
+    for (int i = 0; i < 2; i++) {
+      final sx = frontOffset + i * 800;
+      final p = Path()
+        ..moveTo(sx, 545)
+        ..lineTo(sx + 180, 440)
+        ..lineTo(sx + 315, 365)
+        ..lineTo(sx + 485, 475)
+        ..lineTo(sx + 625, 385)
+        ..lineTo(sx + 800, 500)
+        ..lineTo(sx + 800, 560)
+        ..close();
+      canvas.drawPath(p, front);
+    }
+
+    // Restrained cyan edge lights on a few mountain facets.
+    final edge = Paint()
+      ..color = const Color(0xFF2CCFF1).withValues(alpha: 0.46)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(
+      Offset(70 - engine.cameraX * 0.18, 465),
+      Offset(190 - engine.cameraX * 0.18, 360),
+      edge,
+    );
+    canvas.drawLine(
+      Offset(525 - engine.cameraX * 0.18, 345),
+      Offset(615 - engine.cameraX * 0.18, 430),
+      edge,
+    );
+
+    // Small floating crystalline islands are environmental decoration only.
+    final islandPaint = Paint()..color = const Color(0xFF182340);
+    void island(double x, double y, double width) {
+      final top = Rect.fromLTWH(x, y, width, 10);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(top, const Radius.circular(2)),
+        islandPaint,
+      );
+      final p = Path()
+        ..moveTo(x + 8, y + 10)
+        ..lineTo(x + width * .50, y + 42)
+        ..lineTo(x + width - 8, y + 10)
+        ..close();
+      canvas.drawPath(p, islandPaint);
+      final rim = Paint()..color = const Color(0xFF36D9F4).withValues(alpha: 0.72);
+      canvas.drawRect(Rect.fromLTWH(x, y, width, 2), rim);
+    }
+    island(505 - engine.cameraX * 0.12, 252, 112);
+    island(690 - engine.cameraX * 0.12, 318, 94);
+
+    // A few crystals, deliberately sparse.
+    final crystal = Paint()..color = const Color(0xFF52E6FF);
+    void crystalAt(double x, double y, double s) {
+      final p = Path()
+        ..moveTo(x, y - s)
+        ..lineTo(x + s * .55, y)
+        ..lineTo(x, y + s)
+        ..lineTo(x - s * .55, y)
+        ..close();
+      canvas.drawPath(p, crystal);
+    }
+    crystalAt(560 - engine.cameraX * 0.12, 235, 10);
+    crystalAt(742 - engine.cameraX * 0.12, 300, 9);
+  }
+
   void _drawGrid(Canvas canvas) {
+
     var paint = Paint()
       ..color = Colors.white.withOpacity(0.01)
       ..strokeWidth = 1;
