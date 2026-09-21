@@ -119,8 +119,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
             Column(
               children: [
                 Expanded(
-                  child: Center(
-                    child: SizedBox.expand(
+                  child: SizedBox.expand(
                       child: ClipRect(
                         child: CustomPaint(
                           painter: _TrollPainter(_engine),
@@ -243,10 +242,21 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                           const SizedBox(height: 8),
                           const Text('Take a breath. Your stage is waiting.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60)),
                           const SizedBox(height: 22),
-                          FilledButton.icon(
-                            onPressed: _togglePause,
-                            icon: const Icon(Icons.play_arrow_rounded),
-                            label: const Text('RESUME'),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              FilledButton.icon(
+                                onPressed: _togglePause,
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: const Text('RESUME'),
+                              ),
+                              const SizedBox(width: 10),
+                              OutlinedButton.icon(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.exit_to_app_rounded),
+                                label: const Text('EXIT'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
