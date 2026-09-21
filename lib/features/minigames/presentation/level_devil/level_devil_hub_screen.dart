@@ -10,8 +10,13 @@ import '../../../../services/life_recovery_dialog.dart';
 import 'troll_stage_plan.dart';
 
 class LevelDevilHubScreen extends StatefulWidget {
-  const LevelDevilHubScreen({super.key, this.inline = false});
+  const LevelDevilHubScreen({
+    super.key,
+    this.inline = false,
+    this.onMainMenu,
+  });
   final bool inline;
+  final VoidCallback? onMainMenu;
 
   @override
   State<LevelDevilHubScreen> createState() => _LevelDevilHubScreenState();
