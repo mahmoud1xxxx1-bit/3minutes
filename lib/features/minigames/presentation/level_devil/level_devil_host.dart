@@ -41,6 +41,7 @@ class _LevelDevilHostState extends State<LevelDevilHost> {
       maxRounds: 1, // Single stage in host mode
       levelsPerMechanic: plan.levelsPerMechanic,
       mechanicOffset: plan.mechanicOffset,
+      stageSeedOverride: stageId,
       onWin: (int score) {
         final duration = DateTime.now().difference(_startTime);
         widget.onComplete(
