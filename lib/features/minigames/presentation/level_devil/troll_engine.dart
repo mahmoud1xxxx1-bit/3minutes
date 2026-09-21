@@ -697,10 +697,11 @@ class TrollEngine {
   TrollEngine({
     this.round = 1,
     this.maxRounds = 2,
-    this.levelsPerMechanic = 3,  // 3 for Season 11, 5 for Seasons 1-5
-    this.mechanicOffset = 0,     // 0=S1/S11, 4=S2, 8=S3, 12=S4, 16=S5
+    this.levelsPerMechanic = 3,
+    this.mechanicOffset = 0,
+    this.stageSeedOverride,
   }) {
-    stageSeed = round + (mechanicOffset * 1000);
+    stageSeed = _seedForRound(round);
     rng = Random(stageSeed); // generation RNG only
     _loadLevel(round);
   }
@@ -712,6 +713,10 @@ class TrollEngine {
   final int maxRounds;
   final int levelsPerMechanic;
   final int mechanicOffset;
+  /// Optional global-stage seed. Used by host mode so reused Season 6 ideas
+  /// still produce distinct deterministic layouts from their original stages.
+  final int? stageSeedOverride;
+
   bool invertedControls = false;
   
   final double logicalWidth = 800;
@@ -785,6 +790,9 @@ class TrollEngine {
   // Player Animation state
   double playerFaceDir = 1.0; 
   double playerScale = 1.0;
+
+  int _seedForRound(int roundId) =>
+      stageSeedOverride ?? (roundId + (mechanicOffset * 1000));
 
   // ── Level design helpers ─────────────────────────────────────────────────
 
@@ -876,7 +884,7 @@ class TrollEngine {
     if (failed) {
       if (roundHearts > 0) {
         // Retry same round, reseed for exact same layout (muscle memory)
-        stageSeed = round + (mechanicOffset * 1000);
+        stageSeed = _seedForRound(round);
         rng = Random(stageSeed);
         _loadLevel(round);
       } else {
