@@ -308,17 +308,30 @@ class _MailboxPanelState extends State<_MailboxPanel> {
 
   Future<void> _claim(int index) async {
     if (_mails[index]['claimed'] == true) return;
-    final prefs = await SharedPreferences.getInstance();
-    final gems = (_mails[index]['gems'] as num?)?.toInt() ?? 0;
-    final gold = (_mails[index]['gold'] as num?)?.toInt() ?? 0;
-    await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + gems);
-    await prefs.setInt('ld_gold', (prefs.getInt('ld_gold') ?? 0) + gold);
-    final raw = prefs.getStringList('ld_mailbox') ?? [];
-    if (index < raw.length) {
-      final mail = Map<String, dynamic>.from(jsonDecode(raw[index]) as Map);
-      mail['claimed'] = true;
-      raw[index] = jsonEncode(mail);
-      await prefs.setStringList('ld_mailbox', raw);
+    final mail = _mails[index];
+    if (mail['type'] == 'vip_lives') {
+      final id = mail['id']?.toString() ?? '';
+      final ok = id.isNotEmpty
+          ? await EconomyManager.claimVipLifeMailById(id)
+          : await EconomyManager.claimVipLifeMail(index);
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('The 30 Lives reward can be claimed when your current lives reach zero.')),
+        );
+      }
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      final gems = (mail['gems'] as num?)?.toInt() ?? 0;
+      final gold = (mail['gold'] as num?)?.toInt() ?? 0;
+      await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + gems);
+      await prefs.setInt('ld_gold', (prefs.getInt('ld_gold') ?? 0) + gold);
+      final raw = prefs.getStringList('ld_mailbox') ?? [];
+      if (index < raw.length) {
+        final updated = Map<String, dynamic>.from(jsonDecode(raw[index]) as Map);
+        updated['claimed'] = true;
+        raw[index] = jsonEncode(updated);
+        await prefs.setStringList('ld_mailbox', raw);
+      }
     }
     HapticFeedback.mediumImpact();
     await _load();
@@ -368,6 +381,7 @@ class _MailboxPanelState extends State<_MailboxPanel> {
         Text('${mail['message'] ?? 'A reward is waiting for you.'}', style: const TextStyle(color: GameColors.textSoft, fontSize: 11, height: 1.35)),
         const SizedBox(height: 12),
         Wrap(spacing: 7, children: [
+          if (mail['type'] == 'vip_lives') _rewardChip(Icons.favorite_rounded, '+${mail['lives'] ?? 30} LIVES', GameColors.danger),
           if (gems > 0) _rewardChip(Icons.diamond_rounded, '${gems} GEMS', GameColors.accentBright),
           if (gold > 0) _rewardChip(Icons.monetization_on_rounded, '${gold} GOLD', GameColors.rewardGold),
         ]),
