@@ -47,6 +47,9 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   bool _paused = false;
   _TrollResult? _result;
   int _deathCount = 0;
+  int _rewardGold = 0;
+  int _rewardGems = 0;
+  bool _rewardFirstClear = false;
 
   @override
   void initState() {
@@ -78,11 +81,27 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
       _ticker.stop();
       if (_result == null && mounted) {
         final won = _engine.completedAsWin;
-        if (!won) _deathCount++;
+        if (!won) {
+          _deathCount++;
+        }
+
+        Map<String, dynamic>? reward;
+        if (won) {
+          // Settle the economy from the immutable global stage id, not the
+          // local mechanic round. This keeps Season 6 rewards correct.
+          reward = await EconomyManager.processWin(widget.stageId);
+        }
+
+        if (!mounted) return;
         setState(() {
           _result = won
               ? _TrollResult.victory
               : (_deathCount >= 2 ? _TrollResult.failed : _TrollResult.dead);
+          if (reward != null) {
+            _rewardGold = reward['gold'] as int? ?? 0;
+            _rewardGems = reward['gems'] as int? ?? 0;
+            _rewardFirstClear = reward['isFirst'] == true;
+          }
         });
         if (!won) {
           // A life is consumed for every actual death. Navigation is never
@@ -368,6 +387,57 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                       letterSpacing: 1.2,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: accent.withOpacity(.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: accent.withOpacity(.24)),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          _rewardFirstClear ? 'FIRST CLEAR REWARD' : 'CLEAR REWARD',
+                          style: TextStyle(
+                            color: accent,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.6,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        if (_rewardGems > 0)
+                          Text(
+                            '+${_rewardGems} GEMS',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        else if (_rewardGold > 0)
+                          Text(
+                            '+${_rewardGold} GOLD',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          )
+                        else
+                          const Text(
+                            'NO REWARD',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 22),
                 if (isVictory && widget.stageId < 175)
@@ -439,6 +509,9 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
       _result = null;
       _paused = false;
       _lastTime = Duration.zero;
+      _rewardGold = 0;
+      _rewardGems = 0;
+      _rewardFirstClear = false;
     });
     _ticker.start();
     _focusNode.requestFocus();
