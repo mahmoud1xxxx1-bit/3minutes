@@ -360,11 +360,25 @@ class _LifeHudState extends State<_LifeHud> {
     setState(() { _lives = s['lives'] as int? ?? 10; _max = s['maxLives'] as int? ?? 10; });
     Future.delayed(const Duration(seconds: 1), _refresh);
   }
-  @override Widget build(BuildContext context) => _hudPill(
-    icon: Icons.favorite_rounded,
-    color: const Color(0xFFFF5478),
-    text: '$_lives/$_max',
-  );
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xD90A1124),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x66FF5478)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.favorite_rounded, color: Color(0xFFFF5478), size: 17),
+          const SizedBox(width: 6),
+          Text('$_lives/$_max', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+        ],
+      ),
+    );
+  }
 }
 class _TrollPainter extends CustomPainter {
   _TrollPainter(this.engine);
