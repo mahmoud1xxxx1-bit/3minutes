@@ -26,108 +26,160 @@ import 'package:flutter/services.dart';
 import 'package:flutter/services.dart';
 
 class EconomyManager {
+  static const int normalMaxLives = 10;
+  static const int vipMaxLives = 30;
+  static const int rewardedLifeDailyLimit = 10;
+
+  static bool _isVipActive(SharedPreferences prefs) {
+    final vip = prefs.getBool('ld_vip') ?? false;
+    final expiry = prefs.getInt('ld_vip_expiry') ?? 0;
+    if (!vip) return false;
+    if (expiry > 0 && DateTime.now().millisecondsSinceEpoch >= expiry) return false;
+    return true;
+  }
+
+  static int _refillMinutesForNextLife(int lives) =>
+      (normalMaxLives - lives).clamp(1, normalMaxLives) + 2;
+
+  static Future<void> _ensureVipDailyMail(SharedPreferences prefs) async {
+    if (!_isVipActive(prefs)) return;
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+    final lastDailyDate = prefs.getString('ld_vip_last_daily_date') ?? '';
+    if (lastDailyDate == today) return;
+    final mails = prefs.getStringList('ld_mailbox') ?? [];
+    mails.insert(0, jsonEncode({
+      'id': 'vip_daily_$today',
+      'type': 'vip_daily_economy',
+      'title': 'VIP Daily Reward',
+      'body': 'Daily VIP reward: 10,000 Gold + 50 Gems.',
+      'gold': 10000,
+      'gems': 50,
+      'claimed': false,
+    }));
+    mails.insert(0, jsonEncode({
+      'id': 'vip_lives_$today',
+      'type': 'vip_lives',
+      'title': 'VIP 30 Lives',
+      'body': '30 Lives are ready when your current lives reach zero.',
+      'lives': vipMaxLives,
+      'claimed': false,
+    }));
+    if (mails.length > 100) mails.removeRange(100, mails.length);
+    await prefs.setStringList('ld_mailbox', mails);
+    await prefs.setString('ld_vip_last_daily_date', today);
+  }
+
+  static Future<void> activateWeeklyVip() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiry = DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch;
+    await prefs.setBool('ld_vip', true);
+    await prefs.setInt('ld_vip_expiry', expiry);
+    await prefs.setInt('ld_lives', vipMaxLives);
+    await prefs.remove('ld_zero_timestamp');
+    await prefs.remove('ld_refill_started_at');
+    await prefs.remove('ld_refill_minutes');
+    await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + 500);
+    await _ensureVipDailyMail(prefs);
+  }
+
   static Future<void> deductLife() async {
     final prefs = await SharedPreferences.getInstance();
-    int lives = prefs.getInt('ld_lives') ?? 10;
-    if (lives > 0) {
-      lives--;
-      await prefs.setInt('ld_lives', lives);
-      if (lives == 0) {
-        await prefs.setInt('ld_zero_timestamp', DateTime.now().millisecondsSinceEpoch);
-        String today = DateTime.now().toIso8601String().substring(0, 10);
-        String lastDate = prefs.getString('ld_penalty_date') ?? '';
-        int pCount = prefs.getInt('ld_penalty_count') ?? 0;
-        if (lastDate != today) {
-          pCount = 1;
-          await prefs.setString('ld_penalty_date', today);
-        } else {
-          pCount++;
-        }
-        await prefs.setInt('ld_penalty_count', pCount);
+    final maxLives = _isVipActive(prefs) ? vipMaxLives : normalMaxLives;
+    var lives = prefs.getInt('ld_lives') ?? maxLives;
+    if (lives <= 0) return;
+    lives--;
+    await prefs.setInt('ld_lives', lives);
+    if (lives == 0) {
+      if (_isVipActive(prefs)) {
+        await prefs.remove('ld_refill_started_at');
+        await prefs.remove('ld_refill_minutes');
+      } else {
+        await prefs.setInt('ld_refill_started_at', DateTime.now().millisecondsSinceEpoch);
+        await prefs.setInt('ld_refill_minutes', 3);
       }
     }
   }
 
   static Future<Map<String, dynamic>> checkEconomy() async {
     final prefs = await SharedPreferences.getInstance();
-    
-    // Check VIP Mailbox Daily Delivery
-    bool isVip = prefs.getBool('ld_vip') ?? false;
-    if (isVip) {
-      String today = DateTime.now().toIso8601String().substring(0, 10);
-      String lastMailDate = prefs.getString('ld_last_vip_mail_date') ?? '';
-      if (lastMailDate != today) {
-        // Deliver daily mail
-        List<String> mails = prefs.getStringList('ld_mailbox') ?? [];
-        mails.insert(0, jsonEncode({
-          'id': 'vip_',
-          'title': 'VIP Daily Reward',
-          'body': 'Thanks for being a VIP! Here is your daily reward.',
-          'gold': 10000,
-          'gems': 50,
-          'claimed': false,
-        }));
-        if (mails.length > 100) {
-          mails = mails.sublist(0, 100);
-        }
-        await prefs.setStringList('ld_mailbox', mails);
-        await prefs.setString('ld_last_vip_mail_date', today);
-      }
-    }
-
-    int maxLives = isVip ? 30 : 10;
-    int lives = prefs.getInt('ld_lives') ?? maxLives;
+    await _ensureVipDailyMail(prefs);
+    final isVip = _isVipActive(prefs);
+    final maxLives = isVip ? vipMaxLives : normalMaxLives;
+    var lives = prefs.getInt('ld_lives') ?? maxLives;
     int? targetTime;
 
-    if (lives == 0) {
-      int zeroTime = prefs.getInt('ld_zero_timestamp') ?? 0;
-      if (zeroTime == 0) {
-        zeroTime = DateTime.now().millisecondsSinceEpoch;
-        await prefs.setInt('ld_zero_timestamp', zeroTime);
+    if (!isVip && lives < normalMaxLives) {
+      var startedAt = prefs.getInt('ld_refill_started_at');
+      var refillMinutes = prefs.getInt('ld_refill_minutes');
+      if (startedAt == null || refillMinutes == null) {
+        startedAt = DateTime.now().millisecondsSinceEpoch;
+        refillMinutes = _refillMinutesForNextLife(lives);
+        await prefs.setInt('ld_refill_started_at', startedAt);
+        await prefs.setInt('ld_refill_minutes', refillMinutes);
       }
-      int pCount = prefs.getInt('ld_penalty_count') ?? 1;
-      if (pCount < 1) pCount = 1;
-      int waitMinutes = (pCount * 15).clamp(15, 60);
-      DateTime targetDate = DateTime.fromMillisecondsSinceEpoch(zeroTime).add(Duration(minutes: waitMinutes));
-      
-      if (DateTime.now().isAfter(targetDate)) {
-        lives = 1;
+      final elapsed = DateTime.now().millisecondsSinceEpoch - startedAt;
+      if ((elapsed ~/ 60000) >= refillMinutes) {
+        lives = (lives + 1).clamp(0, normalMaxLives);
         await prefs.setInt('ld_lives', lives);
-        await prefs.remove('ld_zero_timestamp');
-      } else {
-        targetTime = targetDate.millisecondsSinceEpoch;
+        if (lives < normalMaxLives) {
+          final nextMinutes = _refillMinutesForNextLife(lives);
+          final cycleStart = startedAt + (refillMinutes * 60000);
+          await prefs.setInt('ld_refill_started_at', cycleStart);
+          await prefs.setInt('ld_refill_minutes', nextMinutes);
+        } else {
+          await prefs.remove('ld_refill_started_at');
+          await prefs.remove('ld_refill_minutes');
+        }
+      }
+      if (lives < normalMaxLives) {
+        final currentStart = prefs.getInt('ld_refill_started_at')!;
+        final currentMinutes = prefs.getInt('ld_refill_minutes')!;
+        targetTime = currentStart + (currentMinutes * 60000);
       }
     }
-    
-    List<String> mails = prefs.getStringList('ld_mailbox') ?? [];
-    int unreadCount = mails.where((m) {
-        try {
-          return jsonDecode(m)['claimed'] != true;
-        } catch (_) {
-          return true;
-        }
-      }).length;
-      
-      return {
-        'lives': lives, 
-        'maxLives': maxLives, 
-        'targetTime': targetTime,
-        'gold': prefs.getInt('ld_gold') ?? 0,
-        'gems': prefs.getInt('ld_gems') ?? 0,
-        'unreadMail': unreadCount,
-      };
+
+    final mails = prefs.getStringList('ld_mailbox') ?? [];
+    final unreadCount = mails.where((m) {
+      try { return jsonDecode(m)['claimed'] != true; } catch (_) { return true; }
+    }).length;
+
+    return {
+      'lives': lives,
+      'maxLives': maxLives,
+      'targetTime': targetTime,
+      'gold': prefs.getInt('ld_gold') ?? 0,
+      'gems': prefs.getInt('ld_gems') ?? 0,
+      'unreadMail': unreadCount,
+      'isVip': isVip,
+    };
+  }
+
+  static Future<bool> claimVipLifeMail(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!_isVipActive(prefs)) return false;
+    final mails = prefs.getStringList('ld_mailbox') ?? [];
+    if (index < 0 || index >= mails.length) return false;
+    final mail = jsonDecode(mails[index]) as Map<String, dynamic>;
+    if (mail['type'] != 'vip_lives' || mail['claimed'] == true) return false;
+    final lives = prefs.getInt('ld_lives') ?? vipMaxLives;
+    if (lives > 0) return false;
+    await prefs.setInt('ld_lives', vipMaxLives);
+    await prefs.remove('ld_refill_started_at');
+    await prefs.remove('ld_refill_minutes');
+    mail['claimed'] = true;
+    mails[index] = jsonEncode(mail);
+    await prefs.setStringList('ld_mailbox', mails);
+    return true;
   }
 
   static Future<Map<String, dynamic>> processWin(int round) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> completed = prefs.getStringList('ld_completed_rounds') ?? [];
-    String roundStr = round.toString();
-    bool isFirst = !completed.contains(roundStr);
-    
-    int diff = (round - 1) % 3; // 0=Easy, 1=Medium, 2=Hard
+    final roundStr = round.toString();
+    final isFirst = !completed.contains(roundStr);
+    final diff = (round - 1) % 3;
     int gems = 0;
     int gold = 0;
-
     if (isFirst) {
       gems = diff == 0 ? 1 : diff == 1 ? 3 : 5;
       completed.add(roundStr);
@@ -135,20 +187,11 @@ class EconomyManager {
     } else {
       gold = diff == 0 ? 100 : diff == 1 ? 250 : 500;
     }
-
-    if (gems > 0) {
-      int currentGems = prefs.getInt('ld_gems') ?? 0;
-      await prefs.setInt('ld_gems', currentGems + gems);
-    }
-    if (gold > 0) {
-      int currentGold = prefs.getInt('ld_gold') ?? 0;
-      await prefs.setInt('ld_gold', currentGold + gold);
-    }
-
+    if (gems > 0) await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + gems);
+    if (gold > 0) await prefs.setInt('ld_gold', (prefs.getInt('ld_gold') ?? 0) + gold);
     return {'gems': gems, 'gold': gold, 'isFirst': isFirst};
   }
 }
-
 
 class RewardClaimAnimation extends StatefulWidget {
   final int gold;
@@ -268,25 +311,30 @@ class _MailboxDialogState extends State<MailboxDialog> {
   }
 
   Future<void> _claimMail(int index) async {
+    if (index < 0 || index >= _mails.length) return;
     final mail = _mails[index];
     if (mail['claimed'] == true) return;
-    
+    if (mail['type'] == 'vip_lives') {
+      final claimed = await EconomyManager.claimVipLifeMail(index);
+      if (!claimed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This 30-life reward unlocks when your current lives reach zero.')),
+        );
+      }
+      await _loadMails();
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
-    int cGems = prefs.getInt('ld_gems') ?? 0;
-    int cGold = prefs.getInt('ld_gold') ?? 0;
-    
-    await prefs.setInt('ld_gems', cGems + (mail['gems'] as int));
-    await prefs.setInt('ld_gold', cGold + (mail['gold'] as int));
-
-    List<String> rawMails = prefs.getStringList('ld_mailbox') ?? [];
+    await prefs.setInt('ld_gems', (prefs.getInt('ld_gems') ?? 0) + ((mail['gems'] ?? 0) as int));
+    await prefs.setInt('ld_gold', (prefs.getInt('ld_gold') ?? 0) + ((mail['gold'] ?? 0) as int));
+    final rawMails = prefs.getStringList('ld_mailbox') ?? [];
     if (index >= 0 && index < rawMails.length) {
-      Map<String, dynamic> updatedMail = jsonDecode(rawMails[index]);
+      final updatedMail = jsonDecode(rawMails[index]) as Map<String, dynamic>;
       updatedMail['claimed'] = true;
       rawMails[index] = jsonEncode(updatedMail);
       await prefs.setStringList('ld_mailbox', rawMails);
     }
-    
-    _loadMails();
+    await _loadMails();
   }
 
   @override
@@ -337,16 +385,24 @@ class _MailboxDialogState extends State<MailboxDialog> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.diamond_rounded, color: Colors.cyanAccent, size: 16),
-                                      const SizedBox(width: 4),
-                                      Text('+${m['gems']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                      const SizedBox(width: 12),
-                                      const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
-                                      const SizedBox(width: 4),
-                                      Text('+${m['gold']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    ],
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        if (m['type'] == 'vip_lives') ...[
+                                          const Icon(Icons.favorite_rounded, color: Colors.redAccent, size: 18),
+                                          const SizedBox(width: 5),
+                                          Text('+' + (m['lives'] ?? 30).toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                        ] else ...[
+                                          const Icon(Icons.diamond_rounded, color: Colors.cyanAccent, size: 16),
+                                          const SizedBox(width: 4),
+                                          Text('+' + (m['gems'] ?? 0).toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                          const SizedBox(width: 12),
+                                          const Icon(Icons.monetization_on, color: Colors.amber, size: 16),
+                                          const SizedBox(width: 4),
+                                          Text('+' + (m['gold'] ?? 0).toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                        ],
+                                      ],
+                                    ),
                                   ),
                                   m['claimed'] == true
                                       ? const Padding(
@@ -356,7 +412,7 @@ class _MailboxDialogState extends State<MailboxDialog> {
                                       : ElevatedButton(
                                           onPressed: () => _claimMail(index),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
+                                            backgroundColor: m['type'] == 'vip_lives' ? Colors.redAccent : Colors.green,
                                             foregroundColor: Colors.white,
                                             minimumSize: const Size(60, 32),
                                             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -366,9 +422,6 @@ class _MailboxDialogState extends State<MailboxDialog> {
                                         ),
                                 ],
                               )
-                            ],
-                          ),
-                        );
                       },
                     ),
             ),
@@ -1926,7 +1979,7 @@ class _OutOfLivesDialogState extends State<OutOfLivesDialog> {
             const SizedBox(height: 16),
             Text(L10n.get('refill_in') ?? 'Refill in', style: const TextStyle(color: Colors.white70, fontSize: 16)),
             const SizedBox(height: 8),
-            Text(':', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+            Text(m.toString().padLeft(2, '0') + ':' + s.toString().padLeft(2, '0'), style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
