@@ -28,13 +28,14 @@ class _StoreScreenState extends State<StoreScreen> {
   }
 
   Future<void> _loadEconomy() async {
-    final prefs = await SharedPreferences.getInstance();
+    final state = await EconomyManager.checkEconomy();
+    if (!mounted) return;
     setState(() {
-      _gold = prefs.getInt('ld_gold') ?? 0;
-      _gems = prefs.getInt('ld_gems') ?? 0;
-      _lives = prefs.getInt('ld_lives') ?? 10;
-      _isVip = prefs.getBool('ld_vip') ?? false;
-      _maxLives = _isVip ? 30 : 10;
+      _gold = state['gold'] as int? ?? 0;
+      _gems = state['gems'] as int? ?? 0;
+      _lives = state['lives'] as int? ?? 10;
+      _isVip = state['isVip'] == true;
+      _maxLives = state['maxLives'] as int? ?? 10;
     });
   }
 
@@ -98,9 +99,11 @@ class _StoreScreenState extends State<StoreScreen> {
           if (mounted) GamePopups.showError(context, message: L10n.get('need_gems_msg').replaceAll('{cost}', cost.toString()));
           return;
         }
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('ld_gems', _gems - cost);
-        await prefs.setInt('ld_lives', _lives + actualQty);
+        final ok = await EconomyManager.buyLivesWithGems(actualQty);
+        if (!ok) {
+          if (mounted) GamePopups.showError(context, message: L10n.get('need_gems_msg').replaceAll('{cost}', cost.toString()));
+          return;
+        }
         _loadEconomy();
         if (mounted) GamePopups.showSuccess(context, title: L10n.get('bought_lives_title'), message: L10n.get('bought_lives_msg').replaceAll('{qty}', actualQty.toString()));
       }
@@ -122,9 +125,11 @@ class _StoreScreenState extends State<StoreScreen> {
           if (mounted) GamePopups.showError(context, message: L10n.get('need_gold_msg').replaceAll('{gold}', goldCost.toString()));
           return;
         }
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('ld_gold', _gold - goldCost);
-        await prefs.setInt('ld_gems', _gems + gemGain);
+        final ok = await EconomyManager.exchangeGoldForGems(_goldQty);
+        if (!ok) {
+          if (mounted) GamePopups.showError(context, message: L10n.get('need_gold_msg').replaceAll('{gold}', goldCost.toString()));
+          return;
+        }
         _loadEconomy();
         if (mounted) GamePopups.showSuccess(context, title: L10n.get('exchange_success_title'), message: L10n.get('exchange_success_msg').replaceAll('{gold}', goldCost.toString()).replaceAll('{gems}', gemGain.toString()));
       }
