@@ -1688,7 +1688,6 @@ class TrollEngine {
               ? {'ASpike': 2, 'Thwomp': 3, 'ESpike': 3, 'FSolid': 2, 'Chain': 2, 'FDoor': 2, 'MThwomp': 2, 'Timed': 2}
               : {'ASpike': 2, 'Thwomp': 3, 'ESpike': 3, 'FSolid': 2, 'Chain': 2, 'FDoor': 3,
                  'MThwomp': 2, 'Timed': 2, 'TSpy': 2, '2Spike': 2, 'JDrop': 2, 'RevCtrl': 1}));
-    }
 
     } else if (mechId == 21) {
       // S6 Group 1 — Invisible Blocks (source-defined group)
