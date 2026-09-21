@@ -1734,9 +1734,47 @@ class TrollEngine {
               : {'Spike': 10, 'FFloor': 1}));
 
     } else if (mechId == 25) {
-      runMashup(freeze: true, easy: {'Spike': 4, 'FFloor': 3, 'ASpike': 2},
-          medium: {'Spike': 4, 'FFloor': 3, 'ASpike': 3, 'TimeTog': 2},
-          hard: {'Spike': 5, 'FFloor': 4, 'ESpike': 3, 'TimeTog': 2});
+      // S6 Group 5 — Timed Platforms (new Season 6-only idea).
+      // This mechanic is intentionally distinct from the 20 established
+      // Season 1-5 ideas: platforms cycle between visible/solid and hidden.
+      isIceLevel = false;
+      currentCol = 18;
+      final platformWidth = diff == 1 ? 5 : diff == 2 ? 4 : 3;
+      final platformCount = diff == 1 ? 9 : diff == 2 ? 12 : 15;
+
+      for (int i = 0; i < platformCount; i++) {
+        if (currentCol + platformWidth + 8 >= mapCols) break;
+
+        for (int j = 0; j < platformWidth; j++) {
+          grid[13][currentCol + j] = 'X';
+          grid[14][currentCol + j] = 'X';
+        }
+
+        traps.add(TimedPlatformTrap(
+          List.generate(
+            platformWidth,
+            (j) => 'b_13_' + (currentCol + j).toString(),
+          ) +
+              List.generate(
+                platformWidth,
+                (j) => 'b_14_' + (currentCol + j).toString(),
+              ),
+          showDuration: diff == 1 ? 3.2 : diff == 2 ? 2.6 : 2.1,
+          hideDuration: diff == 1 ? 2.8 : diff == 2 ? 2.4 : 2.0,
+        ));
+
+        if (diff >= 2 && i.isOdd && currentCol + platformWidth + 2 < mapCols) {
+          grid[12][currentCol + platformWidth + 2] = 's';
+        }
+
+        currentCol += platformWidth + (diff == 1 ? 5 : diff == 2 ? 4 : 3);
+      }
+
+      for (int c = currentCol; c < currentCol + 10 && c < mapCols; c++) {
+        grid[13][c] = 'X';
+        grid[14][c] = 'X';
+      }
+      addRunningDoor(5, 0);
 
     } else if (mechId == 26) {
       runMashup(bouncy: true, easy: {'JDrop': 4, 'Spike': 3, 'FFloor': 3},
