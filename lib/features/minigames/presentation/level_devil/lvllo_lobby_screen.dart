@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme/cosmic_background.dart';
 import '../../../../core/theme/design_tokens.dart';
+import '../../../../core/theme/lvllo_brand.dart';
 import '../../../../core/theme/game_bottom_nav.dart';
 import '../../../../store_screen.dart';
 import 'level_devil_hub_screen.dart';
@@ -105,7 +106,7 @@ class _LvlloLobbyScreenState extends State<LvlloLobbyScreen> {
             Container(
               width: 52, height: 52,
               decoration: BoxDecoration(shape: BoxShape.circle, gradient: GameColors.cosmicGradient, boxShadow: GameShadows.primaryGlow),
-              child: const Center(child: Icon(Icons.smart_toy_rounded, size: 29, color: GameColors.backgroundDeep)),
+              child: const Center(child: LvlloBrandMark(size: 52)),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -191,7 +192,7 @@ class _LvlloLobbyScreenState extends State<LvlloLobbyScreen> {
                 right: -25, top: -35,
                 child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, gradient: GameColors.cosmicGradient, boxShadow: GameShadows.primaryGlow)),
               ),
-              const Positioned(right: 28, top: 34, child: Icon(Icons.warning_amber_rounded, size: 65, color: GameColors.backgroundDeep)),
+              const Positioned(right: 26, top: 26, child: LvlloBrandMark(size: 82)),
               const Positioned(left: 18, bottom: 14, child: Text('PREPARE TO RAGE', style: TextStyle(color: GameColors.textSoft, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2))),
             ],
           ),
