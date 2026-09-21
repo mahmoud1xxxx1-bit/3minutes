@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import '../../../../core/theme/cosmic_background.dart';
 import '../../../../core/theme/design_tokens.dart';
 import 'troll_game.dart';
+import '../../../../economy_manager.dart';
+import '../../../../services/life_recovery_dialog.dart';
 import 'troll_stage_plan.dart';
 
 class LevelDevilHubScreen extends StatefulWidget {
@@ -29,7 +31,12 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
       builder: (_) => _StageIntro(plan: plan),
     );
     if (start != true || !mounted) return;
-
+    final economy = await EconomyManager.checkEconomy();
+    if ((economy['lives'] as int? ?? 0) <= 0) {
+      if (!mounted) return;
+      await showLifeRecoveryDialog(context);
+      return;
+    }
     HapticFeedback.mediumImpact();
     await Navigator.of(context).push(
       PageRouteBuilder<void>(
@@ -41,7 +48,7 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
           levelsPerMechanic: plan.levelsPerMechanic,
           mechanicOffset: plan.mechanicOffset,
           onWin: (_) => Navigator.of(context).pop(),
-          onFail: () => Navigator.of(context).pop(),
+          onFail: () async {\n            await EconomyManager.deductLife();\n            if (context.mounted) Navigator.of(context).pop();\n          },
         ),
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
