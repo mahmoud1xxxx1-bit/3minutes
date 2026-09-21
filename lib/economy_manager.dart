@@ -282,13 +282,22 @@ class EconomyManager {
     }
   }
 
-  static Future<Map<String, dynamic>> processWin(int round) async {
+  /// Settles the reward for a globally numbered stage (1..175).
+  ///
+  /// First clear: Gems according to the stage's 3-stage reward cycle.
+  /// Repeat clear: Gold according to the same cycle.
+  /// The global stage id is intentional: Season 6 stage 101 must not be
+  /// treated as local round 1.
+  static Future<Map<String, dynamic>> processWin(int stageId) async {
+    if (stageId < 1) {
+      throw ArgumentError.value(stageId, 'stageId', 'Must be >= 1.');
+    }
     final prefs = await SharedPreferences.getInstance();
     final completed =
         prefs.getStringList('ld_completed_rounds') ?? <String>[];
-    final roundStr = round.toString();
-    final isFirst = !completed.contains(roundStr);
-    final diff = (round - 1) % 3;
+    final stageKey = stageId.toString();
+    final isFirst = !completed.contains(stageKey);
+    final diff = (stageId - 1) % 3;
 
     int gems = 0;
     int gold = 0;
@@ -299,7 +308,7 @@ class EconomyManager {
           : diff == 1
               ? 3
               : 5;
-      completed.add(roundStr);
+      completed.add(stageKey);
       await prefs.setStringList('ld_completed_rounds', completed);
     } else {
       gold = diff == 0
