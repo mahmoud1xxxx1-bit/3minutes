@@ -10,7 +10,7 @@ import '../../../../core/navigation/game_orientation.dart';
 
 enum _TrollResult { dead, failed, victory }
 
-enum _TrollGameExit { nextStage, stageSelect }
+enum TrollGameExit { nextStage, stageSelect }
 
 class TrollGame extends StatefulWidget {
   const TrollGame({
@@ -441,12 +441,12 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
 
   void _goNextStage() {
     if (!mounted) return;
-    Navigator.of(context).pop(_TrollGameExit.nextStage);
+    Navigator.of(context).pop(TrollGameExit.nextStage);
   }
 
   void _goStageSelect() {
     if (!mounted) return;
-    Navigator.of(context).pop(_TrollGameExit.stageSelect);
+    Navigator.of(context).pop(TrollGameExit.stageSelect);
   }
 
   void _goMainMenu() {
