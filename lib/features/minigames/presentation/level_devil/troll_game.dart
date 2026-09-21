@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import '../../../../economy_manager.dart';
+import '../../../../services/life_recovery_dialog.dart';
 import 'troll_engine.dart';
 import '../../../../core/navigation/game_orientation.dart';
+
+enum _TrollResult { dead, failed, victory }
+
+enum _TrollGameExit { nextStage, stageSelect }
 
 class TrollGame extends StatefulWidget {
   const TrollGame({
@@ -17,9 +22,11 @@ class TrollGame extends StatefulWidget {
     this.mechanicOffset = 0,
     this.stageSeedOverride,
     this.onFail,
+    this.stageId = 1,
   });
   final void Function(int score) onWin;
   final VoidCallback? onFail;
+  final int stageId;
   final int startRound;
   final int maxRounds;
   final int levelsPerMechanic;
@@ -36,6 +43,8 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   late FocusNode _focusNode;
   Duration _lastTime = Duration.zero;
   bool _paused = false;
+  _TrollResult? _result;
+  int _deathCount = 0;
 
   @override
   void initState() {
@@ -61,18 +70,30 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
     final dt = (elapsed - _lastTime).inMicroseconds / 1000000.0;
     _lastTime = elapsed;
 
-    setState(() {
-      _engine.update(dt);
-      if (_engine.allComplete) {
-        _ticker.stop();
-        if (_engine.completedAsWin) {
-          widget.onWin(_engine.totalScore);
-        } else {
-          // Player lost all hearts -> trigger fail immediately
-          if (mounted) widget.onFail?.call();
+    _engine.update(dt);
+
+    if (_engine.allComplete) {
+      _ticker.stop();
+      if (_result == null && mounted) {
+        final won = _engine.completedAsWin;
+        if (!won) _deathCount++;
+        setState(() {
+          _result = won
+              ? _TrollResult.victory
+              : (_deathCount >= 2 ? _TrollResult.failed : _TrollResult.dead);
+        });
+        if (!won) {
+          // A life is consumed for every actual death. Navigation is never
+          // performed here; the player must choose from the result overlay.
+          await widget.onFail?.call();
         }
       }
-    });
+      return;
+    }
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -200,7 +221,12 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
               ),
             ),
 
-            if (_paused)
+            if (_result != null)
+              Positioned.fill(
+                child: _buildResultOverlay(),
+              ),
+
+            if (_paused && _result == null)
               Positioned.fill(
                 child: ColoredBox(
                   color: const Color(0xCC02040A),
@@ -251,6 +277,181 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
         ),
       ),
     );
+  }
+
+  Widget _buildResultOverlay() {
+    final result = _result!;
+    final isVictory = result == _TrollResult.victory;
+    final isFinalFailure = result == _TrollResult.failed;
+    final title = isVictory ? 'STAGE CLEAR' : (isFinalFailure ? 'STAGE FAILED' : 'YOU DIED');
+    final subtitle = isVictory
+        ? 'Stage ${widget.stageId} complete.'
+        : isFinalFailure
+            ? 'This run has used both attempts.'
+            : 'The layout is unchanged. Try the same stage again.';
+    final accent = isVictory ? const Color(0xFF5CF5FF) : const Color(0xFFFF5478);
+
+    return ColoredBox(
+      color: const Color(0xCC02040A),
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 520),
+            padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
+            decoration: BoxDecoration(
+              color: const Color(0xF20A1124),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: accent.withOpacity(.42), width: 1.2),
+              boxShadow: [
+                BoxShadow(color: accent.withOpacity(.20), blurRadius: 34, spreadRadius: 1),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withOpacity(.10),
+                    border: Border.all(color: accent.withOpacity(.42)),
+                  ),
+                  child: Icon(
+                    isVictory ? Icons.bolt_rounded : Icons.close_rounded,
+                    color: accent,
+                    size: 34,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 27,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  'STAGE ${widget.stageId}',
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 2.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+                if (isVictory) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    '+${_engine.totalScore} SCORE',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 22),
+                if (isVictory && widget.stageId < 175)
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _goNextStage,
+                      icon: const Icon(Icons.arrow_forward_rounded),
+                      label: const Text('NEXT STAGE'),
+                    ),
+                  ),
+                if (isVictory && widget.stageId < 175) const SizedBox(height: 10),
+                if (!isFinalFailure)
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _retryStage,
+                      icon: const Icon(Icons.replay_rounded),
+                      label: Text(isVictory ? 'REPLAY' : 'RETRY'),
+                    ),
+                  ),
+                if (!isFinalFailure) const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: _goStageSelect,
+                    icon: const Icon(Icons.grid_view_rounded),
+                    label: Text(isVictory && widget.stageId >= 175 ? 'BACK TO WORLDS' : 'STAGE SELECT'),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: _goMainMenu,
+                    icon: const Icon(Icons.home_rounded),
+                    label: const Text('MAIN MENU'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _retryStage() async {
+    if (!mounted) return;
+
+    if (_result == _TrollResult.dead && _deathCount >= 1) {
+      final economy = await EconomyManager.checkEconomy();
+      if ((economy['lives'] as int? ?? 0) <= 0) {
+        if (!mounted) return;
+        await showLifeRecoveryDialog(context);
+        return;
+      }
+    }
+
+    final seed = _engine.stageSeed;
+    setState(() {
+      _engine = TrollEngine(
+        round: widget.startRound,
+        maxRounds: widget.maxRounds,
+        levelsPerMechanic: widget.levelsPerMechanic,
+        mechanicOffset: widget.mechanicOffset,
+        stageSeedOverride: seed,
+      );
+      _result = null;
+      _paused = false;
+      _lastTime = Duration.zero;
+    });
+    _ticker.start();
+    _focusNode.requestFocus();
+    HapticFeedback.mediumImpact();
+  }
+
+  void _goNextStage() {
+    if (!mounted) return;
+    Navigator.of(context).pop(_TrollGameExit.nextStage);
+  }
+
+  void _goStageSelect() {
+    if (!mounted) return;
+    Navigator.of(context).pop(_TrollGameExit.stageSelect);
+  }
+
+  void _goMainMenu() {
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Widget _hudPill({required IconData icon, required Color color, required String text}) {
