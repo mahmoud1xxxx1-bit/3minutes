@@ -23,15 +23,18 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
   int get _startStage => _season == 6 ? 101 : ((_season - 1) * 20) + 1;
   int get _count => _season == 6 ? 75 : 20;
 
-  Future<void> _openStage(int stageId) async {
+  Future<void> _openStage(int stageId, {bool skipIntro = false}) async {
     final plan = TrollStagePlan.fromStageId(stageId);
-    final start = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _StageIntro(plan: plan),
-    );
-    if (start != true || !mounted) return;
+
+    if (!skipIntro) {
+      final start = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (_) => _StageIntro(plan: plan),
+      );
+      if (start != true || !mounted) return;
+    }
 
     final economy = await EconomyManager.checkEconomy();
     if ((economy['lives'] as int? ?? 0) <= 0) {
@@ -41,19 +44,21 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
     }
 
     HapticFeedback.mediumImpact();
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
+    final result = await Navigator.of(context).push<TrollGameExit>(
+      PageRouteBuilder<TrollGameExit>(
         transitionDuration: const Duration(milliseconds: 240),
         reverseTransitionDuration: const Duration(milliseconds: 180),
         pageBuilder: (_, __, ___) => TrollGame(
+          stageId: plan.stageId,
           startRound: plan.localStage,
           maxRounds: 1,
           levelsPerMechanic: plan.levelsPerMechanic,
           mechanicOffset: plan.mechanicOffset,
-          onWin: (_) => Navigator.of(context).pop(),
+          // Result overlays own navigation. These callbacks must never pop the
+          // gameplay route while the result overlay is visible.
+          onWin: (_) {},
           onFail: () async {
             await EconomyManager.deductLife();
-            if (context.mounted) Navigator.of(context).pop();
           },
         ),
         transitionsBuilder: (_, animation, __, child) {
@@ -68,6 +73,11 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
         },
       ),
     );
+
+    if (!mounted) return;
+    if (result == TrollGameExit.nextStage && stageId < TrollStagePlan.totalStages) {
+      await _openStage(stageId + 1, skipIntro: true);
+    }
   }
 
   @override
