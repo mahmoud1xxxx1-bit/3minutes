@@ -14,6 +14,7 @@ class TrollGame extends StatefulWidget {
     this.maxRounds = 2,
     this.levelsPerMechanic = 3,
     this.mechanicOffset = 0,
+    this.stageSeedOverride,
     this.onFail,
   });
   final void Function(int score) onWin;
@@ -22,6 +23,7 @@ class TrollGame extends StatefulWidget {
   final int maxRounds;
   final int levelsPerMechanic;
   final int mechanicOffset;
+  final int? stageSeedOverride;
 
   @override
   State<TrollGame> createState() => _TrollGameState();
@@ -43,6 +45,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
       maxRounds: widget.maxRounds,
       levelsPerMechanic: widget.levelsPerMechanic,
       mechanicOffset: widget.mechanicOffset,
+      stageSeedOverride: widget.stageSeedOverride,
     );
     GameOrientation.enterGame();
     _ticker = createTicker(_onTick)..start();
