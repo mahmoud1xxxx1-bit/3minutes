@@ -271,7 +271,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                         child: Center(
                           child: _hudPill(
                             icon: Icons.bolt_rounded,
-                            color: const Color(0xFF5CF5FF),
+                            color: _paletteForSeason(_seasonForStage(widget.stageId)).accent,
                             text: 'STAGE ${_engine.round}',
                           ),
                         ),
@@ -286,8 +286,8 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
               ),
             ),
 
-            // Season 1 controls: compact gear-style directional control on the left.
-// Jump is intentionally gesture-based: tap/press anywhere on the right side.
+            // Compact gear-style directional control on the left for every season.
+// Jump remains gesture-based: tap/press anywhere on the right side.
             Positioned.fill(
               child: SafeArea(
                 child: Stack(
@@ -910,7 +910,8 @@ class _TrollPainter extends CustomPainter {
         }
 
       } else if (e.type == TrollEntityType.spike) {
-        _drawSpike(canvas, e.rect, e.color, e.isInverted);
+        final seasonAccent = _paletteForSeason(_seasonForStage(widget.stageId)).accent;
+        _drawSpike(canvas, e.rect, seasonAccent, e.isInverted);
       } else if (e.type == TrollEntityType.door) {
         // ── FakeDoor: drawn identically to real door ─────────────────────
         _drawDoor(canvas, e.rect, e.color);
