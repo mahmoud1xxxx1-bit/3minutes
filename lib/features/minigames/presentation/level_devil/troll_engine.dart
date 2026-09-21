@@ -900,7 +900,7 @@ class TrollEngine {
       } else {
         roundHearts = 2;
         round++;
-        stageSeed = round + (mechanicOffset * 1000);
+        stageSeed = _seedForRound(round);
         rng = Random(stageSeed);
         _loadLevel(round);
       }
