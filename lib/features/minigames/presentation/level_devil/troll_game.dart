@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import '../../../../economy_manager.dart';
 import 'troll_engine.dart';
 import '../../../../core/navigation/game_orientation.dart';
 
@@ -145,11 +146,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                   padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
                   child: Row(
                     children: [
-                      _hudPill(
-                        icon: Icons.favorite_rounded,
-                        color: const Color(0xFFFF5478),
-                        text: '${_engine.roundHearts}',
-                      ),
+                      const _LifeHud(),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Center(
@@ -349,6 +346,26 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
   }
 }
 
+class _LifeHud extends StatefulWidget {
+  const _LifeHud();
+  @override State<_LifeHud> createState() => _LifeHudState();
+}
+class _LifeHudState extends State<_LifeHud> {
+  int _lives = 10;
+  int _max = 10;
+  @override void initState() { super.initState(); _refresh(); }
+  Future<void> _refresh() async {
+    final s = await EconomyManager.checkEconomy();
+    if (!mounted) return;
+    setState(() { _lives = s['lives'] as int? ?? 10; _max = s['maxLives'] as int? ?? 10; });
+    Future.delayed(const Duration(seconds: 1), _refresh);
+  }
+  @override Widget build(BuildContext context) => _hudPill(
+    icon: Icons.favorite_rounded,
+    color: const Color(0xFFFF5478),
+    text: '$_lives/$_max',
+  );
+}
 class _TrollPainter extends CustomPainter {
   _TrollPainter(this.engine);
   final TrollEngine engine;
