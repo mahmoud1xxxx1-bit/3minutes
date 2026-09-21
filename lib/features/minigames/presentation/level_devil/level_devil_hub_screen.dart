@@ -48,7 +48,10 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
           levelsPerMechanic: plan.levelsPerMechanic,
           mechanicOffset: plan.mechanicOffset,
           onWin: (_) => Navigator.of(context).pop(),
-          onFail: () async {\n            await EconomyManager.deductLife();\n            if (context.mounted) Navigator.of(context).pop();\n          },
+          onFail: () async {
+            await EconomyManager.deductLife();
+            if (context.mounted) Navigator.of(context).pop();
+          },
         ),
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
