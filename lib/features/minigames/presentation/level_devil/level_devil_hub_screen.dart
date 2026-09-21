@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/theme/cosmic_background.dart';
 import '../../../../core/theme/design_tokens.dart';
@@ -6,7 +7,8 @@ import 'troll_game.dart';
 import 'troll_stage_plan.dart';
 
 class LevelDevilHubScreen extends StatefulWidget {
-  const LevelDevilHubScreen({super.key});
+  const LevelDevilHubScreen({super.key, this.inline = false});
+  final bool inline;
 
   @override
   State<LevelDevilHubScreen> createState() => _LevelDevilHubScreenState();
@@ -18,12 +20,21 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
   int get _startStage => _season == 6 ? 101 : ((_season - 1) * 20) + 1;
   int get _count => _season == 6 ? 75 : 20;
 
-  void _openStage(int stageId) {
+  Future<void> _openStage(int stageId) async {
     final plan = TrollStagePlan.fromStageId(stageId);
-    Navigator.of(context).push(
+    final start = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _StageIntro(plan: plan),
+    );
+    if (start != true || !mounted) return;
+
+    HapticFeedback.mediumImpact();
+    await Navigator.of(context).push(
       PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 280),
-        reverseTransitionDuration: const Duration(milliseconds: 220),
+        transitionDuration: const Duration(milliseconds: 240),
+        reverseTransitionDuration: const Duration(milliseconds: 180),
         pageBuilder: (_, __, ___) => TrollGame(
           startRound: plan.localStage,
           maxRounds: 1,
@@ -48,97 +59,54 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final arabic = Localizations.localeOf(context).languageCode == 'ar';
-    final isSeasonSix = _season == 6;
-
+    final seasonSix = _season == 6;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: GameColors.background,
       body: CosmicBackground(
         child: SafeArea(
+          bottom: false,
           child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
             slivers: [
-              SliverAppBar(
-                pinned: true,
-                backgroundColor: GameColors.background.withOpacity(.92),
-                surfaceTintColor: Colors.transparent,
-                elevation: 0,
-                leading: IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
-                title: const Text('LVL LOOL', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
-                centerTitle: true,
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(GameSpacing.md, GameSpacing.md, GameSpacing.md, GameSpacing.sm),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        arabic ? 'اختر عالمك' : 'CHOOSE YOUR WORLD',
-                        style: const TextStyle(color: GameColors.textStrong, fontSize: 27, fontWeight: FontWeight.w900),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        arabic
-                            ? 'كل مرحلة تحتفظ برقمها وهويتها الأصلية.'
-                            : 'Every stage keeps its original number and identity.',
-                        style: const TextStyle(color: GameColors.muted, fontSize: 13),
-                      ),
-                      const SizedBox(height: GameSpacing.md),
-                      SizedBox(
-                        height: 104,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: 6,
-                          separatorBuilder: (_, __) => const SizedBox(width: GameSpacing.sm),
-                          itemBuilder: (_, index) {
-                            final season = index + 1;
-                            final selected = season == _season;
-                            final count = season == 6 ? 75 : 20;
-                            return _SeasonCard(
-                              season: season,
-                              count: count,
-                              selected: selected,
-                              onTap: () => setState(() => _season = season),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+              if (!widget.inline)
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: GameColors.background.withOpacity(.94),
+                  surfaceTintColor: Colors.transparent,
+                  elevation: 0,
+                  leading: IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.arrow_back_rounded),
                   ),
+                  title: const Text('LVL LOOL', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 2)),
+                  centerTitle: true,
                 ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(18, widget.inline ? 18 : 8, 18, 8),
+                sliver: SliverToBoxAdapter(child: _hero(seasonSix)),
               ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(GameSpacing.md, GameSpacing.sm, GameSpacing.md, GameSpacing.sm),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+                sliver: SliverToBoxAdapter(child: _seasonSelector()),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(18, 4, 18, 8),
+                sliver: SliverToBoxAdapter(
                   child: Row(
                     children: [
                       Expanded(
                         child: Text(
-                          isSeasonSix ? 'SEASON 6 • 75 STAGES' : 'SEASON $_season • 20 STAGES',
-                          style: const TextStyle(color: GameColors.textStrong, fontSize: 17, fontWeight: FontWeight.w900),
+                          seasonSix ? 'SEASON 6 • 75 STAGES' : 'SEASON ' + _season.toString() + ' • 20 STAGES',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: GameColors.accentSoft,
-                          borderRadius: BorderRadius.circular(GameRadii.pill),
-                          border: Border.all(color: GameColors.accent.withOpacity(.25)),
-                        ),
-                        child: Text(
-                          '$_startStage–${_startStage + _count - 1}',
-                          style: const TextStyle(color: GameColors.accentBright, fontWeight: FontWeight.w900, fontSize: 11),
-                        ),
-                      ),
+                      _rangeBadge(),
                     ],
                   ),
                 ),
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(GameSpacing.md, GameSpacing.sm, GameSpacing.md, 36),
+                padding: const EdgeInsets.fromLTRB(18, 6, 18, 130),
                 sliver: SliverGrid(
                   delegate: SliverChildBuilderDelegate(
                     (_, index) {
@@ -154,10 +122,10 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
                     childCount: _count,
                   ),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: MediaQuery.sizeOf(context).width >= 900 ? 6 : MediaQuery.sizeOf(context).width >= 600 ? 4 : 3,
+                    crossAxisCount: MediaQuery.sizeOf(context).width >= 500 ? 3 : 2,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    childAspectRatio: .96,
+                    childAspectRatio: .86,
                   ),
                 ),
               ),
@@ -167,56 +135,123 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
       ),
     );
   }
-}
 
-class _SeasonCard extends StatelessWidget {
-  const _SeasonCard({required this.season, required this.count, required this.selected, required this.onTap});
-  final int season;
-  final int count;
-  final bool selected;
-  final VoidCallback onTap;
+  Widget _hero(bool seasonSix) {
+    return CosmicPanel(
+      glow: true,
+      padding: const EdgeInsets.all(17),
+      child: Row(
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: GameColors.cosmicGradient,
+              boxShadow: GameShadows.primaryGlow,
+            ),
+            child: Icon(
+              seasonSix ? Icons.auto_awesome_rounded : Icons.public_rounded,
+              color: GameColors.backgroundDeep,
+              size: 31,
+            ),
+          ),
+          const SizedBox(width: 13),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('WORLDS / SEASONS', style: TextStyle(color: GameColors.accentBright, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.6)),
+                SizedBox(height: 4),
+                Text('CHOOSE YOUR WORLD', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                SizedBox(height: 2),
+                Text('175 stages • original stage identities preserved', style: TextStyle(color: GameColors.muted, fontSize: 9)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: AnimatedContainer(
-          duration: GameDurations.normal,
-          width: 132,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            gradient: selected ? GameColors.cosmicGradient : null,
-            color: selected ? null : GameColors.surfaceGlass,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: selected ? GameColors.accent.withOpacity(.65) : GameColors.surfaceStrong),
-            boxShadow: selected ? GameShadows.primaryGlow : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                season == 6 ? Icons.auto_awesome_rounded : Icons.public_rounded,
-                color: selected ? GameColors.backgroundDeep : GameColors.accentBright,
-                size: 25,
+  Widget _seasonSelector() {
+    return SizedBox(
+      height: 94,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: 6,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, index) {
+          final season = index + 1;
+          final count = season == 6 ? 75 : 20;
+          final selected = season == _season;
+          return Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _season = season);
+              },
+              borderRadius: BorderRadius.circular(18),
+              child: AnimatedContainer(
+                duration: GameDurations.normal,
+                width: 118,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: selected ? GameColors.cosmicGradient : null,
+                  color: selected ? null : GameColors.surfaceGlass,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: selected ? GameColors.accent.withOpacity(.7) : GameColors.surfaceStrong),
+                  boxShadow: selected ? GameShadows.primaryGlow : null,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      season == 6 ? Icons.auto_awesome_rounded : Icons.public_rounded,
+                      color: selected ? GameColors.backgroundDeep : GameColors.accentBright,
+                      size: 20,
+                    ),
+                    const Spacer(),
+                    Text(
+                      'SEASON ' + season.toString(),
+                      style: TextStyle(
+                        color: selected ? GameColors.backgroundDeep : GameColors.textStrong,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      count.toString() + ' STAGES',
+                      style: TextStyle(
+                        color: selected ? GameColors.backgroundDeep.withOpacity(.7) : GameColors.muted,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const Spacer(),
-              Text(
-                'SEASON $season',
-                style: TextStyle(color: selected ? GameColors.backgroundDeep : GameColors.textStrong, fontWeight: FontWeight.w900, fontSize: 13),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '$count stages',
-                style: TextStyle(color: selected ? GameColors.backgroundDeep.withOpacity(.72) : GameColors.muted, fontSize: 10, fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _rangeBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: GameColors.accentSoft,
+        borderRadius: BorderRadius.circular(GameRadii.pill),
+        border: Border.all(color: GameColors.accent.withOpacity(.25)),
+      ),
+      child: Text(
+        _startStage.toString() + '–' + (_startStage + _count - 1).toString(),
+        style: const TextStyle(color: GameColors.accentBright, fontWeight: FontWeight.w900, fontSize: 10),
       ),
     );
   }
@@ -231,60 +266,132 @@ class _StageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final difficultyColor = switch (difficulty) {
+    final color = switch (difficulty) {
       1 => GameColors.success,
       2 => GameColors.warning,
       _ => GameColors.danger,
     };
-    final difficultyLabel = switch (difficulty) {
+    final label = switch (difficulty) {
       1 => 'EASY',
-      2 => 'MED',
+      2 => 'MEDIUM',
       _ => 'HARD',
     };
 
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: Ink(
           decoration: BoxDecoration(
             color: GameColors.surfaceGlass,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: GameColors.surfaceStrong),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: color.withOpacity(.28)),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(10, 12, 10, 10),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                    decoration: BoxDecoration(color: color.withOpacity(.08), borderRadius: BorderRadius.circular(9)),
+                    child: Text(label, style: TextStyle(color: color, fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: .6)),
+                  ),
+                ),
+                const Spacer(),
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 52,
+                  height: 52,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF152B50), Color(0xFF0A1429)]),
                     shape: BoxShape.circle,
-                    border: Border.all(color: difficultyColor.withOpacity(.5)),
+                    color: GameColors.backgroundDeep,
+                    border: Border.all(color: color.withOpacity(.7), width: 1.4),
+                    boxShadow: [BoxShadow(color: color.withOpacity(.12), blurRadius: 16)],
                   ),
-                  child: Text(
-                    '$stageId',
-                    style: const TextStyle(color: GameColors.textStrong, fontSize: 16, fontWeight: FontWeight.w900),
-                  ),
+                  child: Text(stageId.toString(), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
                 ),
-                const SizedBox(height: 9),
-                Text(
-                  difficultyLabel,
-                  style: TextStyle(color: difficultyColor, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
+                const SizedBox(height: 8),
+                Text('MECHANIC ' + mechanicId.toString(), style: const TextStyle(color: GameColors.muted, fontSize: 8, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(3, (i) => Icon(
+                    i < difficulty ? Icons.star_rounded : Icons.star_border_rounded,
+                    color: i < difficulty ? color : GameColors.surfaceStrong,
+                    size: 12,
+                  )),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  'MECHANIC $mechanicId',
-                  style: const TextStyle(color: GameColors.muted, fontSize: 8, fontWeight: FontWeight.w700),
-                ),
+                const SizedBox(height: 6),
+                Text('TAP TO PLAY', style: TextStyle(color: color.withOpacity(.9), fontSize: 7, fontWeight: FontWeight.w900, letterSpacing: .8)),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StageIntro extends StatelessWidget {
+  const _StageIntro({required this.plan});
+  final TrollStagePlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (plan.difficulty) {
+      1 => GameColors.success,
+      2 => GameColors.warning,
+      _ => GameColors.danger,
+    };
+    final label = switch (plan.difficulty) {
+      1 => 'EASY',
+      2 => 'MEDIUM',
+      _ => 'HARD',
+    };
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: CosmicPanel(
+          glow: true,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(shape: BoxShape.circle, gradient: GameColors.cosmicGradient, boxShadow: GameShadows.primaryGlow),
+                child: Center(child: Text(plan.stageId.toString(), style: const TextStyle(color: GameColors.backgroundDeep, fontSize: 23, fontWeight: FontWeight.w900))),
+              ),
+              const SizedBox(height: 12),
+              const Text('STAGE READY', style: TextStyle(color: GameColors.accentBright, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
+              const SizedBox(height: 5),
+              Text('STAGE ' + plan.stageId.toString(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 7),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(color: color.withOpacity(.09), borderRadius: BorderRadius.circular(99), border: Border.all(color: color.withOpacity(.3))),
+                child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              ),
+              const SizedBox(height: 8),
+              Text('MECHANIC ' + plan.mechanicId.toString(), style: const TextStyle(color: GameColors.muted, fontSize: 10, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 15),
+              const Text('Gameplay will switch to fullscreen landscape mode.', textAlign: TextAlign.center, style: TextStyle(color: GameColors.textSoft, fontSize: 11)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('START STAGE'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
