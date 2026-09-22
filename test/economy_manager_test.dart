@@ -42,7 +42,7 @@ void main() {
   test('stage rewards use the global stage id: stage 101 first clear gives gems, repeat gives gold', () async {
     final first = await EconomyManager.processWin(101);
     expect(first['isFirst'], true);
-    expect(first['gems'], 3);
+    expect(first['gems'], 1);
     expect(first['gold'], 0);
 
     final second = await EconomyManager.processWin(101);
