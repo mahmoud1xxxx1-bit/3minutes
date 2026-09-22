@@ -1223,15 +1223,26 @@ class TrollEngine {
     }
 
     // ── New generator: build trap sequence and execute ─────────────────────
-    // ignore: unused_element
+    List<String> normalizeTrapCount(List<String> pool) {
+      if (levelsPerMechanic != 5) return pool;
+      final target = diff == 1 ? 12 : diff == 2 ? 18 : 22;
+      if (pool.length >= target) return pool;
+      final fillType = pool.isEmpty ? 'Spike' : pool.first;
+      while (pool.length < target) {
+        pool.add(fillType);
+      }
+      return pool;
+    }
+
     void runRecipe(List<String> pool, {int startCol = 15, bool addDoor = true}) {
       currentCol = startCol;
+      pool = normalizeTrapCount(pool);
       pool.shuffle(rng);
       lastTrap = null;
       for (final trapType in pool) {
-        if (currentCol + 15 >= mapCols) break; // safety: don't overflow grid
+        if (currentCol + 15 >= mapCols) break;
         placeTrap(trapType, currentCol);
-        currentCol += _gap(lastTrap, trapType) + 5; // gap + trap footprint
+        currentCol += _gap(lastTrap, trapType) + 5;
         lastTrap = trapType;
       }
       if (addDoor) addRunningDoor(kDoorClearance, 0);
