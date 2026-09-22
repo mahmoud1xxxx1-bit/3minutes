@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../../../economy_manager.dart';
 import '../../../../services/life_recovery_dialog.dart';
 import 'troll_engine.dart';
+import 'troll_stage_plan.dart';
 import '../../../../core/navigation/game_orientation.dart';
 
 enum _TrollResult { dead, failed, victory }
