@@ -365,8 +365,11 @@ class EconomyManager {
         prefs.getStringList('ld_completed_rounds') ?? <String>[];
     final stageKey = stageId.toString();
     final isFirst = !completed.contains(stageKey);
-    final diff = (stageId - 1) % 3;
     final season = stageId <= 100 ? ((stageId - 1) ~/ 20) + 1 : 6;
+    final seasonStart = seasonStartStage(season);
+    // Difficulty/reward cycle restarts at the beginning of every season:
+    // Easy -> Medium -> Hard. Season 6 therefore starts at stage 101 as Easy.
+    final diff = (stageId - seasonStart) % 3;
 
     int gems = 0;
     int gold = 0;
