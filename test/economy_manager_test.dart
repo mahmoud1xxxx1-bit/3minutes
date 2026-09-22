@@ -48,7 +48,32 @@ void main() {
     final second = await EconomyManager.processWin(101);
     expect(second['isFirst'], false);
     expect(second['gems'], 0);
-    expect(second['gold'], 250);
+    expect(second['gold'], 1500);
+  });
+
+  test('season unlock follows 70 percent progression and staged gem prices', () async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('ld_gems', 150);
+    await prefs.setStringList('ld_completed_rounds',
+      List<String>.generate(14, (i) => '\${i + 1}'));
+
+    final state = await EconomyManager.seasonUnlockState(2);
+    expect(state['requiredStages'], 14);
+    expect(state['eligible'], true);
+    expect(state['cost'], 150);
+
+    expect(await EconomyManager.unlockSeason(2), true);
+    expect(prefs.getInt('ld_gems'), 0);
+    expect(await EconomyManager.isSeasonUnlocked(2), true);
+  });
+
+  test('gold exchange keeps the 100 Gold = 1 Gem value', () async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('ld_gold', 1000);
+    await prefs.setInt('ld_gems', 0);
+    expect(await EconomyManager.exchangeGoldForGems(1), true);
+    expect(prefs.getInt('ld_gold'), 0);
+    expect(prefs.getInt('ld_gems'), 10);
   });
 
   test('VIP life mailbox only claims at zero lives', () async {
