@@ -833,9 +833,25 @@ class TrollEngine {
     return 22;
   }
 
-  /// Returns mechanic number (1-20) — offset applied for multi-season support
+  /// Returns mechanic number (1-25) — offset applied for multi-season support.
   int _getMechanicId(int roundId) =>
       ((roundId - 1) ~/ levelsPerMechanic) + 1 + mechanicOffset;
+
+  /// Returns the gameplay reaction window:
+  /// Easy 0.50s, Medium 0.30s, Hard 0.20s.
+  double _reactionWindowSeconds(int difficulty) {
+    switch (difficulty) {
+      case 1:
+        return 0.50;
+      case 2:
+        return 0.30;
+      default:
+        return 0.20;
+    }
+  }
+
+  double _reactionLeadDistance(int difficulty) =>
+      maxMoveSpeed * _reactionWindowSeconds(difficulty);
 
   /// Returns difficulty level:
   /// levelsPerMechanic=3 -> 1/2/3 (easy/medium/hard)
@@ -847,7 +863,7 @@ class TrollEngine {
       if (local == 3 || local == 4) return 2; // Medium
       return 3;                               // Hard
     }
-    return local; // 1, 2, 3 directly for Season 11
+    return local; // 1, 2, 3 directly for Season 6
   }
 
   /// Random safe gap between traps: kMinGap to kMinGap+3
