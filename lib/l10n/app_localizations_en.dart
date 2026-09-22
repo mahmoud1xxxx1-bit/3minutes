@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => '3 Minutes';
+  String get appName => 'LVL LOOL';
 
   @override
   String get play => 'PLAY';
@@ -67,7 +67,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String miniGamesSummary(int count) {
-    return '3 Minutes • $count Mini-Games';
+    return 'LVL LOOL • $count Mini-Games';
   }
 
   @override
@@ -305,7 +305,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cosmeticFrameNeon => 'Neon Frame';
 
   @override
-  String get cosmeticBadgeTimer => 'Three Minute Badge';
+  String get cosmeticBadgeTimer => 'LVL LOOL Badge';
 
   @override
   String get cosmeticBadgeCrown => 'Crown Badge';
