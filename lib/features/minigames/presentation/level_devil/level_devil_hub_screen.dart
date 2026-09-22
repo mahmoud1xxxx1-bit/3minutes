@@ -23,13 +23,97 @@ class LevelDevilHubScreen extends StatefulWidget {
 }
 
 class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
-  int _season = 6;
+  int _season = 1;
+  List<bool> _seasonUnlocked = List<bool>.filled(6, false);
+  Map<int, Map<String, dynamic>> _seasonStates = <int, Map<String, dynamic>>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSeasonAccess();
+  }
+
+  Future<void> _refreshSeasonAccess() async {
+    final unlocked = <bool>[];
+    final states = <int, Map<String, dynamic>>{};
+    for (var season = 1; season <= 6; season++) {
+      final state = await EconomyManager.seasonUnlockState(season);
+      states[season] = state;
+      unlocked.add(state['unlocked'] == true);
+    }
+    if (!mounted) return;
+    setState(() {
+      _seasonUnlocked = unlocked;
+      _seasonStates = states;
+    });
+  }
+
+  Future<void> _selectSeason(int season) async {
+    if (season == 1 || _seasonUnlocked[season - 1]) {
+      setState(() => _season = season);
+      return;
+    }
+    await _showSeasonUnlock(season);
+  }
+
+  Future<void> _showSeasonUnlock(int season) async {
+    final state = _seasonStates[season] ?? await EconomyManager.seasonUnlockState(season);
+    if (!mounted) return;
+    final eligible = state['eligible'] == true;
+    final completed = state['completedStages'] as int? ?? 0;
+    final required = state['requiredStages'] as int? ?? 0;
+    final cost = state['cost'] as int? ?? 0;
+    final gems = state['gems'] as int? ?? 0;
+    final unlocked = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('SEASON $season'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(eligible ? 'Season $season is ready to unlock.' : 'Complete $required stages of Season ${season - 1} to reach the 70% requirement.'),
+            const SizedBox(height: 10),
+            if (!eligible) Text('$completed / $required stages completed'),
+            const SizedBox(height: 10),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Icon(Icons.diamond_rounded, color: Colors.cyanAccent, size: 18),
+              const SizedBox(width: 5), Text('$cost GEMS'),
+            ]),
+            if (eligible && gems < cost) ...[
+              const SizedBox(height: 8),
+              Text('You have $gems Gems.', style: const TextStyle(color: Colors.white60)),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CLOSE')),
+          if (eligible)
+            FilledButton(
+              onPressed: gems >= cost ? () async {
+                final ok = await EconomyManager.unlockSeason(season);
+                if (context.mounted) Navigator.pop(context, ok);
+              } : null,
+              child: Text('UNLOCK • $cost'),
+            ),
+        ],
+      ),
+    );
+    if (unlocked == true && mounted) {
+      await _refreshSeasonAccess();
+      setState(() => _season = season);
+    }
+  }
 
   int get _startStage => _season == 6 ? 101 : ((_season - 1) * 20) + 1;
   int get _count => _season == 6 ? 75 : 20;
 
   Future<void> _openStage(int stageId, {bool skipIntro = false}) async {
     final plan = TrollStagePlan.fromStageId(stageId);
+    final targetSeason = plan.season;
+    if (!await EconomyManager.isSeasonUnlocked(targetSeason)) {
+      await _showSeasonUnlock(targetSeason);
+      return;
+    }
 
     if (!skipIntro) {
       final start = await showModalBottomSheet<bool>(
@@ -187,10 +271,11 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
           final season = index + 1;
           final count = season == 6 ? 75 : 20;
           final selected = season == _season;
+          final unlocked = _seasonUnlocked[index];
           return GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
-              setState(() => _season = season);
+              _selectSeason(season);
             },
             child: AnimatedContainer(
               duration: GameDurations.normal,
@@ -216,7 +301,8 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
                         size: 17,
                       ),
                       const Spacer(),
-                      if (selected) const Icon(Icons.check_rounded, color: GameColors.accentBright, size: 14),
+                      if (!unlocked) const Icon(Icons.lock_rounded, color: GameColors.muted, size: 14)
+                      else if (selected) const Icon(Icons.check_rounded, color: GameColors.accentBright, size: 14),
                     ],
                   ),
                   const Spacer(),
