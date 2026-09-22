@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import '../../../../economy_manager.dart';
+import '../../../../global_game_ui.dart';
 import '../../../../services/life_recovery_dialog.dart';
 import 'troll_engine.dart';
 import 'troll_stage_plan.dart';
@@ -453,17 +454,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                 ),
                 if (isVictory) ...[
                   const SizedBox(height: 14),
-                  Text(
-                    '+${_engine.totalScore} SCORE',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
+ainer(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
@@ -484,22 +475,26 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                         ),
                         const SizedBox(height: 6),
                         if (_rewardGems > 0)
-                          Text(
-                            '+${_rewardGems} GEMS',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const GameCurrencyIcon(gems: true, size: 22),
+                              const SizedBox(width: 7),
+                              Text('+$_rewardGems', style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
+                              const SizedBox(width: 6),
+                              const Text('GEMS', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900)),
+                            ],
                           )
                         else if (_rewardGold > 0)
-                          Text(
-                            '+${_rewardGold} GOLD',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const GameCurrencyIcon(gems: false, size: 22),
+                              const SizedBox(width: 7),
+                              Text('+$_rewardGold', style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
+                              const SizedBox(width: 6),
+                              const Text('GOLD', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900)),
+                            ],
                           )
                         else
                           const Text(
