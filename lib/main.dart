@@ -65,7 +65,7 @@ Future<void> main() async {
   final MatchBackend quickMatchBackend = CloudFunctionsQuickMatchBackend();
 
   runApp(
-    ThreeMinutesApp(
+    LvlLoolApp(
       authService: authService,
       profileRepository: ProfileRepository(),
       matchBackend: matchBackend,
@@ -80,8 +80,8 @@ Future<void> main() async {
   );
 }
 
-class ThreeMinutesApp extends StatelessWidget {
-  const ThreeMinutesApp({
+class LvlLoolApp extends StatelessWidget {
+  const LvlLoolApp({
     super.key,
     required this.authService,
     required this.profileRepository,
