@@ -4,6 +4,21 @@ import 'features/minigames/presentation/level_devil/troll_engine.dart';
 import 'store_screen.dart';
 import 'l10n.dart';
 
+class GameCurrencyIcon extends StatelessWidget {
+  const GameCurrencyIcon({super.key, required this.gems, this.size = 20});
+  final bool gems;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      gems ? Icons.diamond_rounded : Icons.monetization_on_rounded,
+      color: gems ? Colors.cyanAccent : Colors.amberAccent,
+      size: size,
+    );
+  }
+}
+
 class GlobalGameHUD extends StatelessWidget {
   final int lives;
   final int maxLives;
@@ -113,9 +128,9 @@ class GlobalGameHUD extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildBadge(Icons.diamond_rounded, Colors.cyanAccent, '$gems'),
+              _buildBadge(gems ? Icons.diamond_rounded : Icons.diamond_rounded, Colors.cyanAccent, '$gems'),
               const SizedBox(width: 6),
-              _buildBadge(Icons.monetization_on, Colors.amber, '$gold'),
+              _buildBadge(Icons.monetization_on_rounded, Colors.amberAccent, '$gold'),
               const SizedBox(width: 6),
               Container(
                 width: 36, height: 36,
