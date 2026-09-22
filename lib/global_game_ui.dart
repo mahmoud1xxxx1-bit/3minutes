@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'features/minigames/presentation/level_devil/troll_engine.dart';
 
 import 'store_screen.dart';
@@ -11,10 +12,12 @@ class GameCurrencyIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      gems ? Icons.diamond_rounded : Icons.monetization_on_rounded,
-      color: gems ? Colors.cyanAccent : Colors.amberAccent,
-      size: size,
+    return SvgPicture.asset(
+      gems ? 'assets/ranks/diamond.svg' : 'assets/ranks/gold.svg',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      semanticsLabel: gems ? 'Gems' : 'Gold',
     );
   }
 }
@@ -128,7 +131,7 @@ class GlobalGameHUD extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildBadge(gems ? Icons.diamond_rounded : Icons.diamond_rounded, Colors.cyanAccent, '$gems'),
+              _buildBadge(Icons.diamond_rounded, Colors.cyanAccent, '$gems'),
               const SizedBox(width: 6),
               _buildBadge(Icons.monetization_on_rounded, Colors.amberAccent, '$gold'),
               const SizedBox(width: 6),
