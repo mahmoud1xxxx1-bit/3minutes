@@ -1438,6 +1438,140 @@ class _TrollPainter extends CustomPainter {
     canvas.drawLine(Offset(at.dx + 8, at.dy + 7), Offset(at.dx + 16, at.dy), paint);
   }
 
+  void _drawSeasonOneBackground(Canvas canvas) {
+    final w = engine.logicalWidth;
+    final h = engine.logicalHeight;
+    final rect = Rect.fromLTWH(0, 0, w, h);
+
+    // Approved Season 1 direction: deep indigo sky, large moon, angular
+    // mountains, restrained cyan/purple accents, no visual clutter.
+    final bg = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF111B57),
+          Color(0xFF18235D),
+          Color(0xFF0B112A),
+        ],
+      ).createShader(rect);
+    canvas.drawRect(rect, bg);
+
+    // Very subtle grid, matching the LVL LOOL visual language.
+    final grid = Paint()
+      ..color = const Color(0x142D4C92)
+      ..strokeWidth = 1;
+    for (double x = 0; x <= w; x += 40) {
+      canvas.drawLine(Offset(x, 0), Offset(x, h), grid);
+    }
+    for (double y = 0; y <= h; y += 40) {
+      canvas.drawLine(Offset(0, y), Offset(w, y), grid);
+    }
+
+    // Moon glow.
+    final moonX = 405 - (engine.cameraX * 0.05);
+    final moonCenter = Offset(moonX, 275);
+    final glow = Paint()
+      ..shader = RadialGradient(
+        colors: const [
+          Color(0x6638D8FF),
+          Color(0x2638D8FF),
+          Color(0x0038D8FF),
+        ],
+      ).createShader(Rect.fromCircle(center: moonCenter, radius: 145));
+    canvas.drawCircle(moonCenter, 145, glow);
+    final moon = Paint()..color = const Color(0xFF438FD0).withValues(alpha: 0.78);
+    canvas.drawCircle(moonCenter, 72, moon);
+    final moonShade = Paint()..color = const Color(0xFF24548C).withValues(alpha: 0.38);
+    canvas.drawCircle(Offset(moonX + 18, 260), 64, moonShade);
+
+    final backOffset = -(engine.cameraX * 0.18) % 800;
+    final frontOffset = -(engine.cameraX * 0.42) % 800;
+
+    // Back angular mountains.
+    final back = Paint()..color = const Color(0xFF1B2A58);
+    for (int i = 0; i < 2; i++) {
+      final sx = backOffset + i * 800;
+      final p = Path()
+        ..moveTo(sx, 500)
+        ..lineTo(sx + 105, 420)
+        ..lineTo(sx + 205, 315)
+        ..lineTo(sx + 315, 230)
+        ..lineTo(sx + 455, 345)
+        ..lineTo(sx + 610, 285)
+        ..lineTo(sx + 800, 410)
+        ..lineTo(sx + 800, 520)
+        ..close();
+      canvas.drawPath(p, back);
+    }
+
+    // Front dark mountain ridge.
+    final front = Paint()..color = const Color(0xFF101A38);
+    for (int i = 0; i < 2; i++) {
+      final sx = frontOffset + i * 800;
+      final p = Path()
+        ..moveTo(sx, 545)
+        ..lineTo(sx + 180, 440)
+        ..lineTo(sx + 315, 365)
+        ..lineTo(sx + 485, 475)
+        ..lineTo(sx + 625, 385)
+        ..lineTo(sx + 800, 500)
+        ..lineTo(sx + 800, 560)
+        ..close();
+      canvas.drawPath(p, front);
+    }
+
+    // Restrained cyan edge lights on a few mountain facets.
+    final edge = Paint()
+      ..color = const Color(0xFF2CCFF1).withValues(alpha: 0.46)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    canvas.drawLine(
+      Offset(70 - engine.cameraX * 0.18, 465),
+      Offset(190 - engine.cameraX * 0.18, 360),
+      edge,
+    );
+    canvas.drawLine(
+      Offset(525 - engine.cameraX * 0.18, 345),
+      Offset(615 - engine.cameraX * 0.18, 430),
+      edge,
+    );
+
+    // Small floating crystalline islands are environmental decoration only.
+    final islandPaint = Paint()..color = const Color(0xFF182340);
+    void island(double x, double y, double width) {
+      final top = Rect.fromLTWH(x, y, width, 10);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(top, const Radius.circular(2)),
+        islandPaint,
+      );
+      final p = Path()
+        ..moveTo(x + 8, y + 10)
+        ..lineTo(x + width * .50, y + 42)
+        ..lineTo(x + width - 8, y + 10)
+        ..close();
+      canvas.drawPath(p, islandPaint);
+      final rim = Paint()..color = const Color(0xFF36D9F4).withValues(alpha: 0.72);
+      canvas.drawRect(Rect.fromLTWH(x, y, width, 2), rim);
+    }
+    island(505 - engine.cameraX * 0.12, 252, 112);
+    island(690 - engine.cameraX * 0.12, 318, 94);
+
+    // A few crystals, deliberately sparse.
+    final crystal = Paint()..color = const Color(0xFF52E6FF);
+    void crystalAt(double x, double y, double s) {
+      final p = Path()
+        ..moveTo(x, y - s)
+        ..lineTo(x + s * .55, y)
+        ..lineTo(x, y + s)
+        ..lineTo(x - s * .55, y)
+        ..close();
+      canvas.drawPath(p, crystal);
+    }
+    crystalAt(560 - engine.cameraX * 0.12, 235, 10);
+    crystalAt(742 - engine.cameraX * 0.12, 300, 9);
+  }
+
   void _drawGrid(Canvas canvas) {
 
     var paint = Paint()
