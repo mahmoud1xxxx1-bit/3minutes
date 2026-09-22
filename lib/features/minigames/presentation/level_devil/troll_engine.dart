@@ -84,8 +84,25 @@ class FallingPlatformTrap extends TrollTrap {
     if (triggerArea.intersects(engine.player.rect)) {
       triggered = true;
       for (var block in _cachedEntities!) {
+        // A dropped floor is no longer a collider the instant the trap fires.
+        // This is the important distinction between a visual animation and
+        // an actual playable void.
+        block.isSolid = false;
         block.activePhysics = true;
-        block.vy = engine.isGravityInverted ? -200 : 200; // Fall!
+        block.vy = engine.isGravityInverted ? -200 : 200;
+      }
+    }
+
+    // Once a floor piece has left the playable space it must stop rendering
+    // and stop participating in physics entirely.
+    for (final block in _cachedEntities ?? const <TrollEntity>[]) {
+      final outside = engine.isGravityInverted
+          ? block.rect.bottom < -80
+          : block.rect.top > engine.logicalHeight + 80;
+      if (outside) {
+        block.isVisible = false;
+        block.isSolid = false;
+        block.activePhysics = false;
       }
     }
   }
@@ -2228,7 +2245,7 @@ class TrollEngine {
        }
     }
     
-    if (player.rect.y > 700 || player.rect.y < -300) { // Check both bounds for inverted gravity
+    if (player.rect.y > logicalHeight + 80 || player.rect.bottom < -80) { // True void boundary
       if (isWrapLevel) {
         player.rect.y = player.rect.y > 700 ? -50 : 650;
         player.vy = 0;
@@ -2246,14 +2263,18 @@ class TrollEngine {
       if (e.activePhysics) {
         e.vy += gravity * dt;
         e.rect.y += e.vy * dt;
-        
-        if (player.rect.bottom >= e.rect.top && 
+
+        // Falling trap pieces are animated debris, not moving platforms.
+        // Only explicitly solid moving entities may catch the player.
+        if (e.isSolid &&
+            player.rect.bottom >= e.rect.top &&
             player.rect.bottom <= e.rect.top + 15 &&
-            player.rect.right > e.rect.left && 
-            player.rect.left < e.rect.right && player.vy > 0) {
-           player.rect.y = e.rect.top - player.rect.h;
-           _isGrounded = true;
-           player.vy = e.vy;
+            player.rect.right > e.rect.left &&
+            player.rect.left < e.rect.right &&
+            player.vy > 0) {
+          player.rect.y = e.rect.top - player.rect.h;
+          _isGrounded = true;
+          player.vy = e.vy;
         }
       }
     }
