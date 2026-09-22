@@ -76,7 +76,7 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
             if (!eligible) Text('$completed / $required stages completed'),
             const SizedBox(height: 10),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.diamond_rounded, color: Colors.cyanAccent, size: 18),
+              const GameCurrencyIcon(gems: true, size: 20),
               const SizedBox(width: 5), Text('$cost GEMS'),
             ]),
             if (eligible && gems < cost) ...[
