@@ -6,32 +6,125 @@ import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/theme/lvllo_brand.dart';
 import 'troll_game.dart';
 import '../../../../economy_manager.dart';
+import '../../../../global_game_ui.dart';
 import '../../../../services/life_recovery_dialog.dart';
 import 'troll_stage_plan.dart';
 
 class LevelDevilHubScreen extends StatefulWidget {
-  const LevelDevilHubScreen({super.key, this.inline = false});
+  const LevelDevilHubScreen({
+    super.key,
+    this.inline = false,
+    this.onMainMenu,
+  });
   final bool inline;
+  final VoidCallback? onMainMenu;
 
   @override
   State<LevelDevilHubScreen> createState() => _LevelDevilHubScreenState();
 }
 
 class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
-  int _season = 6;
+  int _season = 1;
+  List<bool> _seasonUnlocked = List<bool>.filled(6, false);
+  Map<int, Map<String, dynamic>> _seasonStates = <int, Map<String, dynamic>>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshSeasonAccess();
+  }
+
+  Future<void> _refreshSeasonAccess() async {
+    final unlocked = <bool>[];
+    final states = <int, Map<String, dynamic>>{};
+    for (var season = 1; season <= 6; season++) {
+      final state = await EconomyManager.seasonUnlockState(season);
+      states[season] = state;
+      unlocked.add(state['unlocked'] == true);
+    }
+    if (!mounted) return;
+    setState(() {
+      _seasonUnlocked = unlocked;
+      _seasonStates = states;
+    });
+  }
+
+  Future<void> _selectSeason(int season) async {
+    if (season == 1 || _seasonUnlocked[season - 1]) {
+      setState(() => _season = season);
+      return;
+    }
+    await _showSeasonUnlock(season);
+  }
+
+  Future<void> _showSeasonUnlock(int season) async {
+    final state = _seasonStates[season] ?? await EconomyManager.seasonUnlockState(season);
+    if (!mounted) return;
+    final eligible = state['eligible'] == true;
+    final completed = state['completedStages'] as int? ?? 0;
+    final required = state['requiredStages'] as int? ?? 0;
+    final cost = state['cost'] as int? ?? 0;
+    final gems = state['gems'] as int? ?? 0;
+    final unlocked = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('SEASON $season'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(eligible ? 'Season $season is ready to unlock.' : 'Complete $required stages of Season ${season - 1} to reach the 70% requirement.'),
+            const SizedBox(height: 10),
+            if (!eligible) Text('$completed / $required stages completed'),
+            const SizedBox(height: 10),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const GameCurrencyIcon(gems: true, size: 20),
+              const SizedBox(width: 5), Text('$cost GEMS'),
+            ]),
+            if (eligible && gems < cost) ...[
+              const SizedBox(height: 8),
+              Text('You have $gems Gems.', style: const TextStyle(color: Colors.white60)),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CLOSE')),
+          if (eligible)
+            FilledButton(
+              onPressed: gems >= cost ? () async {
+                final ok = await EconomyManager.unlockSeason(season);
+                if (context.mounted) Navigator.pop(context, ok);
+              } : null,
+              child: Text('UNLOCK • $cost'),
+            ),
+        ],
+      ),
+    );
+    if (unlocked == true && mounted) {
+      await _refreshSeasonAccess();
+      setState(() => _season = season);
+    }
+  }
 
   int get _startStage => _season == 6 ? 101 : ((_season - 1) * 20) + 1;
   int get _count => _season == 6 ? 75 : 20;
 
-  Future<void> _openStage(int stageId) async {
+  Future<void> _openStage(int stageId, {bool skipIntro = false}) async {
     final plan = TrollStagePlan.fromStageId(stageId);
-    final start = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => _StageIntro(plan: plan),
-    );
-    if (start != true || !mounted) return;
+    final targetSeason = plan.season;
+    if (!await EconomyManager.isSeasonUnlocked(targetSeason)) {
+      await _showSeasonUnlock(targetSeason);
+      return;
+    }
+
+    if (!skipIntro) {
+      final start = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (_) => _StageIntro(plan: plan),
+      );
+      if (start != true || !mounted) return;
+    }
 
     final economy = await EconomyManager.checkEconomy();
     if ((economy['lives'] as int? ?? 0) <= 0) {
@@ -41,20 +134,21 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
     }
 
     HapticFeedback.mediumImpact();
-    await Navigator.of(context).push(
-      PageRouteBuilder<void>(
+    final result = await Navigator.of(context).push<TrollGameExit>(
+      PageRouteBuilder<TrollGameExit>(
         transitionDuration: const Duration(milliseconds: 240),
         reverseTransitionDuration: const Duration(milliseconds: 180),
         pageBuilder: (_, __, ___) => TrollGame(
+          stageId: plan.stageId,
           startRound: plan.localStage,
           maxRounds: 1,
           levelsPerMechanic: plan.levelsPerMechanic,
           mechanicOffset: plan.mechanicOffset,
-          onWin: (_) => Navigator.of(context).pop(),
-          onFail: () async {
-            await EconomyManager.deductLife();
-            if (context.mounted) Navigator.of(context).pop();
-          },
+          // Result overlays own navigation. These callbacks must never pop the
+          // gameplay route while the result overlay is visible.
+          onWin: (_) {},
+          onFailAsync: () => EconomyManager.deductLife(),
+          onMainMenu: widget.onMainMenu,
         ),
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
@@ -68,6 +162,11 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
         },
       ),
     );
+
+    if (!mounted) return;
+    if (result == TrollGameExit.nextStage && stageId < TrollStagePlan.totalStages) {
+      await _openStage(stageId + 1, skipIntro: true);
+    }
   }
 
   @override
@@ -173,10 +272,11 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
           final season = index + 1;
           final count = season == 6 ? 75 : 20;
           final selected = season == _season;
+          final unlocked = _seasonUnlocked[index];
           return GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
-              setState(() => _season = season);
+              _selectSeason(season);
             },
             child: AnimatedContainer(
               duration: GameDurations.normal,
@@ -202,7 +302,8 @@ class _LevelDevilHubScreenState extends State<LevelDevilHubScreen> {
                         size: 17,
                       ),
                       const Spacer(),
-                      if (selected) const Icon(Icons.check_rounded, color: GameColors.accentBright, size: 14),
+                      if (!unlocked) const Icon(Icons.lock_rounded, color: GameColors.muted, size: 14)
+                      else if (selected) const Icon(Icons.check_rounded, color: GameColors.accentBright, size: 14),
                     ],
                   ),
                   const Spacer(),

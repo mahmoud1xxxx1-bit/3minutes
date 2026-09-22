@@ -282,31 +282,108 @@ class EconomyManager {
     }
   }
 
-  static Future<Map<String, dynamic>> processWin(int round) async {
+  static const List<int> seasonUnlockGemCosts = <int>[
+    0,
+    0,
+    150,
+    400,
+    900,
+    1600,
+    2450,
+  ];
+
+  static int seasonStartStage(int season) =>
+      season == 6 ? 101 : ((season - 1) * 20) + 1;
+
+  static int seasonStageCount(int season) => season == 6 ? 75 : 20;
+
+  static Future<int> completedStagesInSeason(int season) async {
+    final prefs = await SharedPreferences.getInstance();
+    final completed = prefs.getStringList('ld_completed_rounds') ?? <String>[];
+    final start = seasonStartStage(season);
+    final end = start + seasonStageCount(season) - 1;
+    return completed.where((raw) {
+      final id = int.tryParse(raw);
+      return id != null && id >= start && id <= end;
+    }).length;
+  }
+
+  static Future<bool> isSeasonUnlocked(int season) async {
+    if (season <= 1) return true;
+    if (season > 6) return false;
+    final previousCompleted = await completedStagesInSeason(season - 1);
+    final required = (seasonStageCount(season - 1) * 70 + 99) ~/ 100;
+    if (previousCompleted < required) return false;
+
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('ld_season_${season}_unlocked') ?? false;
+  }
+
+  static Future<Map<String, dynamic>> seasonUnlockState(int season) async {
+    if (season <= 1) {
+      return {'unlocked': true, 'eligible': true, 'requiredStages': 0, 'completedStages': 0, 'cost': 0};
+    }
+    final completed = await completedStagesInSeason(season - 1);
+    final required = (seasonStageCount(season - 1) * 70 + 99) ~/ 100;
+    final prefs = await SharedPreferences.getInstance();
+    final unlocked = prefs.getBool('ld_season_${season}_unlocked') ?? false;
+    return {
+      'unlocked': unlocked,
+      'eligible': completed >= required,
+      'requiredStages': required,
+      'completedStages': completed,
+      'cost': seasonUnlockGemCosts[season],
+      'gems': prefs.getInt('ld_gems') ?? 0,
+    };
+  }
+
+  static Future<bool> unlockSeason(int season) async {
+    if (season <= 1 || season > 6) return season == 1;
+    final state = await seasonUnlockState(season);
+    if (state['unlocked'] == true || state['eligible'] != true) return false;
+    final cost = state['cost'] as int;
+    final prefs = await SharedPreferences.getInstance();
+    final gems = prefs.getInt('ld_gems') ?? 0;
+    if (gems < cost) return false;
+    await prefs.setInt('ld_gems', gems - cost);
+    await prefs.setBool('ld_season_${season}_unlocked', true);
+    return true;
+  }
+
+  /// Settles the reward for a globally numbered stage (1..175).
+  ///
+  /// First clear: Gems according to the stage's 3-stage reward cycle.
+  /// Repeat clear: Gold according to the same cycle.
+  /// The global stage id is intentional: Season 6 stage 101 must not be
+  /// treated as local round 1.
+  static Future<Map<String, dynamic>> processWin(int stageId) async {
+    if (stageId < 1) {
+      throw ArgumentError.value(stageId, 'stageId', 'Must be >= 1.');
+    }
     final prefs = await SharedPreferences.getInstance();
     final completed =
         prefs.getStringList('ld_completed_rounds') ?? <String>[];
-    final roundStr = round.toString();
-    final isFirst = !completed.contains(roundStr);
-    final diff = (round - 1) % 3;
+    final stageKey = stageId.toString();
+    final isFirst = !completed.contains(stageKey);
+    final season = stageId <= 100 ? ((stageId - 1) ~/ 20) + 1 : 6;
+    final seasonStart = seasonStartStage(season);
+    // Difficulty/reward cycle restarts at the beginning of every season:
+    // Easy -> Medium -> Hard. Season 6 therefore starts at stage 101 as Easy.
+    final diff = (stageId - seasonStart) % 3;
 
     int gems = 0;
     int gold = 0;
 
     if (isFirst) {
-      gems = diff == 0
-          ? 1
-          : diff == 1
-              ? 3
-              : 5;
-      completed.add(roundStr);
+      // First-clear gems: Easy 1 / Medium 3 / Hard 5.
+      gems = diff == 0 ? 1 : diff == 1 ? 3 : 5;
+      completed.add(stageKey);
       await prefs.setStringList('ld_completed_rounds', completed);
     } else {
-      gold = diff == 0
-          ? 100
-          : diff == 1
-              ? 250
-              : 500;
+      // Repeat/farming reward scales by season while preserving the
+      // agreed Season 1 values and the 100 Gold = 1 Gem exchange rate.
+      final base = diff == 0 ? 250 : diff == 1 ? 500 : 750;
+      gold = base * season;
     }
 
     if (gems > 0) {

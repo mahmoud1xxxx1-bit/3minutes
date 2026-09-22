@@ -1,8 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'features/minigames/presentation/level_devil/troll_engine.dart';
 
 import 'store_screen.dart';
 import 'l10n.dart';
+
+class GameCurrencyIcon extends StatelessWidget {
+  const GameCurrencyIcon({super.key, required this.gems, this.size = 20});
+  final bool gems;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      gems ? 'assets/ranks/diamond.svg' : 'assets/ranks/gold.svg',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      semanticsLabel: gems ? 'Gems' : 'Gold',
+    );
+  }
+}
 
 class GlobalGameHUD extends StatelessWidget {
   final int lives;
@@ -115,7 +133,7 @@ class GlobalGameHUD extends StatelessWidget {
             children: [
               _buildBadge(Icons.diamond_rounded, Colors.cyanAccent, '$gems'),
               const SizedBox(width: 6),
-              _buildBadge(Icons.monetization_on, Colors.amber, '$gold'),
+              _buildBadge(Icons.monetization_on_rounded, Colors.amberAccent, '$gold'),
               const SizedBox(width: 6),
               Container(
                 width: 36, height: 36,
