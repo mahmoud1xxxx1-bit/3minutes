@@ -286,10 +286,10 @@ class EconomyManager {
     0,
     0,
     150,
-    450,
+    400,
     900,
     1600,
-    2500,
+    2450,
   ];
 
   static int seasonStartStage(int season) =>
