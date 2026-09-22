@@ -850,8 +850,12 @@ class TrollEngine {
     }
   }
 
-  double _reactionLeadDistance(int difficulty) =>
-      maxMoveSpeed * _reactionWindowSeconds(difficulty);
+  double _reactionLeadDistance(int difficulty) {
+    var effectiveSpeed = maxMoveSpeed;
+    if (isDashLevel) effectiveSpeed = max(effectiveSpeed, 1500.0);
+    if (isConveyorLevel) effectiveSpeed += 350.0;
+    return effectiveSpeed * _reactionWindowSeconds(difficulty);
+  }
 
   /// Returns difficulty level:
   /// levelsPerMechanic=3 -> 1/2/3 (easy/medium/hard)
