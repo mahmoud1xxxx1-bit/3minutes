@@ -62,7 +62,10 @@ class _LvlloLobbyScreenState extends State<LvlloLobbyScreen> {
           index: _tab,
           children: [
             _homePage(),
-            const LevelDevilHubScreen(inline: true),
+            LevelDevilHubScreen(
+              inline: true,
+              onMainMenu: () => setState(() => _tab = 0),
+            ),
             const StoreScreen(),
             _mailPage(),
             _settingsPage(),
