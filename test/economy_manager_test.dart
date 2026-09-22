@@ -51,6 +51,33 @@ void main() {
     expect(second['gold'], 1500);
   });
 
+  test('reward cycle restarts at each season boundary', () async {
+    final first = await EconomyManager.processWin(101);
+    expect(first['isFirst'], true);
+    expect(first['gems'], 1);
+    expect(first['gold'], 0);
+
+    final repeat = await EconomyManager.processWin(101);
+    expect(repeat['isFirst'], false);
+    expect(repeat['gems'], 0);
+    expect(repeat['gold'], 1500);
+  });
+
+  test('season unlock prices match the approved farming progression', () async {
+    final expected = <int, int>{
+      1: 0,
+      2: 150,
+      3: 400,
+      4: 900,
+      5: 1600,
+      6: 2450,
+    };
+    for (final entry in expected.entries) {
+      final state = await EconomyManager.seasonUnlockState(entry.key);
+      expect(state['cost'], entry.value);
+    }
+  });
+
   test('season unlock follows 70 percent progression and staged gem prices', () async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('ld_gems', 150);
