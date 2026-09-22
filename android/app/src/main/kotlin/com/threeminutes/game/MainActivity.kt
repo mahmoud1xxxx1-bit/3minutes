@@ -26,7 +26,7 @@ class MainActivity : FlutterActivity() {
                     }
                     "shareRoomInvite" -> {
                         val text = call.argument<String>("text")?.trim()
-                        if (text == null || !Regex("^threeminutes://join/[A-Z0-9]{5}$").matches(text)) {
+                        if (text == null || !Regex("^lvllool://join/[A-Z0-9]{5}$").matches(text)) {
                             result.error("invalid_invite", "Invalid room invitation link.", null)
                         } else {
                             shareInvite(text)
@@ -68,6 +68,6 @@ class MainActivity : FlutterActivity() {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-        startActivity(Intent.createChooser(sendIntent, "3 Minutes"))
+        startActivity(Intent.createChooser(sendIntent, "LVL LOOL"))
     }
 }
