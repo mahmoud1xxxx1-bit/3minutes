@@ -6,12 +6,12 @@ enum BackendPhase {
 class AppConfig {
   const AppConfig._();
 
-  static const String appName = '3 Minutes';
+  static const String appName = 'LVL LOOL';
   static const Duration matchDuration = Duration(minutes: 3);
   static const int gamesPerMatch = 8;
 
   // Single source of truth for trusted server features.
-  // Change to Blaze only after Cloud Functions and security review are live.
+  // Keep Spark fallback until the new Firebase Functions are deployed and verified.
   static const BackendPhase backendPhase = BackendPhase.spark;
 
   static const bool rankedAuthorityEnabled =
