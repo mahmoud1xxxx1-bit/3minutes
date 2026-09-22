@@ -1,49 +1,33 @@
 {
   "project_info": {
-    "project_number": "492486855771",
-    "project_id": "minutes-d7dfc",
-    "storage_bucket": "minutes-d7dfc.firebasestorage.app"
+    "project_number": "351650195477",
+    "project_id": "lvl-lool",
+    "storage_bucket": "lvl-lool.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:492486855771:android:7cbe840f5695f19883037e",
+        "mobilesdk_app_id": "1:351650195477:android:ef05ef635311151e6d461c",
         "android_client_info": {
-          "package_name": "com.threeminutes.game"
+          "package_name": "com.app.mmxx"
         }
       },
       "oauth_client": [
         {
-          "client_id": "492486855771-07rauv9n9tb1ofrb9agj5sl6bnbsgjru.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.threeminutes.game",
-            "certificate_hash": "ba784da0ffe35d88a42ca8ab757bf2a5d6279ba9"
-          }
-        },
-        {
-          "client_id": "492486855771-m1t49nbmrsq0f0ac97jic73q7p3i4v9g.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.threeminutes.game",
-            "certificate_hash": "9d0cae8acee49746eec81f16e6b1f17a3365b9ea"
-          }
-        },
-        {
-          "client_id": "492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com",
+          "client_id": "351650195477-okbctajcbqg812eclubim7cckfkn49s9.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBVrJQtl7VS5FRpAWcTRBUutwymaoGs__o"
+          "current_key": "AIzaSyCAVxsqrde3eVBQhBBj-zx05UEZbPbCEdQ"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "492486855771-l4881i9c2kmgj0te1dhtgjc0i9av69g6.apps.googleusercontent.com",
+              "client_id": "351650195477-okbctajcbqg812eclubim7cckfkn49s9.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
