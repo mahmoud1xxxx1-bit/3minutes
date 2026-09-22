@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'3 Minutes'**
+  /// **'LVL LOOL'**
   String get appName;
 
   /// No description provided for @play.
@@ -215,7 +215,7 @@ abstract class AppLocalizations {
   /// No description provided for @miniGamesSummary.
   ///
   /// In en, this message translates to:
-  /// **'3 Minutes • {count} Mini-Games'**
+  /// **'LVL LOOL • {count} Mini-Games'**
   String miniGamesSummary(int count);
 
   /// No description provided for @levelWithValue.
@@ -623,7 +623,7 @@ abstract class AppLocalizations {
   /// No description provided for @cosmeticBadgeTimer.
   ///
   /// In en, this message translates to:
-  /// **'Three Minute Badge'**
+  /// **'LVL LOOL Badge'**
   String get cosmeticBadgeTimer;
 
   /// No description provided for @cosmeticBadgeCrown.
