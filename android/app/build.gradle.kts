@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.threeminutes.game"
+    namespace = "com.lvlool.game"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
