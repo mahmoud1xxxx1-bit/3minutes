@@ -6,6 +6,7 @@ import '../../../../core/theme/design_tokens.dart';
 import '../../../../core/theme/lvllo_brand.dart';
 import 'troll_game.dart';
 import '../../../../economy_manager.dart';
+import '../../../../global_game_ui.dart';
 import '../../../../services/life_recovery_dialog.dart';
 import 'troll_stage_plan.dart';
 
