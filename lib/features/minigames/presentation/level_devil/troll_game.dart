@@ -846,6 +846,7 @@ class _TrollPainter extends CustomPainter {
     canvas.translate(-engine.cameraX, 0);
 
     _drawGrid(canvas);
+    _drawSeasonMechanicLayer(canvas);
 
     var paint = Paint();
     
@@ -1072,15 +1073,18 @@ class _TrollPainter extends CustomPainter {
 
   void _drawBackground(Canvas canvas) {
     final season = _seasonForStage(stageId);
-    if (season == _SeasonVisual.cosmic) {
-      _drawSeasonOneBackground(canvas);
-      return;
-    }
-
     final palette = _paletteForSeason(season);
     final w = engine.logicalWidth;
     final h = engine.logicalHeight;
     final rect = Rect.fromLTWH(0, 0, w, h);
+
+    // Season 1 is the approved visual master. It remains deliberately
+    // restrained; the other seasons inherit its composition language but
+    // become real worlds rather than recoloured backgrounds.
+    if (season == _SeasonVisual.cosmic) {
+      _drawSeasonOneBackground(canvas);
+      return;
+    }
 
     final bg = Paint()
       ..shader = LinearGradient(
@@ -1090,10 +1094,8 @@ class _TrollPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRect(rect, bg);
 
-    // Same restrained visual language as Season 1: one simple motif,
-    // shallow parallax layers, sparse detail, no visual clutter.
     final grid = Paint()
-      ..color = palette.rim.withValues(alpha: 0.055)
+      ..color = palette.rim.withValues(alpha: 0.045)
       ..strokeWidth = 1;
     for (double x = 0; x <= w; x += 48) {
       canvas.drawLine(Offset(x, 0), Offset(x, h), grid);
@@ -1102,238 +1104,337 @@ class _TrollPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(w, y), grid);
     }
 
-    final motifX = 420 - engine.cameraX * 0.05;
-    final motifY = 245.0;
-    final glow = Paint()
-      ..shader = RadialGradient(
-        colors: [palette.motif.withValues(alpha: 0.30), palette.motif.withValues(alpha: 0.0)],
-      ).createShader(Rect.fromCircle(center: Offset(motifX, motifY), radius: 125));
-    canvas.drawCircle(Offset(motifX, motifY), 125, glow);
-
-    final motif = Paint()..color = palette.motif.withValues(alpha: 0.58);
-    final shade = Paint()..color = palette.bottom.withValues(alpha: 0.42);
+    final parallax = -(engine.cameraX * 0.18) % 800;
+    final deep = Paint()..color = palette.bottom.withValues(alpha: 0.76);
+    final mid = Paint()..color = palette.mid.withValues(alpha: 0.72);
 
     switch (season) {
       case _SeasonVisual.inferno:
-        canvas.drawCircle(Offset(motifX, motifY), 58, motif);
-        canvas.drawCircle(Offset(motifX + 20, motifY - 12), 49, shade);
+        // Season 2 — Inferno Forge: obsidian, furnace glow and forged rock.
+        final glow = Paint()
+          ..shader = RadialGradient(
+            colors: [palette.motif.withValues(alpha: 0.34), Colors.transparent],
+          ).createShader(Rect.fromCircle(center: Offset(410, 430), radius: 230));
+        canvas.drawCircle(Offset(410, 430), 230, glow);
+
+        for (int i = 0; i < 2; i++) {
+          final sx = parallax + i * 800;
+          final p = Path()
+            ..moveTo(sx, 530)
+            ..lineTo(sx + 110, 410)
+            ..lineTo(sx + 210, 470)
+            ..lineTo(sx + 335, 330)
+            ..lineTo(sx + 470, 445)
+            ..lineTo(sx + 610, 365)
+            ..lineTo(sx + 800, 475)
+            ..lineTo(sx + 800, 560)
+            ..close();
+          canvas.drawPath(p, mid);
+        }
+        final lava = Paint()..color = palette.accent.withValues(alpha: 0.18);
+        canvas.drawRect(Rect.fromLTWH(0, 535, w, 65), lava);
+        for (double x = parallax - 40; x < w + 800; x += 120) {
+          canvas.drawLine(Offset(x, 535), Offset(x + 42, 560), lava..strokeWidth = 3);
+        }
         break;
+
       case _SeasonVisual.wilds:
-        final tree = Path()
-          ..moveTo(motifX, 155)..lineTo(motifX - 75, 305)..lineTo(motifX + 75, 305)..close();
-        canvas.drawPath(tree, motif);
+        // Season 3 — Ancient Wilds: ruins, roots and deep forest silhouettes.
+        final mist = Paint()
+          ..shader = RadialGradient(
+            colors: [palette.motif.withValues(alpha: 0.22), Colors.transparent],
+          ).createShader(Rect.fromCircle(center: Offset(410, 250), radius: 260));
+        canvas.drawCircle(Offset(410, 250), 260, mist);
+
+        for (int i = 0; i < 2; i++) {
+          final sx = parallax + i * 800;
+          final ruin = Path()
+            ..moveTo(sx, 545)
+            ..lineTo(sx + 90, 425)
+            ..lineTo(sx + 150, 485)
+            ..lineTo(sx + 250, 355)
+            ..lineTo(sx + 340, 445)
+            ..lineTo(sx + 470, 320)
+            ..lineTo(sx + 610, 430)
+            ..lineTo(sx + 730, 365)
+            ..lineTo(sx + 800, 445)
+            ..lineTo(sx + 800, 560)
+            ..close();
+          canvas.drawPath(ruin, deep);
+        }
+        final tree = Paint()..color = palette.motif.withValues(alpha: 0.22);
+        for (double x = parallax - 20; x < w + 800; x += 150) {
+          canvas.drawRect(Rect.fromLTWH(x + 42, 270, 12, 245), tree);
+          canvas.drawCircle(Offset(x + 48, 245), 58, tree);
+        }
         break;
+
       case _SeasonVisual.circuit:
-        canvas.drawRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(motifX, motifY), width: 125, height: 82),
-            const Radius.circular(10),
-          ),
-          motif,
-        );
+        // Season 4 — Neon Circuit: industrial panels and circuit traces.
+        final panel = Paint()..color = palette.motif.withValues(alpha: 0.12);
+        for (int i = 0; i < 5; i++) {
+          final x = (i * 190.0) + parallax * 0.35;
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(x, 120 + (i.isEven ? 30 : 0), 135, 250),
+              const Radius.circular(10),
+            ),
+            panel,
+          );
+        }
+        final trace = Paint()
+          ..color = palette.accent.withValues(alpha: 0.24)
+          ..strokeWidth = 2
+          ..style = PaintingStyle.stroke;
+        for (int i = 0; i < 7; i++) {
+          final y = 110.0 + i * 62;
+          final path = Path()
+            ..moveTo(0, y)
+            ..lineTo(120, y)
+            ..lineTo(155, y + 28)
+            ..lineTo(300, y + 28)
+            ..lineTo(335, y);
+          canvas.drawPath(path, trace);
+        }
         break;
+
       case _SeasonVisual.frozen:
-        final ice = Path()
-          ..moveTo(motifX, 145)..lineTo(motifX + 62, 300)..lineTo(motifX, 270)
-          ..lineTo(motifX - 62, 300)..close();
-        canvas.drawPath(ice, motif);
+        // Season 5 — Frozen Abyss: cave geometry, ice sheets and cold glow.
+        final aurora = Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              palette.motif.withValues(alpha: 0.18),
+              Colors.transparent,
+              palette.accent.withValues(alpha: 0.08),
+            ],
+          ).createShader(rect);
+        canvas.drawRect(rect, aurora);
+        final ice = Paint()..color = palette.motif.withValues(alpha: 0.24);
+        for (int i = 0; i < 7; i++) {
+          final x = ((i * 145.0) + parallax * 0.25) % 900;
+          final top = Path()
+            ..moveTo(x, 0)
+            ..lineTo(x + 28, 0)
+            ..lineTo(x + 15, 92 + (i % 3) * 22)
+            ..close();
+          canvas.drawPath(top, ice);
+        }
+        for (int i = 0; i < 5; i++) {
+          final x = ((i * 190.0) + 80 + parallax * 0.18) % 900;
+          final bottom = Path()
+            ..moveTo(x, 600)
+            ..lineTo(x + 36, 600)
+            ..lineTo(x + 18, 490 - (i % 2) * 30)
+            ..close();
+          canvas.drawPath(bottom, ice);
+        }
         break;
+
       case _SeasonVisual.rift:
-        final rift = Path()
-          ..moveTo(motifX - 12, 125)..lineTo(motifX + 8, 205)
-          ..lineTo(motifX - 14, 255)..lineTo(motifX + 18, 335);
-        final rp = Paint()
-          ..color = palette.motif.withValues(alpha: 0.72)
+        // Season 6 — The Rift: fractured planes around a dark void.
+        final voidPaint = Paint()
+          ..shader = RadialGradient(
+            colors: [const Color(0xFF020205), palette.bottom],
+          ).createShader(Rect.fromCircle(center: Offset(410, 310), radius: 280));
+        canvas.drawCircle(Offset(410, 310), 280, voidPaint);
+
+        final fracture = Paint()
+          ..color = palette.accent.withValues(alpha: 0.22)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 7;
-        canvas.drawPath(rift, rp);
+          ..strokeWidth = 2;
+        for (int i = 0; i < 7; i++) {
+          final x = 50.0 + i * 125.0 + parallax * 0.12;
+          final path = Path()
+            ..moveTo(x, 80)
+            ..lineTo(x - 24, 180)
+            ..lineTo(x + 16, 255)
+            ..lineTo(x - 12, 355)
+            ..lineTo(x + 28, 475);
+          canvas.drawPath(path, fracture);
+        }
         break;
+
       case _SeasonVisual.cosmic:
         break;
     }
 
-    final backOffset = -(engine.cameraX * 0.16) % 800;
-    final frontOffset = -(engine.cameraX * 0.34) % 800;
-
-    final back = Paint()..color = palette.mid.withValues(alpha: 0.82);
-    final front = Paint()..color = palette.bottom.withValues(alpha: 0.94);
-
-    for (int i = 0; i < 2; i++) {
-      final sx = backOffset + i * 800;
-      final p = Path()
-        ..moveTo(sx, 510)
-        ..lineTo(sx + 150, 405)
-        ..lineTo(sx + 285, 325)
-        ..lineTo(sx + 430, 410)
-        ..lineTo(sx + 570, 350)
-        ..lineTo(sx + 800, 455)
-        ..lineTo(sx + 800, 540)
-        ..close();
-      canvas.drawPath(p, back);
-    }
-
-    for (int i = 0; i < 2; i++) {
-      final sx = frontOffset + i * 800;
-      final p = Path()
-        ..moveTo(sx, 560)
-        ..lineTo(sx + 180, 455)
-        ..lineTo(sx + 340, 385)
-        ..lineTo(sx + 500, 485)
-        ..lineTo(sx + 640, 410)
-        ..lineTo(sx + 800, 510)
-        ..lineTo(sx + 800, 580)
-        ..close();
-      canvas.drawPath(p, front);
-    }
-
-    final edge = Paint()
-      ..color = palette.rim.withValues(alpha: 0.42)
-      ..strokeWidth = 2;
-    canvas.drawLine(
-      Offset(80 - engine.cameraX * 0.16, 470),
-      Offset(190 - engine.cameraX * 0.16, 380),
-      edge,
-    );
-    canvas.drawLine(
-      Offset(560 - engine.cameraX * 0.16, 350),
-      Offset(650 - engine.cameraX * 0.16, 420),
-      edge,
+    // Low-contrast horizon keeps the playable geometry readable without
+    // turning the environment into decoration overload.
+    canvas.drawRect(
+      Rect.fromLTWH(0, h - 72, w, 72),
+      Paint()..color = palette.bottom.withValues(alpha: 0.30),
     );
   }
 
+  void _drawSeasonMechanicLayer(Canvas canvas) {
+    final plan = TrollStagePlan.fromStageId(stageId);
+    final season = _seasonForStage(stageId);
+    final palette = _paletteForSeason(season);
+    final accent = palette.accent.withValues(alpha: 0.24);
+    final strong = palette.accent.withValues(alpha: 0.42);
+    final worldWidth = engine.maxMapWidth;
 
-  void _drawSeasonOneBackground(Canvas canvas) {
-    final w = engine.logicalWidth;
-    final h = engine.logicalHeight;
-    final rect = Rect.fromLTWH(0, 0, w, h);
+    final p = Paint()
+      ..color = accent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
 
-    // Approved Season 1 direction: deep indigo sky, large moon, angular
-    // mountains, restrained cyan/purple accents, no visual clutter.
-    final bg = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0xFF111B57),
-          Color(0xFF18235D),
-          Color(0xFF0B112A),
-        ],
-      ).createShader(rect);
-    canvas.drawRect(rect, bg);
-
-    // Very subtle grid, matching the LVL LOOL visual language.
-    final grid = Paint()
-      ..color = const Color(0x142D4C92)
-      ..strokeWidth = 1;
-    for (double x = 0; x <= w; x += 40) {
-      canvas.drawLine(Offset(x, 0), Offset(x, h), grid);
+    // The mechanic is deliberately part of the environment. It is not a
+    // second UI layer: every cue is placed in world coordinates and scrolls
+    // with the level.
+    switch (plan.mechanicId) {
+      case 1: // Appearing spikes
+        for (double x = 22 * 40; x < worldWidth; x += 260) {
+          canvas.drawLine(Offset(x, 515), Offset(x + 18, 496), p);
+          canvas.drawLine(Offset(x + 18, 496), Offset(x + 36, 515), p);
+        }
+        break;
+      case 2: // Erratic spikes / thwomps
+        for (double x = 420; x < worldWidth; x += 320) {
+          canvas.drawRect(Rect.fromLTWH(x, 42, 56, 5), p);
+          canvas.drawLine(Offset(x + 28, 47), Offset(x + 28, 82), p);
+        }
+        break;
+      case 3: // Falling floor
+        for (double x = 600; x < worldWidth; x += 360) {
+          final crack = Path()
+            ..moveTo(x, 515)
+            ..lineTo(x + 18, 532)
+            ..lineTo(x + 8, 548)
+            ..lineTo(x + 30, 565);
+          canvas.drawPath(crack, p);
+        }
+        break;
+      case 4: // Spotlight
+        canvas.drawCircle(
+          Offset(engine.player.rect.x + 20, engine.player.rect.y + 20),
+          210,
+          Paint()
+            ..color = palette.accent.withValues(alpha: 0.06)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2,
+        );
+        break;
+      case 5: // Time freeze
+        for (int i = 0; i < 3; i++) {
+          canvas.drawCircle(
+            Offset(260 + i * 170.0, 110),
+            22 + i * 5,
+            p,
+          );
+        }
+        break;
+      case 6: // Inverted gravity
+        for (double x = 220; x < worldWidth; x += 300) {
+          canvas.drawLine(Offset(x, 70), Offset(x, 105), strongPaint(strong));
+          canvas.drawLine(Offset(x - 7, 80), Offset(x, 70), strongPaint(strong));
+          canvas.drawLine(Offset(x + 7, 80), Offset(x, 70), strongPaint(strong));
+        }
+        break;
+      case 7: // Bouncy
+        for (double x = 500; x < worldWidth; x += 280) {
+          canvas.drawArc(Rect.fromLTWH(x, 505, 48, 26), pi, pi, false, p);
+          canvas.drawLine(Offset(x + 8, 532), Offset(x + 40, 532), p);
+        }
+        break;
+      case 8: // Ghost shadow
+        for (double x = 420; x < worldWidth; x += 260) {
+          canvas.drawOval(Rect.fromLTWH(x, 440, 28, 46), p);
+        }
+        break;
+      case 9: // Conveyor
+        for (double x = 430; x < worldWidth; x += 110) {
+          _drawArrow(canvas, Offset(x, 510), accent);
+        }
+        break;
+      case 10: // Wall chase
+        canvas.drawLine(
+          Offset(engine.chaseWallX, 40),
+          Offset(engine.chaseWallX, 555),
+          strongPaint(strong),
+        );
+        break;
+      case 11: // Rising lava
+        canvas.drawLine(
+          Offset(engine.cameraX - 100, engine.lavaY),
+          Offset(engine.cameraX + 900, engine.lavaY),
+          strongPaint(strong),
+        );
+        break;
+      case 12: // Low gravity
+        for (int i = 0; i < 9; i++) {
+          final x = 120.0 + i * 87;
+          canvas.drawCircle(Offset(x, 170 + (i % 3) * 70.0), 3, p);
+        }
+        break;
+      case 13: // Flappy
+        for (double x = 520; x < worldWidth; x += 300) {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(Rect.fromLTWH(x, 80, 26, 150), const Radius.circular(6)),
+            p,
+          );
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(Rect.fromLTWH(x, 360, 26, 130), const Radius.circular(6)),
+            p,
+          );
+        }
+        break;
+      case 14: // Tiny character
+        for (double x = 520; x < worldWidth; x += 250) {
+          canvas.drawRect(Rect.fromLTWH(x, 445, 42, 6), p);
+          canvas.drawRect(Rect.fromLTWH(x + 12, 425, 18, 20), p);
+        }
+        break;
+      case 15: // Dash
+        for (double x = 450; x < worldWidth; x += 220) {
+          canvas.drawLine(Offset(x, 250), Offset(x + 70, 250), strongPaint(strong));
+          canvas.drawLine(Offset(x + 50, 242), Offset(x + 70, 250), strongPaint(strong));
+          canvas.drawLine(Offset(x + 50, 258), Offset(x + 70, 250), strongPaint(strong));
+        }
+        break;
+      case 16: // Wind
+        for (double y = 160; y < 460; y += 70) {
+          canvas.drawLine(Offset(300, y), Offset(430, y - 22), p);
+          canvas.drawLine(Offset(390, y - 29), Offset(430, y - 22), p);
+        }
+        break;
+      case 17: // Ice floor
+        for (double x = 420; x < worldWidth; x += 250) {
+          canvas.drawLine(Offset(x, 512), Offset(x + 36, 535), p);
+          canvas.drawLine(Offset(x + 36, 535), Offset(x + 72, 512), p);
+        }
+        break;
+      case 18: // Screen blink
+        canvas.drawRect(
+          Rect.fromLTWH(12, 12, engine.logicalWidth - 24, engine.logicalHeight - 24),
+          p,
+        );
+        break;
+      case 19: // Mirror controls
+        canvas.drawLine(Offset(engine.cameraX + 400, 40), Offset(engine.cameraX + 400, 555), p);
+        break;
+      case 20: // Absolute chaos
+        for (double x = 500; x < worldWidth; x += 210) {
+          canvas.drawCircle(Offset(x, 110 + (x % 160)), 5, p);
+        }
+        break;
+      default:
+        break;
     }
-    for (double y = 0; y <= h; y += 40) {
-      canvas.drawLine(Offset(0, y), Offset(w, y), grid);
-    }
+  }
 
-    // Moon glow.
-    final moonX = 405 - (engine.cameraX * 0.05);
-    final moonCenter = Offset(moonX, 275);
-    final glow = Paint()
-      ..shader = RadialGradient(
-        colors: const [
-          Color(0x6638D8FF),
-          Color(0x2638D8FF),
-          Color(0x0038D8FF),
-        ],
-      ).createShader(Rect.fromCircle(center: moonCenter, radius: 145));
-    canvas.drawCircle(moonCenter, 145, glow);
-    final moon = Paint()..color = const Color(0xFF438FD0).withValues(alpha: 0.78);
-    canvas.drawCircle(moonCenter, 72, moon);
-    final moonShade = Paint()..color = const Color(0xFF24548C).withValues(alpha: 0.38);
-    canvas.drawCircle(Offset(moonX + 18, 260), 64, moonShade);
+  Paint strongPaint(Color color) => Paint()
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2.5;
 
-    final backOffset = -(engine.cameraX * 0.18) % 800;
-    final frontOffset = -(engine.cameraX * 0.42) % 800;
-
-    // Back angular mountains.
-    final back = Paint()..color = const Color(0xFF1B2A58);
-    for (int i = 0; i < 2; i++) {
-      final sx = backOffset + i * 800;
-      final p = Path()
-        ..moveTo(sx, 500)
-        ..lineTo(sx + 105, 420)
-        ..lineTo(sx + 205, 315)
-        ..lineTo(sx + 315, 230)
-        ..lineTo(sx + 455, 345)
-        ..lineTo(sx + 610, 285)
-        ..lineTo(sx + 800, 410)
-        ..lineTo(sx + 800, 520)
-        ..close();
-      canvas.drawPath(p, back);
-    }
-
-    // Front dark mountain ridge.
-    final front = Paint()..color = const Color(0xFF101A38);
-    for (int i = 0; i < 2; i++) {
-      final sx = frontOffset + i * 800;
-      final p = Path()
-        ..moveTo(sx, 545)
-        ..lineTo(sx + 180, 440)
-        ..lineTo(sx + 315, 365)
-        ..lineTo(sx + 485, 475)
-        ..lineTo(sx + 625, 385)
-        ..lineTo(sx + 800, 500)
-        ..lineTo(sx + 800, 560)
-        ..close();
-      canvas.drawPath(p, front);
-    }
-
-    // Restrained cyan edge lights on a few mountain facets.
-    final edge = Paint()
-      ..color = const Color(0xFF2CCFF1).withValues(alpha: 0.46)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(
-      Offset(70 - engine.cameraX * 0.18, 465),
-      Offset(190 - engine.cameraX * 0.18, 360),
-      edge,
-    );
-    canvas.drawLine(
-      Offset(525 - engine.cameraX * 0.18, 345),
-      Offset(615 - engine.cameraX * 0.18, 430),
-      edge,
-    );
-
-    // Small floating crystalline islands are environmental decoration only.
-    final islandPaint = Paint()..color = const Color(0xFF182340);
-    void island(double x, double y, double width) {
-      final top = Rect.fromLTWH(x, y, width, 10);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(top, const Radius.circular(2)),
-        islandPaint,
-      );
-      final p = Path()
-        ..moveTo(x + 8, y + 10)
-        ..lineTo(x + width * .50, y + 42)
-        ..lineTo(x + width - 8, y + 10)
-        ..close();
-      canvas.drawPath(p, islandPaint);
-      final rim = Paint()..color = const Color(0xFF36D9F4).withValues(alpha: 0.72);
-      canvas.drawRect(Rect.fromLTWH(x, y, width, 2), rim);
-    }
-    island(505 - engine.cameraX * 0.12, 252, 112);
-    island(690 - engine.cameraX * 0.12, 318, 94);
-
-    // A few crystals, deliberately sparse.
-    final crystal = Paint()..color = const Color(0xFF52E6FF);
-    void crystalAt(double x, double y, double s) {
-      final p = Path()
-        ..moveTo(x, y - s)
-        ..lineTo(x + s * .55, y)
-        ..lineTo(x, y + s)
-        ..lineTo(x - s * .55, y)
-        ..close();
-      canvas.drawPath(p, crystal);
-    }
-    crystalAt(560 - engine.cameraX * 0.12, 235, 10);
-    crystalAt(742 - engine.cameraX * 0.12, 300, 9);
+  void _drawArrow(Canvas canvas, Offset at, Color color) {
+    final paint = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2;
+    canvas.drawLine(Offset(at.dx - 16, at.dy), Offset(at.dx + 16, at.dy), paint);
+    canvas.drawLine(Offset(at.dx + 8, at.dy - 7), Offset(at.dx + 16, at.dy), paint);
+    canvas.drawLine(Offset(at.dx + 8, at.dy + 7), Offset(at.dx + 16, at.dy), paint);
   }
 
   void _drawGrid(Canvas canvas) {
@@ -1481,56 +1582,52 @@ class _TrollPainter extends CustomPainter {
   }
 
   void _drawDoor(Canvas canvas, RectD rect, Color color) {
-    // A magical circular portal with pearls/sparkles
+    final palette = _paletteForSeason(_seasonForStage(stageId));
     final cx = rect.x + rect.w / 2;
     final cy = rect.y + rect.h / 2;
-    // Radius slightly larger than the previous box
-    final r = (rect.w > rect.h ? rect.w : rect.h) * 0.65;
-    
-    double time = DateTime.now().millisecondsSinceEpoch / 1000.0;
-    
-    // 1. Outer mystical glow
-    final paint = Paint()
-      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 30)
-      ..color = const Color(0xFF00E5FF).withOpacity(0.8);
-    canvas.drawCircle(Offset(cx, cy), r, paint);
-    
-    // 2. Portal Void (Swirling Gradient)
-    paint.maskFilter = null;
-    paint.shader = ui.Gradient.radial(
-      Offset(cx, cy),
-      r,
-      [const Color(0xFF001133), const Color(0xFF00E5FF)],
-      [0.0, 1.0],
+    final r = (rect.w > rect.h ? rect.w : rect.h) * 0.52;
+
+    final glow = Paint()
+      ..color = palette.accent.withValues(alpha: 0.16)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 18);
+    canvas.drawCircle(Offset(cx, cy), r, glow);
+
+    final outer = Paint()
+      ..color = palette.platformDark
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(cx, cy), r, outer);
+
+    final ring = Paint()
+      ..color = palette.rim
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    canvas.drawCircle(Offset(cx, cy), r, ring);
+
+    final inner = Paint()
+      ..shader = RadialGradient(
+        colors: [palette.accent.withValues(alpha: 0.9), palette.bottom],
+      ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r * .78));
+    canvas.drawCircle(Offset(cx, cy), r * .78, inner);
+
+    // Angular season gate: the exit is unmistakable, but its material belongs
+    // to the current world rather than being a generic magical portal.
+    final gate = Path()
+      ..moveTo(cx, cy - r * .55)
+      ..lineTo(cx + r * .45, cy)
+      ..lineTo(cx, cy + r * .55)
+      ..lineTo(cx - r * .45, cy)
+      ..close();
+    canvas.drawPath(
+      gate,
+      Paint()..color = palette.rim.withValues(alpha: 0.22),
     );
-    canvas.drawCircle(Offset(cx, cy), r, paint);
-    paint.shader = null;
-    
-    // 3. Spinning Magical Runes / Ring
-    paint.style = PaintingStyle.stroke;
-    paint.strokeWidth = 3.0;
-    paint.color = const Color(0xFFE0FFFF).withOpacity(0.7);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.8), time * 2, 4.5, false, paint);
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.9), -time * 1.5, 4.5, false, paint);
-    paint.style = PaintingStyle.fill;
-    
-    // 4. Floating Pearls
-    final pearlCount = 7;
-    for (int i = 0; i < pearlCount; i++) {
-       double angle = time * 1.2 + (i * 2 * 3.14159 / pearlCount);
-       double px = cx + cos(angle) * (r * 1.05);
-       double py = cy + sin(angle) * (r * 1.05) + sin(time * 3 + i) * 5;
-       
-       // Pearl glow
-       paint.color = Colors.white.withOpacity(0.9);
-       paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-       canvas.drawCircle(Offset(px, py), 6, paint);
-       
-       // Pearl core
-       paint.maskFilter = null;
-       paint.color = Colors.white;
-       canvas.drawCircle(Offset(px, py), 3, paint);
-    }
+    canvas.drawPath(
+      gate,
+      Paint()
+        ..color = palette.accent.withValues(alpha: 0.82)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   void _drawPlayer(Canvas canvas, TrollEntity p, {double opacity = 1.0}) {
