@@ -1223,6 +1223,8 @@ class TrollEngine {
     }
 
     // ── New generator: build trap sequence and execute ─────────────────────
+    final int diff = _getDifficulty(id);
+
     List<String> normalizeTrapCount(List<String> pool) {
       if (levelsPerMechanic != 5) return pool;
       final target = diff == 1 ? 12 : diff == 2 ? 18 : 22;
@@ -1260,8 +1262,6 @@ class TrollEngine {
       return pool;
     }
 
-
-    final int diff = _getDifficulty(id);
 
     // Season 6 mashup builder: every Season 6 group combines mechanics already
     // present in Seasons 1-5. It never introduces a new stage identity.
