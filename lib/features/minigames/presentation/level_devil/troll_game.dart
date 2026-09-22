@@ -7,6 +7,7 @@ import '../../../../economy_manager.dart';
 import '../../../../services/life_recovery_dialog.dart';
 import 'troll_engine.dart';
 import 'troll_stage_plan.dart';
+// Seasonal gameplay presentation is driven by the canonical stage plan.
 import '../../../../core/navigation/game_orientation.dart';
 
 enum _TrollResult { dead, failed, victory }
