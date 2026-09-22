@@ -425,10 +425,11 @@ class TrollSpringTrap extends TrollTrap {
 
 class AggressiveDoorTrap extends TrollTrap {
   final String doorId;
+  final double triggerDistance;
   TrollEntity? _door;
   bool triggered = false;
 
-  AggressiveDoorTrap(this.doorId);
+  AggressiveDoorTrap(this.doorId, {this.triggerDistance = 200});
 
   @override
   void update(TrollEngine engine, double dt) {
@@ -438,7 +439,7 @@ class AggressiveDoorTrap extends TrollTrap {
     var d = _door;
     if (d == null) return;
 
-    if (!triggered && (engine.player.rect.x - d.rect.x).abs() < 200) {
+    if (!triggered && (engine.player.rect.x - d.rect.x).abs() <= triggerDistance) {
       triggered = true;
       d.type = TrollEntityType.spike; 
       d.color = const Color(0xFFFF3366);
@@ -452,10 +453,11 @@ class AggressiveDoorTrap extends TrollTrap {
 
 class SpotlightToggleTrap extends TrollTrap {
   final String triggerId;
+  final double triggerDistance;
   TrollEntity? _trigger;
   bool triggered = false;
 
-  SpotlightToggleTrap(this.triggerId);
+  SpotlightToggleTrap(this.triggerId, {this.triggerDistance = 20});
 
   @override
   void update(TrollEngine engine, double dt) {
@@ -465,7 +467,7 @@ class SpotlightToggleTrap extends TrollTrap {
     var t = _trigger;
     if (t == null) return;
 
-    if (!triggered && (engine.player.rect.x - t.rect.x).abs() < 20) {
+    if (!triggered && (engine.player.rect.x - t.rect.x).abs() <= triggerDistance) {
       triggered = true;
       engine.isSpotlightLevel = !engine.isSpotlightLevel;
       engine._spawnParticles(t.rect.x, t.rect.y + 20, 40, engine.isSpotlightLevel ? const Color(0xFF222222) : const Color(0xFFEEEEEE));
@@ -475,10 +477,11 @@ class SpotlightToggleTrap extends TrollTrap {
 
 class TimeFreezeToggleTrap extends TrollTrap {
   final String triggerId;
+  final double triggerDistance;
   TrollEntity? _trigger;
   bool triggered = false;
 
-  TimeFreezeToggleTrap(this.triggerId);
+  TimeFreezeToggleTrap(this.triggerId, {this.triggerDistance = 20});
 
   @override
   void update(TrollEngine engine, double dt) {
@@ -488,7 +491,7 @@ class TimeFreezeToggleTrap extends TrollTrap {
     var t = _trigger;
     if (t == null) return;
 
-    if (!triggered && (engine.player.rect.x - t.rect.x).abs() < 20) {
+    if (!triggered && (engine.player.rect.x - t.rect.x).abs() <= triggerDistance) {
       triggered = true;
       engine.isTimeFreezeLevel = !engine.isTimeFreezeLevel;
       engine._spawnParticles(t.rect.x, t.rect.y + 20, 40, const Color(0xFF00AAFF)); // Ice blue particles
@@ -640,10 +643,11 @@ class GravityFlipZoneTrap extends TrollTrap {
 /// A Thwomp that moves horizontally toward the player after triggering.
 class MovingThwompTrap extends TrollTrap {
   final List<String> targetIds;
+  final double triggerDistance;
   List<TrollEntity>? _thwomps;
   bool _triggered = false;
 
-  MovingThwompTrap(this.targetIds);
+  MovingThwompTrap(this.targetIds, {this.triggerDistance = 250});
 
   @override
   void update(TrollEngine engine, double dt) {
@@ -657,7 +661,7 @@ class MovingThwompTrap extends TrollTrap {
     if (_thwomps!.isEmpty) return;
 
     var ref = _thwomps!.first;
-    if (!_triggered && (engine.player.rect.x - ref.rect.x).abs() < 250) {
+    if (!_triggered && (engine.player.rect.x - ref.rect.x).abs() <= triggerDistance) {
       _triggered = true;
     }
     if (_triggered) {
@@ -819,16 +823,14 @@ class TrollEngine {
   int _getTrapTarget(int roundId) {
     int local = (roundId - 1) % levelsPerMechanic + 1;
     if (levelsPerMechanic == 5) {
-      if (local == 1) return 11;
-      if (local == 2) return 13;
-      if (local == 3) return 16;
-      if (local == 4) return 18;
-      return 24;
+      // Source-of-truth geometry: Easy ~12, Medium ~18, Hard ~22+.
+      if (local == 1 || local == 2) return 12;
+      if (local == 3 || local == 4) return 18;
+      return 22;
     }
-    // Fallback for Season 11 (3 levels per mechanic)
-    if (local == 1) return 11;
+    if (local == 1) return 12;
     if (local == 2) return 18;
-    return 24;
+    return 22;
   }
 
   /// Returns mechanic number (1-20) — offset applied for multi-season support
@@ -1096,18 +1098,18 @@ class TrollEngine {
     }
 
     void addAggressiveDoor(int col) {
-      grid[11][col] = 'A'; // Aggressive door
-      traps.add(AggressiveDoorTrap("A_11_$col"));
+      grid[11][col] = 'A';
+      traps.add(AggressiveDoorTrap("A_11_$col", triggerDistance: _reactionLeadDistance(diff)));
     }
 
     void addSpotlightToggle(int col) {
-      grid[12][col] = 'L'; // Spotlight Trigger
-      traps.add(SpotlightToggleTrap("L_12_$col"));
+      grid[12][col] = 'L';
+      traps.add(SpotlightToggleTrap("L_12_$col", triggerDistance: _reactionLeadDistance(diff)));
     }
 
     void addTimeFreezeToggle(int col) {
-      grid[12][col] = 'T'; // Time Freeze Trigger
-      traps.add(TimeFreezeToggleTrap("T_12_$col"));
+      grid[12][col] = 'T';
+      traps.add(TimeFreezeToggleTrap("T_12_$col", triggerDistance: _reactionLeadDistance(diff)));
     }
 
     // ── NEW Phase 2 helpers ────────────────────────────────────────────────
@@ -1174,7 +1176,8 @@ class TrollEngine {
         grid[r2][c] = 'X';
       }
       traps.add(MovingThwompTrap(
-        List.generate(4, (i) => "b_${r1}_${col+i}") + List.generate(4, (i) => "b_${r2}_${col+i}")
+        List.generate(4, (i) => "b_${r1}_${col+i}") + List.generate(4, (i) => "b_${r2}_${col+i}"),
+        triggerDistance: _reactionLeadDistance(diff),
       ));
     }
 
@@ -1340,10 +1343,8 @@ class TrollEngine {
 
     // ignore: unused_local_variable
     final int mechId = _getMechanicId(id);
-    // Map width scales with difficulty:
-    // 5-level: 160/200/240/280/320   3-level: 200/260/320
-    // diff is now always 1, 2, or 3
-    mapCols = (diff == 1) ? 200 : (diff == 2) ? 260 : 320;
+    // Canonical geometry: Easy 160, Medium 240, Hard 320 blocks.
+    mapCols = (diff == 1) ? 160 : (diff == 2) ? 240 : 320;
 
     // Regenerate grid with new column count
     grid = List.generate(15, (r) => List.generate(mapCols, (c) => '.'));
