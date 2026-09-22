@@ -601,6 +601,7 @@ ainer(
   void _goMainMenu() {
     if (!mounted) return;
     if (widget.onMainMenu != null) {
+      Navigator.of(context).pop();
       widget.onMainMenu!();
       return;
     }
