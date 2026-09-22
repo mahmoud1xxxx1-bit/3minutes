@@ -454,7 +454,7 @@ class _TrollGameState extends State<TrollGame> with SingleTickerProviderStateMix
                 ),
                 if (isVictory) ...[
                   const SizedBox(height: 14),
-ainer(
+Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
