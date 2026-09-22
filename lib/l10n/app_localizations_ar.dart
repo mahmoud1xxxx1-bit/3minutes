@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => '3 دقائق';
+  String get appName => 'LVL LOOL';
 
   @override
   String get play => 'العب';
@@ -67,7 +67,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String miniGamesSummary(int count) {
-    return '3 دقائق • $count ألعاب مصغرة';
+    return 'LVL LOOL • $count ألعاب مصغرة';
   }
 
   @override
