@@ -708,6 +708,7 @@ class TeleportSpikeTrap extends TrollTrap {
 // ---------------- Engine Core ----------------
 
 class TrollEngine {
+  int _difficulty = 1;
   static bool godMode = false;
 
   // ── Safety constants (never change these) ──────────────────────────────────
@@ -1119,17 +1120,17 @@ class TrollEngine {
 
     void addAggressiveDoor(int col) {
       grid[11][col] = 'A';
-      traps.add(AggressiveDoorTrap("A_11_$col", triggerDistance: _reactionLeadDistance(diff)));
+      traps.add(AggressiveDoorTrap("A_11_$col", triggerDistance: _reactionLeadDistance(_difficulty)));
     }
 
     void addSpotlightToggle(int col) {
       grid[12][col] = 'L';
-      traps.add(SpotlightToggleTrap("L_12_$col", triggerDistance: _reactionLeadDistance(diff)));
+      traps.add(SpotlightToggleTrap("L_12_$col", triggerDistance: _reactionLeadDistance(_difficulty)));
     }
 
     void addTimeFreezeToggle(int col) {
       grid[12][col] = 'T';
-      traps.add(TimeFreezeToggleTrap("T_12_$col", triggerDistance: _reactionLeadDistance(diff)));
+      traps.add(TimeFreezeToggleTrap("T_12_$col", triggerDistance: _reactionLeadDistance(_difficulty)));
     }
 
     // ── NEW Phase 2 helpers ────────────────────────────────────────────────
@@ -1197,7 +1198,7 @@ class TrollEngine {
       }
       traps.add(MovingThwompTrap(
         List.generate(4, (i) => "b_${r1}_${col+i}") + List.generate(4, (i) => "b_${r2}_${col+i}"),
-        triggerDistance: _reactionLeadDistance(diff),
+        triggerDistance: _reactionLeadDistance(_difficulty),
       ));
     }
 
@@ -1243,11 +1244,11 @@ class TrollEngine {
     }
 
     // ── New generator: build trap sequence and execute ─────────────────────
-    final int diff = _getDifficulty(id);
+    _difficulty = _getDifficulty(id);
 
     List<String> normalizeTrapCount(List<String> pool) {
       if (levelsPerMechanic != 5) return pool;
-      final target = diff == 1 ? 12 : diff == 2 ? 18 : 22;
+      final target = _difficulty == 1 ? 12 : _difficulty == 2 ? 18 : 22;
       if (pool.length >= target) return pool;
       final fillType = pool.isEmpty ? 'Spike' : pool.first;
       while (pool.length < target) {
@@ -1327,7 +1328,7 @@ class TrollEngine {
 
       if (chase) {
         chaseWallX = -200;
-        chaseWallSpeed = 210 + diff * 15;
+        chaseWallSpeed = 210 + _difficulty * 15;
       }
 
       // Geometry for the environmental mechanics is intentionally kept simple
@@ -1358,9 +1359,9 @@ class TrollEngine {
         if (lava) lavaY = 700;
       }
 
-      runRecipe(recipe(diff == 1
+      runRecipe(recipe(_difficulty == 1
           ? (easy ?? {'Spike': 4, 'FFloor': 3, 'ASpike': 3})
-          : diff == 2
+          : _difficulty == 2
               ? (medium ?? {'Spike': 4, 'FFloor': 4, 'ESpike': 3, 'ASpike': 3})
               : (hard ?? {'Spike': 5, 'FFloor': 4, 'ESpike': 4, 'ASpike': 3, 'Thwomp': 2})));
     }
@@ -1375,7 +1376,7 @@ class TrollEngine {
     // ignore: unused_local_variable
     final int mechId = _getMechanicId(id);
     // Canonical geometry: Easy 160, Medium 240, Hard 320 blocks.
-    mapCols = (diff == 1) ? 160 : (diff == 2) ? 240 : 320;
+    mapCols = (_difficulty == 1) ? 160 : (_difficulty == 2) ? 240 : 320;
 
     // Regenerate grid with new column count
     grid = List.generate(15, (r) => List.generate(mapCols, (c) => '.'));
@@ -1393,35 +1394,35 @@ class TrollEngine {
     // Teach -> Practice -> Combine -> Pressure -> Mastery.
     // No future mechanic is introduced as a surprise rule in Hard.
     if (mechId == 1) {
-      runRecipe(recipe(diff == 1 ? {'ASpike': 7} : diff == 2 ? {'ASpike': 7, 'Spike': 3} : {'ASpike': 8, 'Spike': 5}));
+      runRecipe(recipe(_difficulty == 1 ? {'ASpike': 7} : _difficulty == 2 ? {'ASpike': 7, 'Spike': 3} : {'ASpike': 8, 'Spike': 5}));
     } else if (mechId == 2) {
-      runRecipe(recipe(diff == 1 ? {'ESpike': 6, 'Thwomp': 3} : diff == 2 ? {'ESpike': 6, 'Thwomp': 4, 'ASpike': 2} : {'ESpike': 7, 'Thwomp': 5, 'ASpike': 3, 'Spike': 3}));
+      runRecipe(recipe(_difficulty == 1 ? {'ESpike': 6, 'Thwomp': 3} : _difficulty == 2 ? {'ESpike': 6, 'Thwomp': 4, 'ASpike': 2} : {'ESpike': 7, 'Thwomp': 5, 'ASpike': 3, 'Spike': 3}));
     } else if (mechId == 3) {
-      runRecipe(recipe(diff == 1 ? {'JDrop': 6} : diff == 2 ? {'JDrop': 6, 'ASpike': 3} : {'JDrop': 7, 'ASpike': 3, 'ESpike': 3, 'Thwomp': 2}));
+      runRecipe(recipe(_difficulty == 1 ? {'JDrop': 6} : _difficulty == 2 ? {'JDrop': 6, 'ASpike': 3} : {'JDrop': 7, 'ASpike': 3, 'ESpike': 3, 'Thwomp': 2}));
     } else if (mechId == 4) {
       isSpotlightLevel = true;
-      runRecipe(recipe(diff == 1 ? {'SpotTog': 4, 'ASpike': 2} : diff == 2 ? {'SpotTog': 5, 'ASpike': 3, 'Thwomp': 2} : {'SpotTog': 6, 'ASpike': 3, 'ESpike': 3, 'JDrop': 2}));
+      runRecipe(recipe(_difficulty == 1 ? {'SpotTog': 4, 'ASpike': 2} : _difficulty == 2 ? {'SpotTog': 5, 'ASpike': 3, 'Thwomp': 2} : {'SpotTog': 6, 'ASpike': 3, 'ESpike': 3, 'JDrop': 2}));
     } else if (mechId == 5) {
       isTimeFreezeLevel = true;
-      runRecipe(recipe(diff == 1 ? {'TimeTog': 4, 'Thwomp': 2} : diff == 2 ? {'TimeTog': 5, 'Thwomp': 3, 'ASpike': 3} : {'TimeTog': 6, 'ESpike': 3, 'Thwomp': 3, 'JDrop': 2, 'ASpike': 2}));
+      runRecipe(recipe(_difficulty == 1 ? {'TimeTog': 4, 'Thwomp': 2} : _difficulty == 2 ? {'TimeTog': 5, 'Thwomp': 3, 'ASpike': 3} : {'TimeTog': 6, 'ESpike': 3, 'Thwomp': 3, 'JDrop': 2, 'ASpike': 2}));
     } else if (mechId == 6) {
       isGravityInverted = true;
       for (int col = 0; col < mapCols; col++) { grid[2][col] = 'X'; grid[3][col] = 'X'; grid[13][col] = '.'; grid[14][col] = '.'; }
       grid[12][2] = 'P';
-      runRecipe(recipe(diff == 1 ? {'ESpike': 6} : diff == 2 ? {'ESpike': 6, 'FSolid': 3, 'ASpike': 2} : {'ESpike': 7, 'FSolid': 4, 'ASpike': 3, 'JDrop': 2, 'Thwomp': 2}));
+      runRecipe(recipe(_difficulty == 1 ? {'ESpike': 6} : _difficulty == 2 ? {'ESpike': 6, 'FSolid': 3, 'ASpike': 2} : {'ESpike': 7, 'FSolid': 4, 'ASpike': 3, 'JDrop': 2, 'Thwomp': 2}));
     } else if (mechId == 7) {
       isBouncyLevel = true;
-      runRecipe(recipe(diff == 1 ? {'JDrop': 5, 'Thwomp': 3} : diff == 2 ? {'JDrop': 5, 'Thwomp': 4, 'ESpike': 3} : {'JDrop': 6, 'Thwomp': 4, 'ESpike': 3, 'ASpike': 3, 'FSolid': 2}));
+      runRecipe(recipe(_difficulty == 1 ? {'JDrop': 5, 'Thwomp': 3} : _difficulty == 2 ? {'JDrop': 5, 'Thwomp': 4, 'ESpike': 3} : {'JDrop': 6, 'Thwomp': 4, 'ESpike': 3, 'ASpike': 3, 'FSolid': 2}));
     } else if (mechId == 8) {
       isGhostLevel = true;
-      runRecipe(recipe(diff == 1 ? {'FFloor': 5, 'ASpike': 3} : diff == 2 ? {'FFloor': 5, 'ASpike': 3, 'ESpike': 2, 'JDrop': 2} : {'FFloor': 6, 'ASpike': 4, 'ESpike': 3, 'JDrop': 2, 'Thwomp': 2}));
+      runRecipe(recipe(_difficulty == 1 ? {'FFloor': 5, 'ASpike': 3} : _difficulty == 2 ? {'FFloor': 5, 'ASpike': 3, 'ESpike': 2, 'JDrop': 2} : {'FFloor': 6, 'ASpike': 4, 'ESpike': 3, 'JDrop': 2, 'Thwomp': 2}));
     } else if (mechId == 9) {
       isConveyorLevel = true;
-      for (int col = 10; col < mapCols; col++) { final goRight = diff == 3 || (col % 15 < 7); grid[13][col] = goRight ? '>' : '<'; grid[14][col] = goRight ? '>' : '<'; }
-      runRecipe(recipe(diff == 1 ? {'Thwomp': 4, 'ESpike': 3} : diff == 2 ? {'Thwomp': 5, 'ESpike': 4, 'ASpike': 2} : {'Thwomp': 6, 'ESpike': 4, 'JDrop': 3, 'FFloor': 2, 'ASpike': 2}));
+      for (int col = 10; col < mapCols; col++) { final goRight = _difficulty == 3 || (col % 15 < 7); grid[13][col] = goRight ? '>' : '<'; grid[14][col] = goRight ? '>' : '<'; }
+      runRecipe(recipe(_difficulty == 1 ? {'Thwomp': 4, 'ESpike': 3} : _difficulty == 2 ? {'Thwomp': 5, 'ESpike': 4, 'ASpike': 2} : {'Thwomp': 6, 'ESpike': 4, 'JDrop': 3, 'FFloor': 2, 'ASpike': 2}));
     } else if (mechId == 10) {
-      isChasedLevel = true; chaseWallX = -200; chaseWallSpeed = 220 + diff * 15;
-      runRecipe(recipe(diff == 1 ? {'FSolid': 4, 'Thwomp': 4} : diff == 2 ? {'FSolid': 5, 'Thwomp': 4, 'ESpike': 3} : {'FSolid': 6, 'Thwomp': 5, 'ESpike': 4, 'JDrop': 2, 'FFloor': 2}));
+      isChasedLevel = true; chaseWallX = -200; chaseWallSpeed = 220 + _difficulty * 15;
+      runRecipe(recipe(_difficulty == 1 ? {'FSolid': 4, 'Thwomp': 4} : _difficulty == 2 ? {'FSolid': 5, 'Thwomp': 4, 'ESpike': 3} : {'FSolid': 6, 'Thwomp': 5, 'ESpike': 4, 'JDrop': 2, 'FFloor': 2}));
     } else if (mechId == 11) {
       isLavaLevel = true; lavaY = 700;
       for (int col = 0; col < mapCols; col++) { grid[13][col] = '.'; grid[14][col] = '.'; }
@@ -1432,79 +1433,79 @@ class TrollEngine {
       for (int i = 0; i < platformCount; i++) {
         final gap = rng.nextInt(2) + 2; final width = rng.nextInt(2) + 2; final hOff = rng.nextInt(3); currentCol += gap; final row = 13 - hOff;
         for (int col = currentCol; col < currentCol + width && col < mapCols; col++) { grid[row][col] = 'X'; if (row + 1 < 15) grid[row + 1][col] = 'X'; }
-        if (diff >= 2 && i % 3 == 0 && currentCol + 1 < mapCols) grid[row - 1][currentCol] = 's';
-        if (diff == 3 && i % 4 == 1 && currentCol + 2 < mapCols) addErraticSpike(currentCol + 1);
+        if (_difficulty >= 2 && i % 3 == 0 && currentCol + 1 < mapCols) grid[row - 1][currentCol] = 's';
+        if (_difficulty == 3 && i % 4 == 1 && currentCol + 2 < mapCols) addErraticSpike(currentCol + 1);
         currentCol += width;
       }
       for (int col = currentCol + 2; col < currentCol + 12 && col < mapCols; col++) { grid[13][col] = 'X'; grid[14][col] = 'X'; }
       addRunningDoor(5, 0);
     } else if (mechId == 12) {
       isLowGravityLevel = true;
-      final pool12 = recipe(diff == 1 ? {'FFloor': 4, 'ESpike': 4, 'ASpike': 3} : diff == 2 ? {'FFloor': 4, 'ESpike': 4, 'Thwomp': 3, 'ASpike': 3} : {'FFloor': 5, 'ESpike': 4, 'Thwomp': 3, 'JDrop': 2, 'ASpike': 3});
+      final pool12 = recipe(_difficulty == 1 ? {'FFloor': 4, 'ESpike': 4, 'ASpike': 3} : _difficulty == 2 ? {'FFloor': 4, 'ESpike': 4, 'Thwomp': 3, 'ASpike': 3} : {'FFloor': 5, 'ESpike': 4, 'Thwomp': 3, 'JDrop': 2, 'ASpike': 3});
       pool12.shuffle(rng); currentCol = 15;
-      for (final t in pool12) { if (currentCol + 20 >= mapCols) break; final gapSize = diff == 1 ? 8 : diff == 2 ? 10 : 12; for (int col = 0; col < gapSize && currentCol + col < mapCols; col++) { grid[13][currentCol + col] = '.'; grid[14][currentCol + col] = '.'; } currentCol += gapSize; for (int col = 0; col < 4 && currentCol + col < mapCols; col++) grid[13][currentCol + col] = 'X'; placeTrap(t, currentCol); currentCol += _gap(lastTrap, t) + 4; lastTrap = t; }
+      for (final t in pool12) { if (currentCol + 20 >= mapCols) break; final gapSize = _difficulty == 1 ? 8 : _difficulty == 2 ? 10 : 12; for (int col = 0; col < gapSize && currentCol + col < mapCols; col++) { grid[13][currentCol + col] = '.'; grid[14][currentCol + col] = '.'; } currentCol += gapSize; for (int col = 0; col < 4 && currentCol + col < mapCols; col++) grid[13][currentCol + col] = 'X'; placeTrap(t, currentCol); currentCol += _gap(lastTrap, t) + 4; lastTrap = t; }
       addRunningDoor(kDoorClearance, 0);
     } else if (mechId == 13) {
       isFlappyLevel = true;
       for (int col = 10; col < mapCols; col++) { grid[13][col] = '.'; grid[14][col] = '.'; }
-      final obstacleCount = _getTrapTarget(id); currentCol = 15; final gapPositions13 = [4,5,6,7,8,9,10]; final gapSize13 = diff == 3 ? 4 : 5;
-      for (int i = 0; i < obstacleCount; i++) { if (currentCol + 2 >= mapCols) break; final gapRow = gapPositions13[rng.nextInt(gapPositions13.length)]; for (int row=2; row<gapRow && row<15; row++) grid[row][currentCol]='X'; for (int row=gapRow+gapSize13; row<13; row++) grid[row][currentCol]='X'; if (diff>=2 && i%3==0 && gapRow<14) grid[gapRow][currentCol]='s'; currentCol += rng.nextInt(4)+8; }
+      final obstacleCount = _getTrapTarget(id); currentCol = 15; final gapPositions13 = [4,5,6,7,8,9,10]; final gapSize13 = _difficulty == 3 ? 4 : 5;
+      for (int i = 0; i < obstacleCount; i++) { if (currentCol + 2 >= mapCols) break; final gapRow = gapPositions13[rng.nextInt(gapPositions13.length)]; for (int row=2; row<gapRow && row<15; row++) grid[row][currentCol]='X'; for (int row=gapRow+gapSize13; row<13; row++) grid[row][currentCol]='X'; if (_difficulty>=2 && i%3==0 && gapRow<14) grid[gapRow][currentCol]='s'; currentCol += rng.nextInt(4)+8; }
       for (int col=currentCol; col<currentCol+8 && col<mapCols; col++){grid[13][col]='X';grid[14][col]='X';} addRunningDoor(5,0);
     } else if (mechId == 14) {
       isTinyLevel = true;
-      final pool14 = recipe(diff == 1 ? {'ASpike':5,'FFloor':4} : diff == 2 ? {'ASpike':5,'FFloor':4,'Thwomp':3,'ESpike':2} : {'ASpike':6,'FFloor':5,'Thwomp':4,'ESpike':3,'FSolid':2});
+      final pool14 = recipe(_difficulty == 1 ? {'ASpike':5,'FFloor':4} : _difficulty == 2 ? {'ASpike':5,'FFloor':4,'Thwomp':3,'ESpike':2} : {'ASpike':6,'FFloor':5,'Thwomp':4,'ESpike':3,'FSolid':2});
       pool14.shuffle(rng); currentCol=15; int wallInterval=0;
       for(final t in pool14){if(currentCol+10>=mapCols)break; wallInterval++; if(wallInterval%3==0){for(int row=10;row<=12;row++)grid[row][currentCol]='X';grid[12][currentCol]='.';currentCol+=4;} placeTrap(t,currentCol); currentCol+=_gap(lastTrap,t)+4;lastTrap=t;} addRunningDoor(kDoorClearance,0);
     } else if (mechId == 15) {
-      isDashLevel = true; final gapW15=diff==1?9:diff==2?11:13;
-      final pool15=recipe(diff==1?{'Spike':4,'FFloor':3,'ASpike':3}:diff==2?{'Spike':5,'FFloor':4,'ASpike':3,'ESpike':2}:{'Spike':6,'FFloor':5,'ASpike':4,'ESpike':3,'JDrop':2});
+      isDashLevel = true; final gapW15=_difficulty==1?9:_difficulty==2?11:13;
+      final pool15=recipe(_difficulty==1?{'Spike':4,'FFloor':3,'ASpike':3}:_difficulty==2?{'Spike':5,'FFloor':4,'ASpike':3,'ESpike':2}:{'Spike':6,'FFloor':5,'ASpike':4,'ESpike':3,'JDrop':2});
       pool15.shuffle(rng);currentCol=15;
       for(final t of pool15){if(currentCol+gapW15+15>=mapCols)break;for(int col=0;col<gapW15&&currentCol+col<mapCols;col++){grid[13][currentCol+col]='.';grid[14][currentCol+col]='.';}currentCol+=gapW15;for(int col=0;col<10&&currentCol+col<mapCols;col++)grid[13][currentCol+col]='X';placeTrap(t,currentCol);currentCol+=_gap(lastTrap,t)+10;lastTrap=t;} addRunningDoor(kDoorClearance,0);
     } else if (mechId == 16) {
-      isWindLevel=true; final pool16=recipe(diff==1?{'Spike':3,'JDrop':5,'ASpike':3}:diff==2?{'Spike':4,'JDrop':5,'ASpike':3,'ESpike':3}:{'Spike':5,'JDrop':5,'ESpike':4,'Thwomp':2,'ASpike':2});
+      isWindLevel=true; final pool16=recipe(_difficulty==1?{'Spike':3,'JDrop':5,'ASpike':3}:_difficulty==2?{'Spike':4,'JDrop':5,'ASpike':3,'ESpike':3}:{'Spike':5,'JDrop':5,'ESpike':4,'Thwomp':2,'ASpike':2});
       pool16.shuffle(rng);currentCol=15;for(final t of pool16){if(currentCol+10>=mapCols)break;final gapW=rng.nextInt(2)+2;for(int col=0;col<gapW&&currentCol+col<mapCols;col++){grid[13][currentCol+col]='.';grid[14][currentCol+col]='.';}currentCol+=gapW;for(int col=0;col<4&&currentCol+col<mapCols;col++)grid[13][currentCol+col]='X';placeTrap(t,currentCol);currentCol+=_gap(lastTrap,t)+4;lastTrap=t;}addRunningDoor(kDoorClearance,0);
     } else if (mechId == 17) {
-      isIceLevel=true; final pool17=recipe(diff==1?{'Spike':5,'FFloor':4}:diff==2?{'Spike':5,'FFloor':4,'ESpike':3}:{'Spike':6,'FFloor':5,'ESpike':4,'JDrop':2,'Chain':2});
+      isIceLevel=true; final pool17=recipe(_difficulty==1?{'Spike':5,'FFloor':4}:_difficulty==2?{'Spike':5,'FFloor':4,'ESpike':3}:{'Spike':6,'FFloor':5,'ESpike':4,'JDrop':2,'Chain':2});
       pool17.shuffle(rng);currentCol=15;for(final t of pool17){if(currentCol+14>=mapCols)break;final gapW=rng.nextInt(2)+3;for(int col=0;col<gapW&&currentCol+col<mapCols;col++){grid[13][currentCol+col]='.';grid[14][currentCol+col]='.';}currentCol+=gapW;for(int col=0;col<8&&currentCol+col<mapCols;col++)grid[13][currentCol+col]='X';placeTrap(t,currentCol);currentCol+=_gap(lastTrap,t)+8;lastTrap=t;}addRunningDoor(kDoorClearance,0);
     } else if (mechId == 18) {
-      isBlinkLevel=true; final pool18=recipe(diff==1?{'Spike':3,'TSpy':4,'FFloor':4}:diff==2?{'Spike':4,'TSpy':4,'ESpike':3,'FFloor':3}:{'Spike':5,'TSpy':5,'ESpike':4,'FFloor':4,'FDoor':2,'Thwomp':2});
+      isBlinkLevel=true; final pool18=recipe(_difficulty==1?{'Spike':3,'TSpy':4,'FFloor':4}:_difficulty==2?{'Spike':4,'TSpy':4,'ESpike':3,'FFloor':3}:{'Spike':5,'TSpy':5,'ESpike':4,'FFloor':4,'FDoor':2,'Thwomp':2});
       pool18.shuffle(rng);currentCol=15;for(final t of pool18){if(currentCol+10>=mapCols)break;final gapW=rng.nextInt(2)+2;for(int col=0;col<gapW&&currentCol+col<mapCols;col++){grid[13][currentCol+col]='.';grid[14][currentCol+col]='.';}currentCol+=gapW;for(int col=0;col<6&&currentCol+col<mapCols;col++)grid[13][currentCol+col]='X';placeTrap(t,currentCol);currentCol+=_gap(lastTrap,t)+6;lastTrap=t;}addRunningDoor(kDoorClearance,0);
     } else if (mechId == 19) {
-      isMirrorLevel=true; final pool19=recipe(diff==1?{'Spike':4,'FFloor':4,'RevCtrl':2}:diff==2?{'Spike':5,'FFloor':4,'RevCtrl':3,'ESpike':3}:{'Spike':6,'FFloor':5,'RevCtrl':4,'ESpike':4,'FDoor':2,'TSpy':2});
+      isMirrorLevel=true; final pool19=recipe(_difficulty==1?{'Spike':4,'FFloor':4,'RevCtrl':2}:_difficulty==2?{'Spike':5,'FFloor':4,'RevCtrl':3,'ESpike':3}:{'Spike':6,'FFloor':5,'RevCtrl':4,'ESpike':4,'FDoor':2,'TSpy':2});
       pool19.shuffle(rng);currentCol=15;for(final t of pool19){if(currentCol+10>=mapCols)break;final gapW=rng.nextInt(2)+2;for(int col=0;col<gapW&&currentCol+col<mapCols;col++){grid[13][currentCol+col]='.';grid[14][currentCol+col]='.';}currentCol+=gapW;for(int col=0;col<5&&currentCol+col<mapCols;col++)grid[13][currentCol+col]='X';placeTrap(t,currentCol);currentCol+=_gap(lastTrap,t)+5;lastTrap=t;}addRunningDoor(kDoorClearance,0);
     } else if (mechId == 20) {
-      isBouncyLevel=true; isGhostLevel=diff>=2; isWindLevel=diff>=2; isBlinkLevel=diff==3; isChasedLevel=diff==3;
-      if(diff==3){chaseWallX=-200;chaseWallSpeed=200;}
-      runRecipe(recipe(diff==1?{'ASpike':2,'Thwomp':3,'ESpike':2,'FSolid':2,'Chain':1,'FDoor':1}:diff==2?{'ASpike':3,'Thwomp':3,'ESpike':3,'FSolid':2,'Chain':2,'FDoor':2,'MThwomp':2}:{'ASpike':3,'Thwomp':4,'ESpike':4,'FSolid':3,'Chain':2,'FDoor':3,'MThwomp':2,'JDrop':2,'RevCtrl':1}));
+      isBouncyLevel=true; isGhostLevel=_difficulty>=2; isWindLevel=_difficulty>=2; isBlinkLevel=_difficulty==3; isChasedLevel=_difficulty==3;
+      if(_difficulty==3){chaseWallX=-200;chaseWallSpeed=200;}
+      runRecipe(recipe(_difficulty==1?{'ASpike':2,'Thwomp':3,'ESpike':2,'FSolid':2,'Chain':1,'FDoor':1}:_difficulty==2?{'ASpike':3,'Thwomp':3,'ESpike':3,'FSolid':2,'Chain':2,'FDoor':2,'MThwomp':2}:{'ASpike':3,'Thwomp':4,'ESpike':4,'FSolid':3,'Chain':2,'FDoor':3,'MThwomp':2,'JDrop':2,'RevCtrl':1}));
     } else if (mechId == 21) {
       // S6 Group 1 — Invisible Blocks (source-defined group)
-      final hiddenWidth = diff == 1 ? 3 : diff == 2 ? 4 : 5;
+      final hiddenWidth = _difficulty == 1 ? 3 : _difficulty == 2 ? 4 : 5;
       currentCol = 18;
-      for (int i = 0; i < (diff == 1 ? 5 : diff == 2 ? 6 : 8); i++) {
+      for (int i = 0; i < (_difficulty == 1 ? 5 : _difficulty == 2 ? 6 : 8); i++) {
         addInvisibleBlocks(currentCol, hiddenWidth);
-        if (diff >= 2 && i.isEven) grid[12][currentCol + hiddenWidth] = 's';
+        if (_difficulty >= 2 && i.isEven) grid[12][currentCol + hiddenWidth] = 's';
         currentCol += hiddenWidth + 5;
       }
-      runRecipe(recipe(diff == 1
+      runRecipe(recipe(_difficulty == 1
           ? {'Spike': 9, 'FFloor': 1}
-          : diff == 2
+          : _difficulty == 2
               ? {'Spike': 9, 'FFloor': 1, 'ESpike': 1}
               : {'Spike': 10, 'FFloor': 2, 'ESpike': 1}));
 
     } else if (mechId == 22) {
       // S6 Group 2 — Shifting Floors (source-defined group)
-      runRecipe(recipe(diff == 1
+      runRecipe(recipe(_difficulty == 1
           ? {'Spike': 8, 'FFloor': 3}
-          : diff == 2
+          : _difficulty == 2
               ? {'Spike': 8, 'FFloor': 4, 'ASpike': 1}
               : {'Spike': 9, 'FFloor': 5, 'ASpike': 2}));
 
     } else if (mechId == 23) {
       // S6 Group 3 — Runaway Door (source-defined group)
-      final moveDistance = diff == 1 ? 3 : diff == 2 ? 5 : 8;
-      runRecipe(recipe(diff == 1
+      final moveDistance = _difficulty == 1 ? 3 : _difficulty == 2 ? 5 : 8;
+      runRecipe(recipe(_difficulty == 1
           ? {'Spike': 11}
-          : diff == 2
+          : _difficulty == 2
               ? {'Spike': 11, 'FFloor': 2}
               : {'Spike': 12, 'FFloor': 3}), addDoor: false);
       addRunningDoor(kDoorClearance, moveDistance);
@@ -1513,7 +1514,7 @@ class TrollEngine {
       // S6 Group 4 — Friendly Spike (source-defined group)
       // FriendSpike is represented as a non-lethal visual spike marker while
       // the documented spike counts remain part of the stage recipe.
-      final friendCount = diff == 1 ? 3 : diff == 2 ? 5 : 6;
+      final friendCount = _difficulty == 1 ? 3 : _difficulty == 2 ? 5 : 6;
       currentCol = 18;
       for (int i = 0; i < friendCount; i++) {
         if (currentCol < mapCols) {
@@ -1521,9 +1522,9 @@ class TrollEngine {
           currentCol += 6;
         }
       }
-      runRecipe(recipe(diff == 1
+      runRecipe(recipe(_difficulty == 1
           ? {'Spike': 8}
-          : diff == 2
+          : _difficulty == 2
               ? {'Spike': 8, 'FFloor': 1}
               : {'Spike': 10, 'FFloor': 1}));
 
@@ -1533,8 +1534,8 @@ class TrollEngine {
       // Season 1-5 ideas: platforms cycle between visible/solid and hidden.
       isIceLevel = false;
       currentCol = 18;
-      final platformWidth = diff == 1 ? 5 : diff == 2 ? 4 : 3;
-      final platformCount = diff == 1 ? 9 : diff == 2 ? 12 : 15;
+      final platformWidth = _difficulty == 1 ? 5 : _difficulty == 2 ? 4 : 3;
+      final platformCount = _difficulty == 1 ? 9 : _difficulty == 2 ? 12 : 15;
 
       for (int i = 0; i < platformCount; i++) {
         if (currentCol + platformWidth + 8 >= mapCols) break;
@@ -1553,15 +1554,15 @@ class TrollEngine {
                 platformWidth,
                 (j) => 'b_14_' + (currentCol + j).toString(),
               ),
-          showDuration: diff == 1 ? 3.2 : diff == 2 ? 2.6 : 2.1,
-          hideDuration: diff == 1 ? 2.8 : diff == 2 ? 2.4 : 2.0,
+          showDuration: _difficulty == 1 ? 3.2 : _difficulty == 2 ? 2.6 : 2.1,
+          hideDuration: _difficulty == 1 ? 2.8 : _difficulty == 2 ? 2.4 : 2.0,
         ));
 
-        if (diff >= 2 && i.isOdd && currentCol + platformWidth + 2 < mapCols) {
+        if (_difficulty >= 2 && i.isOdd && currentCol + platformWidth + 2 < mapCols) {
           grid[12][currentCol + platformWidth + 2] = 's';
         }
 
-        currentCol += platformWidth + (diff == 1 ? 5 : diff == 2 ? 4 : 3);
+        currentCol += platformWidth + (_difficulty == 1 ? 5 : _difficulty == 2 ? 4 : 3);
       }
 
       for (int c = currentCol; c < currentCol + 10 && c < mapCols; c++) {
